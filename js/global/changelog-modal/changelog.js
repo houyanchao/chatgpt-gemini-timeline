@@ -23,8 +23,8 @@ const CHANGELOG_DATA = {
             en: 'Timeline theme colors: set active node colors for different AI platforms'
         },
         {
-            zh: 'AI 回复完成提醒：当你停留在历史节点时，回复完成会及时提示',
-            en: 'AI reply completion reminders: get notified when a reply finishes while viewing an earlier node'
+            zh: 'AI 回复完成提醒：如果你正在查看前面的对话，回复结束后会在右上角提示',
+            en: 'AI reply completion reminders: if you are viewing earlier messages, a top-right notification appears when the reply finishes'
         }
     ],
 
