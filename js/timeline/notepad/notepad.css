@@ -33,6 +33,7 @@
     opacity: 0.55;
     pointer-events: none;
     transform: scale(1) translateX(0);
+    user-select: none;
 }
 
 .ait-notepad-panel.ait-notepad-visible.ait-notepad-focused {
