@@ -7,35 +7,116 @@
  * @param {Object} options
  * @param {Array}    options.prompts        - 提示词列表（已过滤）
  * @param {Function} options.onItemClick    - (prompt, itemElement) => void
- * @param {Function} options.onManageClick  - () => void  点击 "+" 按钮
+ * @param {Function} options.onManageClick  - () => void  点击添加提示词入口
+ * @param {boolean}  [options.showCommonSettings=false] - 是否显示"常用设置"Tab
+ * @param {Function} [options.onChatWidthClick] - () => void 点击对话宽度设置按钮
+ * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
+ * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
  */
-function createPromptDropdownUI({ prompts, onItemClick, onManageClick, tooltipPlacement = 'right' }) {
+function createPromptDropdownUI({
+    prompts,
+    onItemClick,
+    onManageClick,
+    showCommonSettings = false,
+    onChatWidthClick,
+    onSmartInputSettingsClick,
+    onSettingsClick,
+    tooltipPlacement = 'right'
+}) {
     const container = document.createElement('div');
     container.className = 'prompt-dropdown-container';
 
-    // ===== Header =====
-    const header = document.createElement('div');
-    header.className = 'prompt-dropdown-header';
-    header.innerHTML = `
-        <div class="prompt-dropdown-title-wrapper">
-            <svg class="prompt-dropdown-title-icon" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-            <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
-        </div>
-        <button class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
-                <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </button>
-    `;
-    header.querySelector('.prompt-dropdown-manage-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (onManageClick) onManageClick();
-    });
-    container.appendChild(header);
+    if (showCommonSettings) {
+        const tabs = document.createElement('div');
+        tabs.className = 'prompt-dropdown-tabs';
+        tabs.innerHTML = `
+            <div class="prompt-dropdown-tab-group">
+                <button type="button" class="prompt-dropdown-tab active" data-prompt-tab="prompts">
+                    <span class="prompt-dropdown-tab-text">${chrome.i18n.getMessage('hosegod') || '提示词'}</span>
+                    <span class="prompt-dropdown-tab-icon prompt-dropdown-add-tab-action" aria-label="${chrome.i18n.getMessage('byaskjndg') || '添加提示词'}">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                </button>
+                <button type="button" class="prompt-dropdown-tab" data-prompt-tab="common-settings">
+                    <span class="prompt-dropdown-tab-text">${chrome.i18n.getMessage('promptCommonSettingsTab') || '常用设置'}</span>
+                    <span class="prompt-dropdown-tab-icon prompt-dropdown-settings-tab-action" aria-label="${chrome.i18n.getMessage('promptAllSettingsTooltip') || '全部设置'}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        `;
+        const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
+        const addTooltip = chrome.i18n.getMessage('byaskjndg') || '添加提示词';
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (onManageClick) onManageClick();
+        });
+        addBtn.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show(
+                'prompt-dropdown-add-prompt',
+                'button',
+                addBtn,
+                addTooltip,
+                { style: 'mini', placement: 'top' }
+            );
+        });
+        addBtn.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
+
+        const settingsBtn = tabs.querySelector('.prompt-dropdown-settings-tab-action');
+        const settingsTooltip = chrome.i18n.getMessage('promptAllSettingsTooltip') || '全部设置';
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (onSettingsClick) onSettingsClick();
+        });
+        settingsBtn.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show(
+                'prompt-dropdown-all-settings',
+                'button',
+                settingsBtn,
+                settingsTooltip,
+                { style: 'mini', placement: 'top' }
+            );
+        });
+        settingsBtn.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
+        container.appendChild(tabs);
+    } else {
+        // ===== Header =====
+        const header = document.createElement('div');
+        header.className = 'prompt-dropdown-header';
+        header.innerHTML = `
+            <div class="prompt-dropdown-title-wrapper">
+                <svg class="prompt-dropdown-title-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
+            </div>
+            <button class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
+                    <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        `;
+        header.querySelector('.prompt-dropdown-manage-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (onManageClick) onManageClick();
+        });
+        container.appendChild(header);
+    }
+
+    const promptsPanel = document.createElement('div');
+    promptsPanel.className = 'prompt-dropdown-panel prompt-dropdown-prompts-panel active';
+    promptsPanel.dataset.promptPanel = 'prompts';
 
     // ===== Sort =====
     const sortedPrompts = [...prompts].sort((a, b) => {
@@ -57,7 +138,7 @@ function createPromptDropdownUI({ prompts, onItemClick, onManageClick, tooltipPl
             _promptDropdownFilter(container, searchInput.value.trim().toLowerCase());
         });
         searchWrap.appendChild(searchInput);
-        container.appendChild(searchWrap);
+        promptsPanel.appendChild(searchWrap);
     }
 
     // ===== Body =====
@@ -72,21 +153,139 @@ function createPromptDropdownUI({ prompts, onItemClick, onManageClick, tooltipPl
         const empty = document.createElement('div');
         empty.className = 'prompt-dropdown-empty';
         empty.innerHTML = `
-            <div class="prompt-dropdown-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
+            <span class="prompt-dropdown-empty-hint">${chrome.i18n.getMessage('promptEmptyHint') || '保存常用提示词，用的时候点一下就能插入输入框。'}</span>
+            <button type="button" class="prompt-dropdown-empty-action">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-            </div>
-            <span class="prompt-dropdown-empty-text">${chrome.i18n.getMessage('hsiwhwl')}</span>
+                <span>${chrome.i18n.getMessage('byaskjndg') || '添加提示词'}</span>
+            </button>
         `;
+        empty.querySelector('.prompt-dropdown-empty-action')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (onManageClick) onManageClick();
+        });
         body.appendChild(empty);
     }
 
-    container.appendChild(body);
+    promptsPanel.appendChild(body);
+    container.appendChild(promptsPanel);
+
+    if (showCommonSettings) {
+        container.appendChild(_promptDropdownCreateCommonSettings({
+            onChatWidthClick,
+            onSmartInputSettingsClick
+        }));
+        _promptDropdownBindTabs(container);
+    }
+
     return container;
+}
+
+function _promptDropdownBindTabs(container) {
+    const tabs = container.querySelectorAll('.prompt-dropdown-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-prompt-tab');
+            tabs.forEach(item => item.classList.toggle('active', item === tab));
+            container.querySelectorAll('.prompt-dropdown-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.dataset.promptPanel === target);
+            });
+        });
+    });
+}
+
+function _promptDropdownCreateCommonSettings({
+    onChatWidthClick,
+    onSmartInputSettingsClick
+}) {
+    const panel = document.createElement('div');
+    panel.className = 'prompt-dropdown-panel prompt-common-settings-panel';
+    panel.dataset.promptPanel = 'common-settings';
+
+    const manager = window.ChatWidthManager?.getInstance?.();
+    const supported = !!manager?.isSupported?.();
+    const currentScale = manager?.getScale?.() || 100;
+    const currentText = currentScale <= 100
+        ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
+        : `${currentScale}%`;
+
+    panel.innerHTML = `
+        <div class="prompt-common-settings">
+            <div class="prompt-common-setting-item ${supported ? '' : 'disabled'}">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('chatWidthTitle') || '对话宽度'}</div>
+                        <span class="prompt-common-setting-value">${currentText}</span>
+                    </div>
+                    <div class="prompt-common-setting-hint">${supported
+                        ? (chrome.i18n.getMessage('chatWidthHint') || '调大对话区域宽度，充分利用屏幕空间')
+                        : (chrome.i18n.getMessage('chatWidthUnsupported') || '当前平台暂不支持调节对话宽度')
+                    }</div>
+                </div>
+                <button class="prompt-common-setting-btn" ${supported ? '' : 'disabled'}>
+                    ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                </div>
+                <label class="ait-toggle-switch">
+                    <input type="checkbox" class="prompt-common-ai-complete-toast-toggle">
+                    <span class="ait-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('kvzmxp') || '换行与发送消息'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonSmartInputHint') || '设置 Enter 换行和发送消息方式'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-smart-input-btn">
+                    ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
+                </button>
+            </div>
+        </div>
+    `;
+
+    const chatWidthBtn = panel.querySelector('.prompt-common-setting-btn');
+    chatWidthBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (chatWidthBtn.disabled) return;
+        if (onChatWidthClick) onChatWidthClick();
+    });
+
+    const aiCompleteToggle = panel.querySelector('.prompt-common-ai-complete-toast-toggle');
+    if (aiCompleteToggle) {
+        chrome.storage.local.get('timelineAICompleteToastEnabled').then(result => {
+            aiCompleteToggle.checked = result.timelineAICompleteToastEnabled !== false;
+        }).catch(() => {
+            aiCompleteToggle.checked = true;
+        });
+        aiCompleteToggle.addEventListener('change', async (e) => {
+            try {
+                await chrome.storage.local.set({
+                    timelineAICompleteToastEnabled: e.target.checked
+                });
+            } catch (error) {
+                console.error('[PromptDropdown] Failed to save AI complete toast setting:', error);
+                aiCompleteToggle.checked = !aiCompleteToggle.checked;
+            }
+        });
+    }
+
+    const smartInputBtn = panel.querySelector('.prompt-common-smart-input-btn');
+    smartInputBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onSmartInputSettingsClick) onSmartInputSettingsClick();
+    });
+
+    return panel;
 }
 
 function _promptDropdownCreateItem(prompt, onItemClick, tooltipPlacement) {

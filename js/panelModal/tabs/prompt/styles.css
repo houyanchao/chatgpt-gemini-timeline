@@ -444,10 +444,120 @@
     stroke-width: 2.5 !important;
 }
 
+/* 顶部 Tab */
+.prompt-dropdown-tabs {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 6px 10px 0;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.prompt-dropdown-tab-group {
+    flex: 1;
+    display: flex;
+    gap: 14px;
+    min-width: 0;
+}
+
+.prompt-dropdown-tab {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 38px;
+    padding: 0 2px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.prompt-dropdown-tab-text {
+    position: relative;
+    min-width: 0;
+    overflow: visible;
+    white-space: nowrap;
+}
+
+.prompt-dropdown-tab-text::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -12px;
+    height: 3px;
+    border-radius: 999px;
+    background: transparent;
+    transform: scaleX(0.35);
+    opacity: 0;
+    transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+}
+
+.prompt-dropdown-tab:hover {
+    color: #4c1d95;
+}
+
+.prompt-dropdown-tab.active {
+    color: #5b21b6;
+    font-weight: 600;
+}
+
+.prompt-dropdown-tab.active .prompt-dropdown-tab-text::after {
+    background: #7c3aed;
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+.prompt-dropdown-tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    color: currentColor;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.prompt-dropdown-tab-icon:hover {
+    background: rgba(124, 58, 237, 0.12);
+    color: #5b21b6;
+}
+
+.prompt-dropdown-tab-icon:active {
+    transform: scale(0.96);
+}
+
+.prompt-dropdown-tab-icon svg {
+    width: 13px;
+    height: 13px;
+}
+
+.prompt-dropdown-panel {
+    display: none;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+.prompt-dropdown-panel.active {
+    display: flex;
+}
+
 /* 搜索区域 */
 .prompt-dropdown-search {
     flex-shrink: 0;
-    padding: 8px 10px 4px;
+    padding: 10px 10px 4px;
 }
 
 .prompt-dropdown-search-input {
@@ -487,7 +597,7 @@
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 6px;
+    padding: 10px;
 }
 
 /* 滚动条样式 */
@@ -615,24 +725,132 @@
     min-height: 150px;
 }
 
-.prompt-dropdown-empty-icon {
+.prompt-dropdown-empty-hint {
+    max-width: 220px;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.prompt-dropdown-empty-action {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin-bottom: 12px;
-    color: #d1d5db;
+    gap: 6px;
+    height: 32px;
+    margin-top: 14px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 8px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.prompt-dropdown-empty-icon svg {
-    width: 100%;
-    height: 100%;
+.prompt-dropdown-empty-action:hover {
+    background: #374151;
 }
 
-.prompt-dropdown-empty-text {
+.prompt-dropdown-empty-action:active {
+    transform: scale(0.97);
+}
+
+.prompt-dropdown-empty-action svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 常用设置 */
+.prompt-common-settings {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.prompt-common-setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.prompt-common-setting-item.disabled {
+    opacity: 0.72;
+}
+
+.prompt-common-setting-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.prompt-common-setting-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prompt-common-setting-label {
+    color: #1f2937;
     font-size: 14px;
-    color: #9ca3af;
+    font-weight: 600;
+}
+
+.prompt-common-setting-value {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.prompt-common-setting-hint {
+    margin-top: 5px;
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.prompt-common-setting-btn {
+    flex-shrink: 0;
+    height: 30px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 8px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.prompt-common-setting-btn:hover {
+    background: #374151;
+}
+
+.prompt-common-setting-btn:active {
+    transform: scale(0.97);
+}
+
+.prompt-common-setting-btn:disabled {
+    background: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
+    transform: none;
 }
 
 

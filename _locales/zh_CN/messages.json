@@ -68,6 +68,18 @@
   "searchPrompt": {
     "message": "搜索提示词..."
   },
+  "promptCommonSettingsTab": {
+    "message": "常用设置"
+  },
+  "promptEmptyHint": {
+    "message": "保存常用提示词，用的时候点一下就能插入输入框。"
+  },
+  "promptAllSettingsTooltip": {
+    "message": "全部设置"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "设置 Enter 换行和发送消息方式"
+  },
   "sidebarStarredHint": {
     "message": "启用后，在侧边栏中显示文件夹"
   },
@@ -835,6 +847,9 @@
   },
   "chatWidthConfirm": {
     "message": "确定"
+  },
+  "chatWidthUnsupported": {
+    "message": "当前平台暂不支持调节对话宽度"
   },
   "mirrorSiteTabName": {
     "message": "镜像站点"

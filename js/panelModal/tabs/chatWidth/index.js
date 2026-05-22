@@ -10,7 +10,6 @@ class ChatWidthTab extends BaseTab {
         super();
         this.id = 'chat-width';
         this.name = chrome.i18n.getMessage('chatWidthTitle') || '对话宽度';
-        this.badge = 'NEW';
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 3H3v18h18V3z"/><path d="M9 3v18"/><path d="M15 3v18"/>
         </svg>`;

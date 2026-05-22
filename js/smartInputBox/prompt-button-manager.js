@@ -548,13 +548,30 @@ class PromptButtonManager {
         
         this._promptDropdown = createPromptDropdownUI({
             prompts: filteredPrompts,
+            showCommonSettings: true,
             onItemClick: (prompt) => {
                 this._hidePromptDropdown();
                 this._insertPrompt(prompt);
             },
             onManageClick: () => {
-                this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('prompt');
+            },
+            onChatWidthClick: () => {
+                this._hidePromptDropdown();
+                setTimeout(() => {
+                    const manager = window.ChatWidthManager?.getInstance?.();
+                    if (manager?.isSupported?.()) {
+                        manager.showFloatingSlider();
+                    }
+                }, 180);
+            },
+            onSmartInputSettingsClick: () => {
+                this._hidePromptDropdown();
+                if (window.panelModal) window.panelModal.show('smartInputBox');
+            },
+            onSettingsClick: () => {
+                this._hidePromptDropdown();
+                if (window.panelModal) window.panelModal.show('timeline');
             }
         });
         

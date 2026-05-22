@@ -118,10 +118,6 @@ class TimelineManager {
         // Markers and rendering
         this.markersVersion = 0;
 
-        // Performance debugging
-        this.debugPerf = false;
-        try { this.debugPerf = (localStorage.getItem('chatgptTimelineDebugPerf') === '1'); } catch {}
-        
         this.debouncedRecalculateAndRender = this.debounce(this.recalculateAndRenderMarkers, TIMELINE_CONFIG.DEBOUNCE_DELAY);
 
         // Star/Highlight feature state
@@ -153,19 +149,6 @@ class TimelineManager {
 
         // ✅ AI 回复完成提示使用的右上角定位锚点
         this.aiCompleteToastAnchor = null;
-    }
-
-    perfStart(name) {
-        if (!this.debugPerf) return;
-        try { performance.mark(`tg-${name}-start`); } catch {}
-    }
-
-    perfEnd(name) {
-        if (!this.debugPerf) return;
-        try {
-            performance.mark(`tg-${name}-end`);
-            performance.measure(`tg-${name}`, `tg-${name}-start`, `tg-${name}-end`);
-        } catch {}
     }
 
     async init() {
@@ -595,18 +578,20 @@ class TimelineManager {
             window.notepadManager.close();
         }
         
-        // 保存状态到 localStorage
+        // 保存状态到 chrome.storage.local，并通过 _ 前缀排除云同步
         try {
-            localStorage.setItem('ait-timeline-collapsed', isCollapsed ? '1' : '0');
+            chrome.storage.local.set({ _aitTimelineCollapsed: isCollapsed });
         } catch (e) {}
     }
     
     /**
      * ✅ 恢复时间轴显示状态（初始化时调用）
      */
-    restoreTimelineVisibility() {
+    async restoreTimelineVisibility() {
         try {
-            const isCollapsed = localStorage.getItem('ait-timeline-collapsed') === '1';
+            const result = await chrome.storage.local.get('_aitTimelineCollapsed');
+            const value = result?._aitTimelineCollapsed;
+            const isCollapsed = value === true || value === '1';
             if (isCollapsed && this.ui.wrapper && this.ui.toggleBtn) {
                 this.ui.wrapper.classList.add('ait-collapsed');
                 this.updateToggleButtonIcon(true);
@@ -899,7 +884,6 @@ class TimelineManager {
     }
 
     recalculateAndRenderMarkers() {
-        this.perfStart('recalc');
         if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
         if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
@@ -984,7 +968,6 @@ class TimelineManager {
             if (window.chatTimeRecorder) {
                 window.chatTimeRecorder._renderTimeLabels();
             }
-            this.perfEnd('recalc');
             return;
         }
         
@@ -1289,7 +1272,6 @@ class TimelineManager {
             window.chatTimeRecorder._renderTimeLabels();
         }
         
-        this.perfEnd('recalc');
     }
     
     setupObservers() {
@@ -2228,7 +2210,6 @@ class TimelineManager {
 
     // Lightweight correction: map cached n -> pixel, apply min-gap, write back updated n
     reapplyMinGapAfterResize() {
-        this.perfStart('minGapIdle');
         if (!this.ui.timelineBar || !this.ui.trackContent || this.markers.length === 0) return;
         
         const trackPadding = this.getTrackPadding();
@@ -2261,7 +2242,6 @@ class TimelineManager {
             this.markers[i].dotN = Math.max(0, Math.min(1, vn));
             try { this.markers[i].dotElement?.style.setProperty('--n', String(this.markers[i].dotN)); } catch {}
         }
-        this.perfEnd('minGapIdle');
     }
 
     /**

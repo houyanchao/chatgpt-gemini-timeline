@@ -14,7 +14,7 @@
         defaultHeight: 450,
         minWidth: 380,
         minHeight: 300,
-        storageKey: 'floatingRunnerState'
+        storageKey: '_floatingRunnerState'
     };
 
     class FloatingRunnerContainer {
@@ -291,26 +291,33 @@
             this.container.style.top = this.position.y + 'px';
         }
 
-        saveState() {
+        async saveState() {
             try {
                 const state = {
                     position: this.position,
                     size: this.size,
                     language: this.language
                 };
-                localStorage.setItem(CONFIG.storageKey, JSON.stringify(state));
+                await chrome.storage.local.set({ [CONFIG.storageKey]: state });
             } catch (e) {
                 // ignore
             }
         }
 
-        loadState() {
+        async loadState() {
             try {
-                const state = JSON.parse(localStorage.getItem(CONFIG.storageKey));
+                const result = await chrome.storage.local.get(CONFIG.storageKey);
+                const state = result?.[CONFIG.storageKey];
                 if (state) {
                     if (state.position) this.position = state.position;
                     if (state.size) this.size = state.size;
-                    if (state.language) this.language = state.language;
+                    if (state.language) {
+                        this.language = state.language;
+                        if (this.panel) {
+                            this.panel.setLanguage(this.language);
+                        }
+                    }
+                    this.applyState();
                 }
             } catch (e) {
                 // ignore
