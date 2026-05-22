@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Szukaj promptów..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Typowe ustawienia"
+  },
+  "promptEmptyHint": {
+    "message": "Zapisz często używane prompty, a potem wstawiaj je do pola wprowadzania jednym kliknięciem."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Wszystkie ustawienia"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Ustaw, jak Enter dodaje nowe wiersze i wysyła wiadomości"
+  },
   "sidebarStarredHint": {
     "message": "Po włączeniu foldery są wyświetlane na pasku bocznym"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Dostosowanie szerokości czatu nie jest obsługiwane na tej platformie"
   },
   "mirrorSiteTabName": {
     "message": "Strony lustrzane"

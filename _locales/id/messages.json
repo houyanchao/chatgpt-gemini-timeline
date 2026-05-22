@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Cari prompt..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Pengaturan umum"
+  },
+  "promptEmptyHint": {
+    "message": "Simpan prompt yang sering digunakan, lalu masukkan ke kotak input dengan sekali klik."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Semua pengaturan"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Atur cara Enter membuat baris baru dan mengirim pesan"
+  },
   "sidebarStarredHint": {
     "message": "Saat diaktifkan, folder ditampilkan di bilah sisi"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Penyesuaian lebar chat tidak didukung di platform ini"
   },
   "mirrorSiteTabName": {
     "message": "Situs Cermin"

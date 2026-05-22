@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "प्रॉम्प्ट खोजें..."
   },
+  "promptCommonSettingsTab": {
+    "message": "सामान्य सेटिंग्स"
+  },
+  "promptEmptyHint": {
+    "message": "जिन प्रॉम्प्ट का आप अक्सर उपयोग करते हैं उन्हें सहेजें, फिर एक क्लिक में उन्हें इनपुट बॉक्स में डालें।"
+  },
+  "promptAllSettingsTooltip": {
+    "message": "सभी सेटिंग्स"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "सेट करें कि Enter नई पंक्ति कैसे डाले और संदेश कैसे भेजे"
+  },
   "sidebarStarredHint": {
     "message": "सक्षम होने पर, साइडबार में फ़ोल्डर प्रदर्शित होते हैं"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "ठीक है"
+  },
+  "chatWidthUnsupported": {
+    "message": "इस प्लेटफ़ॉर्म पर चैट की चौड़ाई बदलना समर्थित नहीं है"
   },
   "mirrorSiteTabName": {
     "message": "मिरर साइट्स"

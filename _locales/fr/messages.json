@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Rechercher..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Paramètres courants"
+  },
+  "promptEmptyHint": {
+    "message": "Enregistrez les prompts que vous utilisez souvent, puis insérez-les dans la zone de saisie en un clic."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Tous les paramètres"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Définissez comment Entrée insère des sauts de ligne et envoie les messages"
+  },
   "sidebarStarredHint": {
     "message": "Lorsque activé, les dossiers sont affichés dans la barre latérale"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Le réglage de la largeur de discussion n’est pas pris en charge sur cette plateforme"
   },
   "mirrorSiteTabName": {
     "message": "Sites miroirs"

@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "搜尋提示詞..."
   },
+  "promptCommonSettingsTab": {
+    "message": "常用設定"
+  },
+  "promptEmptyHint": {
+    "message": "儲存常用提示詞，使用時點一下就能插入輸入框。"
+  },
+  "promptAllSettingsTooltip": {
+    "message": "全部設定"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "設定 Enter 換行和傳送訊息方式"
+  },
   "sidebarStarredHint": {
     "message": "啟用後，在側邊欄中顯示資料夾"
   },
@@ -766,6 +778,9 @@
   },
   "chatWidthConfirm": {
     "message": "確定"
+  },
+  "chatWidthUnsupported": {
+    "message": "目前平台暫不支援調整對話寬度"
   },
   "mirrorSiteTabName": {
     "message": "鏡像站點"

@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Pesquisar prompts..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Definições comuns"
+  },
+  "promptEmptyHint": {
+    "message": "Guarde os prompts que usa frequentemente e insira-os na caixa de entrada com um clique."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Todas as definições"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Defina como o Enter insere novas linhas e envia mensagens"
+  },
   "sidebarStarredHint": {
     "message": "Quando ativado, as pastas são exibidas na barra lateral"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "O ajuste da largura da conversa não é suportado nesta plataforma"
   },
   "mirrorSiteTabName": {
     "message": "Sites espelho"

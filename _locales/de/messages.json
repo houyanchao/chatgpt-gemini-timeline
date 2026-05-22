@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Prompts suchen..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Häufige Einstellungen"
+  },
+  "promptEmptyHint": {
+    "message": "Speichere häufig verwendete Prompts und füge sie mit einem Klick in das Eingabefeld ein."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Alle Einstellungen"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Lege fest, wie Enter Zeilenumbrüche einfügt und Nachrichten sendet"
+  },
   "sidebarStarredHint": {
     "message": "Wenn aktiviert, werden Ordner in der Seitenleiste angezeigt"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Die Anpassung der Chatbreite wird auf dieser Plattform nicht unterstützt"
   },
   "mirrorSiteTabName": {
     "message": "Spiegelseiten"

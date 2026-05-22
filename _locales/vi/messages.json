@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Tìm prompt..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Cài đặt thường dùng"
+  },
+  "promptEmptyHint": {
+    "message": "Lưu các prompt bạn hay dùng, rồi bấm một lần để chèn vào ô nhập."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Tất cả cài đặt"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Thiết lập cách Enter xuống dòng và gửi tin nhắn"
+  },
   "sidebarStarredHint": {
     "message": "Khi bật, thư mục sẽ hiển thị trong thanh bên"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Nền tảng này không hỗ trợ điều chỉnh độ rộng khung chat"
   },
   "mirrorSiteTabName": {
     "message": "Trang mirror"

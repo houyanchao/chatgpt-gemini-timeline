@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "ค้นหาพร้อมท์..."
   },
+  "promptCommonSettingsTab": {
+    "message": "การตั้งค่าที่ใช้บ่อย"
+  },
+  "promptEmptyHint": {
+    "message": "บันทึกพรอมป์ที่ใช้บ่อย แล้วคลิกครั้งเดียวเพื่อแทรกลงในช่องป้อนข้อความ"
+  },
+  "promptAllSettingsTooltip": {
+    "message": "การตั้งค่าทั้งหมด"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "ตั้งค่าว่า Enter จะขึ้นบรรทัดใหม่หรือส่งข้อความอย่างไร"
+  },
   "sidebarStarredHint": {
     "message": "เมื่อเปิดใช้งาน โฟลเดอร์จะแสดงในแถบด้านข้าง"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "ตกลง"
+  },
+  "chatWidthUnsupported": {
+    "message": "แพลตฟอร์มนี้ไม่รองรับการปรับความกว้างของแชต"
   },
   "mirrorSiteTabName": {
     "message": "เว็บมิเรอร์"

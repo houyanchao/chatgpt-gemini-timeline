@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "プロンプトを検索..."
   },
+  "promptCommonSettingsTab": {
+    "message": "よく使う設定"
+  },
+  "promptEmptyHint": {
+    "message": "よく使うプロンプトを保存し、使うときはワンクリックで入力欄に挿入できます。"
+  },
+  "promptAllSettingsTooltip": {
+    "message": "すべての設定"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Enter で改行するかメッセージを送信するかを設定します"
+  },
   "sidebarStarredHint": {
     "message": "有効にすると、サイドバーにフォルダが表示されます"
   },
@@ -793,6 +805,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "このプラットフォームではチャット幅の調整はサポートされていません"
   },
   "mirrorSiteTabName": {
     "message": "ミラーサイト"

@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Поиск промптов..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Частые настройки"
+  },
+  "promptEmptyHint": {
+    "message": "Сохраните часто используемые промпты и вставляйте их в поле ввода одним нажатием."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Все настройки"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Настройте, как Enter добавляет переносы строк и отправляет сообщения"
+  },
   "sidebarStarredHint": {
     "message": "При включении папки отображаются на боковой панели"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Настройка ширины чата не поддерживается на этой платформе"
   },
   "mirrorSiteTabName": {
     "message": "Зеркала сайтов"

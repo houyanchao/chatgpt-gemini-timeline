@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Search prompts..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Common Settings"
+  },
+  "promptEmptyHint": {
+    "message": "Save text you use often, then insert it into the input box with one click."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "All settings"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Set how Enter inserts new lines and sends messages"
+  },
   "sidebarStarredHint": {
     "message": "When enabled, folders are displayed in the sidebar"
   },
@@ -766,6 +778,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "Chat width adjustment is not supported on this platform"
   },
   "mirrorSiteTabName": {
     "message": "Mirror Sites"

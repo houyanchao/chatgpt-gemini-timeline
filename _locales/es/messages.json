@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "Buscar prompts..."
   },
+  "promptCommonSettingsTab": {
+    "message": "Ajustes comunes"
+  },
+  "promptEmptyHint": {
+    "message": "Guarda los prompts que usas a menudo e insértalos en el cuadro de entrada con un clic."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "Todos los ajustes"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Configura cómo Enter inserta saltos de línea y envía mensajes"
+  },
   "sidebarStarredHint": {
     "message": "Cuando está habilitado, se muestran carpetas en la barra lateral"
   },
@@ -742,6 +754,9 @@
   },
   "chatWidthConfirm": {
     "message": "OK"
+  },
+  "chatWidthUnsupported": {
+    "message": "El ajuste del ancho del chat no es compatible con esta plataforma"
   },
   "mirrorSiteTabName": {
     "message": "Sitios espejo"

@@ -74,6 +74,18 @@
   "searchPrompt": {
     "message": "프롬프트 검색..."
   },
+  "promptCommonSettingsTab": {
+    "message": "자주 쓰는 설정"
+  },
+  "promptEmptyHint": {
+    "message": "자주 사용하는 프롬프트를 저장하고, 필요할 때 한 번 클릭해 입력창에 삽입하세요."
+  },
+  "promptAllSettingsTooltip": {
+    "message": "전체 설정"
+  },
+  "promptCommonSmartInputHint": {
+    "message": "Enter 키로 줄바꿈과 메시지 전송 방식을 설정합니다"
+  },
   "sidebarStarredHint": {
     "message": "활성화하면 사이드바에 폴더가 표시됩니다"
   },
@@ -793,6 +805,9 @@
   },
   "chatWidthConfirm": {
     "message": "확인"
+  },
+  "chatWidthUnsupported": {
+    "message": "이 플랫폼에서는 채팅 너비 조정을 지원하지 않습니다"
   },
   "mirrorSiteTabName": {
     "message": "미러 사이트"
