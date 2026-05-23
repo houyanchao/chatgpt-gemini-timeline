@@ -7,6 +7,7 @@ class NotepadManager {
     constructor() {
         this.panel = null;
         this.textarea = null;
+        this.preview = null;
         this.listContainer = null;
         this.listBtn = null;
         this.addBtn = null;
@@ -129,6 +130,7 @@ class NotepadManager {
             <div class="ait-notepad-body">
                 <div class="ait-notepad-list"></div>
                 <textarea class="ait-notepad-editor" placeholder="${chrome.i18n.getMessage('notepadPlaceholder') || '想到什么就写什么，无需排版…'}"></textarea>
+                <div class="ait-notepad-preview" aria-hidden="true" hidden></div>
             </div>
             <div class="ait-notepad-footer">
                 <div class="ait-notepad-location">
@@ -153,6 +155,7 @@ class NotepadManager {
         document.body.appendChild(panel);
         this.panel = panel;
         this.textarea = panel.querySelector('.ait-notepad-editor');
+        this.preview = panel.querySelector('.ait-notepad-preview');
         this.listContainer = panel.querySelector('.ait-notepad-list');
         this.listBtn = panel.querySelector('.ait-notepad-list-btn');
         this.addBtn = panel.querySelector('.ait-notepad-add-btn');
@@ -236,9 +239,9 @@ class NotepadManager {
             const inside = e.clientX >= rect.left && e.clientX <= rect.right
                         && e.clientY >= rect.top && e.clientY <= rect.bottom;
             if (inside) {
-                this.panel.classList.add('ait-notepad-focused');
+                this._setFocused(true);
             } else {
-                this.panel.classList.remove('ait-notepad-focused');
+                this._setFocused(false);
             }
         };
         document.addEventListener('mousedown', this._onFocusCheck, true);
@@ -259,6 +262,7 @@ class NotepadManager {
                     const note = this._getNoteById(this.activeNoteId);
                     if (note && note.content !== this.textarea.value) {
                         this.textarea.value = note.content;
+                        this._syncPreview();
                         const len = note.content.length;
                         this.textarea.selectionStart = this.textarea.selectionEnd = len;
                     }
@@ -293,6 +297,7 @@ class NotepadManager {
         this.currentView = 'list';
         this.activeNoteId = null;
         this.textarea.style.display = 'none';
+        if (this.preview) this.preview.hidden = true;
         this.listContainer.style.display = 'flex';
         this.listContainer.style.flexDirection = 'column';
         if (this.footerEl) this.footerEl.style.display = 'none';
@@ -303,6 +308,8 @@ class NotepadManager {
         this.currentView = 'edit';
         this.listContainer.style.display = 'none';
         this.textarea.style.display = '';
+        if (this.preview) this.preview.hidden = false;
+        this._syncPreview();
         if (this.footerEl) this.footerEl.style.display = '';
         this._updateListBtnVisibility();
     }
@@ -407,6 +414,7 @@ class NotepadManager {
         this._updateLocationDisplay();
 
         requestAnimationFrame(() => {
+            if (!this.panel?.classList.contains('ait-notepad-focused')) return;
             this.textarea.focus();
             const len = this.textarea.value.length;
             this.textarea.setSelectionRange(len, len);
@@ -440,7 +448,7 @@ class NotepadManager {
         }
 
         if (this.isOpen && this.panel) {
-            this.panel.classList.add('ait-notepad-focused');
+            this._setFocused(true);
         }
     }
 
@@ -496,6 +504,7 @@ class NotepadManager {
             note.content = newContent;
             note.updatedAt = Date.now();
             this.saveNotes();
+            this._syncPreview();
         }
     }
 
@@ -558,7 +567,7 @@ class NotepadManager {
         });
 
         if (!result) {
-            if (this.isOpen && this.panel) this.panel.classList.add('ait-notepad-focused');
+            if (this.isOpen && this.panel) this._setFocused(true);
             return;
         }
 
@@ -571,7 +580,7 @@ class NotepadManager {
         });
 
         this._updateLocationDisplay();
-        if (this.isOpen && this.panel) this.panel.classList.add('ait-notepad-focused');
+        if (this.isOpen && this.panel) this._setFocused(true);
     }
 
     // ─── Storage ──────────────────────────────────────────────────────────────
@@ -781,7 +790,8 @@ class NotepadManager {
         }
 
         this.applyState();
-        this.panel.classList.add('ait-notepad-visible', 'ait-notepad-focused');
+        this.panel.classList.add('ait-notepad-visible');
+        this._setFocused(true);
         this._syncBtnActive();
 
         await this.loadNotes();
@@ -833,7 +843,8 @@ class NotepadManager {
         if (!this.isOpen) return;
         this.isOpen = false;
         this._flushCurrentNote();
-        this.panel.classList.remove('ait-notepad-visible', 'ait-notepad-focused');
+        this._setFocused(false);
+        this.panel.classList.remove('ait-notepad-visible');
         clearTimeout(this.saveTimeout);
         this._syncBtnActive();
     }
@@ -844,11 +855,43 @@ class NotepadManager {
         } else if (this.panel.classList.contains('ait-notepad-focused')) {
             this.close();
         } else {
-            this.panel.classList.add('ait-notepad-focused');
+            this._setFocused(true);
         }
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    _setFocused(focused) {
+        if (!this.panel) return;
+        this.panel.classList.toggle('ait-notepad-focused', focused);
+
+        if (!this.textarea) return;
+        if (focused) {
+            this.textarea.removeAttribute('tabindex');
+            this.textarea.removeAttribute('aria-hidden');
+            if (this.currentView === 'edit') {
+                requestAnimationFrame(() => {
+                    if (!this.isOpen || this.currentView !== 'edit' || !this.panel?.classList.contains('ait-notepad-focused')) return;
+                    this.textarea.focus();
+                });
+            }
+            return;
+        }
+
+        this._flushCurrentNote();
+        this._syncPreview();
+        this.textarea.blur();
+        this.textarea.setAttribute('tabindex', '-1');
+        this.textarea.setAttribute('aria-hidden', 'true');
+    }
+
+    _syncPreview() {
+        if (!this.preview || !this.textarea) return;
+        const value = this.textarea.value;
+        const placeholder = this.textarea.getAttribute('placeholder') || '';
+        this.preview.textContent = value || placeholder;
+        this.preview.classList.toggle('ait-notepad-preview-empty', !value);
+    }
 
     _syncBtnActive() {
         const btn = document.querySelector('.ait-notepad-btn');
@@ -882,6 +925,7 @@ class NotepadManager {
             this.panel = null;
         }
         this.textarea = null;
+        this.preview = null;
         this.listContainer = null;
         this.listBtn = null;
         this.addBtn = null;

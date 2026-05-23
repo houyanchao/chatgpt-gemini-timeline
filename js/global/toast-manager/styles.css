@@ -66,7 +66,7 @@ html[data-timeline-theme="dark"] .timeline-copy-feedback {
 }
 
 /* AI 回复完成提示 - 右上角胶囊 Toast */
-.global-toast.ait-ai-complete-toast {
+.ait-global-toast.ait-ai-complete-toast {
     padding: 7px 14px 7px 7px;
     border-radius: 999px;
     font-size: 13px;
@@ -89,7 +89,7 @@ html[data-timeline-theme="dark"] .timeline-copy-feedback {
         transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.global-toast.ait-ai-complete-toast .global-toast-icon {
+.ait-global-toast.ait-ai-complete-toast .ait-global-toast-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -102,17 +102,17 @@ html[data-timeline-theme="dark"] .timeline-copy-feedback {
     box-shadow: 0 2px 8px rgba(21, 128, 61, 0.34);
 }
 
-.global-toast.ait-ai-complete-toast .global-toast-icon svg {
+.ait-global-toast.ait-ai-complete-toast .ait-global-toast-icon svg {
     display: block;
 }
 
-.global-toast.ait-ai-complete-toast.visible {
+.ait-global-toast.ait-ai-complete-toast.visible {
     opacity: 1 !important;
     transform: translateX(0) scale(1) !important;
 }
 
-html[data-timeline-theme="dark"] .global-toast.ait-ai-complete-toast,
-html.dark .global-toast.ait-ai-complete-toast {
+html[data-timeline-theme="dark"] .ait-global-toast.ait-ai-complete-toast,
+html.dark .ait-global-toast.ait-ai-complete-toast {
     background: rgba(28, 28, 30, 0.88);
     color: #f5f5f7;
     border-color: rgba(255, 255, 255, 0.1);
@@ -122,7 +122,7 @@ html.dark .global-toast.ait-ai-complete-toast {
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-html[data-timeline-theme="dark"] .global-toast.ait-ai-complete-toast .global-toast-icon,
-html.dark .global-toast.ait-ai-complete-toast .global-toast-icon {
+html[data-timeline-theme="dark"] .ait-global-toast.ait-ai-complete-toast .ait-global-toast-icon,
+html.dark .ait-global-toast.ait-ai-complete-toast .ait-global-toast-icon {
     box-shadow: 0 2px 10px rgba(21, 128, 61, 0.3);
 }

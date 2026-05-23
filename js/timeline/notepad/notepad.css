@@ -303,6 +303,49 @@
     appearance: none;
 }
 
+/* ── 失焦预览层：保留半透明视觉，但不暴露 textarea 内容给页面全选 ── */
+.ait-notepad-preview {
+    display: none;
+    flex: 1;
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    line-height: 1.65;
+    font-family: inherit;
+    color: #222;
+    box-sizing: border-box;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    pointer-events: none;
+}
+
+.ait-notepad-preview::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ait-notepad-preview::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 2px;
+}
+
+.ait-notepad-preview.ait-notepad-preview-empty {
+    color: #c0c0c0;
+    font-size: 13px;
+}
+
+.ait-notepad-panel.ait-notepad-visible:not(.ait-notepad-focused) .ait-notepad-editor {
+    display: none !important;
+}
+
+.ait-notepad-panel.ait-notepad-visible:not(.ait-notepad-focused) .ait-notepad-preview:not([hidden]) {
+    display: block;
+}
+
 /* ── 底部文件夹位置栏 ── */
 .ait-notepad-footer {
     flex-shrink: 0;

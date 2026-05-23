@@ -235,13 +235,13 @@ class GlobalToastManager {
     _createToast(message, config) {
         // 创建 DOM
         const element = document.createElement('div');
-        element.className = 'global-toast';
+        element.className = 'ait-global-toast';
         const useClassStyles = config.useClassStyles === true;
         if (config.className) {
             config.className.split(/\s+/).filter(Boolean).forEach(cls => element.classList.add(cls));
         }
         if (useClassStyles) {
-            element.classList.add('global-toast-class-styled');
+            element.classList.add('ait-global-toast-class-styled');
         }
 
         const layoutStyles = `
@@ -292,7 +292,7 @@ class GlobalToastManager {
             if (iconSpan) element.appendChild(iconSpan);
         } else if (config.icon) {
             const iconSpan = document.createElement('span');
-            iconSpan.className = 'global-toast-icon';
+            iconSpan.className = 'ait-global-toast-icon';
             iconSpan.style.fontSize = '16px';
             iconSpan.textContent = config.icon;
             element.appendChild(iconSpan);
@@ -322,7 +322,7 @@ class GlobalToastManager {
         if (iconType !== 'check') return null;
 
         const iconSpan = document.createElement('span');
-        iconSpan.className = 'global-toast-icon';
+        iconSpan.className = 'ait-global-toast-icon';
 
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('width', '14');
@@ -524,19 +524,19 @@ class GlobalToastManager {
 // ==================== CSS 样式注入 ====================
 
 // 动态注入 toast 样式（避免污染全局 CSS）
-if (!document.getElementById('global-toast-styles')) {
+if (!document.getElementById('ait-global-toast-styles')) {
     const style = document.createElement('style');
-    style.id = 'global-toast-styles';
+    style.id = 'ait-global-toast-styles';
     style.textContent = `
-        .global-toast {
+        .ait-global-toast {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         
-        .global-toast.visible {
+        .ait-global-toast.visible {
             opacity: 1 !important;
         }
 
-        .global-toast.visible:not(.global-toast-class-styled) {
+        .ait-global-toast.visible:not(.ait-global-toast-class-styled) {
             transform: translateY(0) !important;
         }
     `;
