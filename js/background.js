@@ -195,11 +195,40 @@ const SUPPORTED_DOMAINS = [
     'perplexity.ai', 'claude.ai', 'notebooklm.google.com'
 ];
 
-function isSupportedSite(url) {
+/**
+ * 检查 URL 是否匹配内置支持的平台
+ * @param {string} url - 标签页 URL
+ * @returns {boolean}
+ */
+function isBuiltinSupportedSite(url) {
     try {
         const hostname = new URL(url).hostname;
         return SUPPORTED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
     } catch { return false; }
+}
+
+/**
+ * 检查 URL 是否匹配用户自定义平台（从 storage 读取）
+ * @param {string} url - 标签页 URL
+ * @returns {Promise<boolean>}
+ */
+async function isCustomSupportedSite(url) {
+    try {
+        const result = await chrome.storage.local.get('customTimelineAdapters');
+        const configs = result.customTimelineAdapters;
+        if (!Array.isArray(configs) || configs.length === 0) return false;
+        return configs.some(cfg => cfg.hostname && url.includes(cfg.hostname));
+    } catch { return false; }
+}
+
+/**
+ * 综合判断当前标签页是否受支持（内置 + 自定义平台）
+ * @param {string} url - 标签页 URL
+ * @returns {Promise<boolean>}
+ */
+async function isSupportedSite(url) {
+    if (isBuiltinSupportedSite(url)) return true;
+    return await isCustomSupportedSite(url);
 }
 
 async function isMirrorSiteBg(url) {
@@ -213,7 +242,7 @@ async function isMirrorSiteBg(url) {
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
-    if (tab.url && isSupportedSite(tab.url)) {
+    if (tab.url && await isSupportedSite(tab.url)) {
         try {
             await chrome.tabs.sendMessage(tab.id, { type: 'OPEN_PANEL_MODAL' });
         } catch {

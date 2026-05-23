@@ -36,7 +36,8 @@ function sleep(ms) {
 async function isPlatformEnabled() {
     try {
         const platform = getCurrentPlatform();
-        if (!platform) return true; // 未知平台，默认启用
+        // 未知平台（包括自定义平台）：默认启用
+        if (!platform) return true;
         
         // ✅ 首先检查平台是否支持时间轴功能
         if (platform.features?.timeline !== true) {
@@ -66,14 +67,17 @@ function canInitialize() {
 }
 
 // Initialize timeline with retry mechanism (exponential backoff)
+// 首次立即尝试，失败再走重试延迟列表，减少切换会话时的可感知延迟
 async function initWithRetry(version, delays, retryIndex = 0) {
     // Check if we've exceeded max retries
     if (retryIndex >= delays.length) {
         return;
     }
     
-    // Wait for the specified delay
-    await sleep(delays[retryIndex]);
+    // 首次（retryIndex === 0）不等待，立即检测；后续重试才 sleep
+    if (retryIndex > 0) {
+        await sleep(delays[retryIndex - 1]);
+    }
     
     // Check if version is still current (user may have navigated away)
     if (version !== initVersion) {
@@ -148,6 +152,9 @@ function initializeTimeline() {
     // 2. 清理原生收藏按钮（正常文档流中的收藏按钮）
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
     
+    // 3. 全局清理残留的 scroll-padding 元素，防止 flex 布局抖动
+    document.querySelectorAll('.ait-scroll-padding').forEach(el => el.remove());
+    
     try {
         timelineManagerInstance = new TimelineManager(currentAdapter);
         timelineManagerInstance.init().catch(err => {});
@@ -177,6 +184,10 @@ async function handleUrlChange() {
         try { timelineManagerInstance.destroy(); } catch {}
         timelineManagerInstance = null;
     }
+    
+    // 提前清理所有可能残留的 ait-scroll-padding 元素，防止 flex 布局抖动
+    // destroy() 只清理已知 container 中的 padding，这里做全局兜底扫描
+    document.querySelectorAll('.ait-scroll-padding').forEach(el => el.remove());
     
     // 停止 AI 状态监控（initializeTimeline 中会重新启动）
     if (window.AIStateMonitor) {
@@ -246,16 +257,40 @@ function setupPlatformSettingsListener() {
                 }
             }
         }
+        
+        // ✅ 监听自定义适配器配置变化
+        if (changes.customTimelineAdapters) {
+            console.log('[Timeline] Custom adapters changed, reloading...');
+            adapterRegistry.reloadCustomAdapters().then(() => {
+                // 重新检测适配器，如果需要则重新初始化
+                if (isConversationRoute()) {
+                    const newAdapter = adapterRegistry.detectAdapter();
+                    if (newAdapter && newAdapter !== currentAdapter) {
+                        currentAdapter = newAdapter;
+                        initVersion++;
+                        const currentVersion = initVersion;
+                        initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS);
+                    }
+                }
+            });
+        }
     });
 }
 
-// Check if current site is supported before initializing
-if (!adapterRegistry.isSupportedSite()) {
-} else {
-    currentAdapter = adapterRegistry.detectAdapter();
+// ✅ 设置平台设置监听器（监听用户在设置中切换平台开关）
+setupPlatformSettingsListener();
+
+// 主初始化流程：先加载自定义适配器，再检测平台
+async function mainInit() {
+    // ✅ 加载用户自定义适配器（优先于内置适配器检测）
+    await adapterRegistry.loadCustomAdapters();
     
-    // ✅ 设置平台设置监听器（监听用户在设置中切换平台开关）
-    setupPlatformSettingsListener();
+    // 检查是否被支持（内置 + 自定义）
+    if (!adapterRegistry.isSupportedSite()) {
+        return;
+    }
+    
+    currentAdapter = adapterRegistry.detectAdapter();
     
     // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
     const checkAndInit = () => {
@@ -305,3 +340,5 @@ if (!adapterRegistry.isSupportedSite()) {
         }
     })();
 }
+
+mainInit()

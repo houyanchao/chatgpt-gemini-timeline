@@ -2964,7 +2964,7 @@ class TimelineManager {
         if (!paddingEl) {
             paddingEl = document.createElement('div');
             paddingEl.className = 'ait-scroll-padding';
-            paddingEl.style.cssText = 'pointer-events: none; width: 100%; flex-shrink: 0; order: 9999; height: 0; transition: height 0.3s ease-out;';
+            paddingEl.style.cssText = 'pointer-events: none; width: 100%; min-width: 0; flex-shrink: 0; order: 9999; height: 0; transition: height 0.3s ease-out; overflow: hidden;';
             this._currentPadding = 0;
         }
         
