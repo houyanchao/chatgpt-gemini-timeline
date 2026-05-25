@@ -267,7 +267,15 @@ class ChatGPTAdapter extends SiteAdapter {
      * @returns {boolean}
      */
     shouldHideTimeline() {
-        return document.querySelector('.text-token-primary') !== null;
+        return document.querySelector('.text-token-primary') !== null ||
+               document.querySelector('[data-stage-thread-flyout="true"][data-testid="stage-thread-flyout"]') !== null;
+    }
+
+    getTimelineVisibilitySelectors() {
+        return [
+            '.text-token-primary',
+            '[data-stage-thread-flyout="true"][data-testid="stage-thread-flyout"]'
+        ];
     }
     
     /**
@@ -290,4 +298,3 @@ class ChatGPTAdapter extends SiteAdapter {
         return !!(submitButton && submitButton.getAttribute('data-testid') === 'stop-button');
     }
 }
-

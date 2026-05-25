@@ -209,6 +209,7 @@ function _promptDropdownCreateCommonSettings({
     const currentText = currentScale <= 100
         ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
         : `${currentScale}%`;
+    const storeReviewUrl = _promptDropdownGetStoreReviewUrl();
 
     panel.innerHTML = `
         <div class="prompt-common-settings">
@@ -244,10 +245,32 @@ function _promptDropdownCreateCommonSettings({
                     <div class="prompt-common-setting-title-row">
                         <div class="prompt-common-setting-label">${chrome.i18n.getMessage('kvzmxp') || '换行与发送消息'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonSmartInputHint') || '设置 Enter 换行和发送消息方式'}</div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonSmartInputHint') || '对话框，设置 Enter 键控制「换行」和「发送消息」'}</div>
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-smart-input-btn">
                     ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonFeedbackTitle') || '反馈问题、提需求'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonFeedbackHint') || '遇到 bug 或有功能想法，欢迎到插件商店评价区留言。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-store-review-btn">
+                    ${chrome.i18n.getMessage('promptCommonFeedbackButton') || '去反馈'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonGithubStarTitle') || '给一颗 🌟 支持'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonGithubStarHint') || '如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-github-star-btn">
+                    ${chrome.i18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
                 </button>
             </div>
         </div>
@@ -285,7 +308,30 @@ function _promptDropdownCreateCommonSettings({
         if (onSmartInputSettingsClick) onSmartInputSettingsClick();
     });
 
+    const storeReviewBtn = panel.querySelector('.prompt-common-store-review-btn');
+    storeReviewBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _promptDropdownOpenExternalUrl(storeReviewUrl);
+    });
+
+    const githubStarBtn = panel.querySelector('.prompt-common-github-star-btn');
+    githubStarBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _promptDropdownOpenExternalUrl('https://github.com/houyanchao/AITimeline');
+    });
+
     return panel;
+}
+
+function _promptDropdownGetStoreReviewUrl() {
+    const isEdge = /Edg/i.test(navigator.userAgent);
+    return isEdge
+        ? 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab'
+        : 'https://chromewebstore.google.com/detail/timeline-chatgpt-gemini-c/fgebdnlceacaiaeikopldglhffljjlhh/reviews?utm_source=item-share-cb';
+}
+
+function _promptDropdownOpenExternalUrl(url) {
+    window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function _promptDropdownCreateItem(prompt, onItemClick, tooltipPlacement) {
@@ -329,8 +375,8 @@ function _promptDropdownCreateItem(prompt, onItemClick, tooltipPlacement) {
             showDelay: 300,
             gap: 14,
             color: {
-                light: { backgroundColor: '#0d0d0d', textColor: '#ffffff', borderColor: '#0d0d0d' },
-                dark: { backgroundColor: '#ffffff', textColor: '#1f2937', borderColor: '#e5e7eb' }
+                light: { backgroundColor: '#f8fafc', textColor: '#334155', borderColor: '#e2e8f0' },
+                dark: { backgroundColor: '#27272a', textColor: '#e5e7eb', borderColor: '#3f3f46' }
             }
         });
     });

@@ -261,7 +261,9 @@ class QuestionListPopup {
         const contentWrap = document.createElement('div');
         contentWrap.className = 'timeline-tooltip-content-wrap';
 
-        const timeStr = marker.element?.getAttribute('data-ait-time');
+        const timeStr = marker.timeLabel
+            || marker.element?.getAttribute('data-ait-time')
+            || marker.element?.querySelector?.('[data-ait-time]')?.getAttribute('data-ait-time');
         if (timeStr) {
             const timeTag = document.createElement('span');
             timeTag.className = 'timeline-tooltip-time';

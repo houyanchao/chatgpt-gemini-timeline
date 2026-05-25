@@ -84,7 +84,31 @@
     "message": "전체 설정"
   },
   "promptCommonSmartInputHint": {
-    "message": "Enter 키로 줄바꿈과 메시지 전송 방식을 설정합니다"
+    "message": "대화 상자에서 Enter 키로 줄바꿈과 메시지 전송을 제어하는 방식을 설정합니다"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "문제 신고 및 기능 요청"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "버그나 기능 아이디어가 있다면 확장 프로그램 스토어 리뷰 영역에 남겨 주세요."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "피드백 보내기"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "🌟 로 지원하기"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Timeline이 도움이 되었다면 GitHub에서 Star로 지원해 주세요."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "GitHub로 이동"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "타임라인 접기"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "타임라인 펼치기"
   },
   "sidebarStarredHint": {
     "message": "활성화하면 사이드바에 폴더가 표시됩니다"

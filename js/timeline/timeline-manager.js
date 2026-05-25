@@ -37,6 +37,10 @@ class TimelineManager {
         
         // DOMObserverManager 取消订阅函数
         this._unsubscribeDomCheck = null;  // 合并 hideState + conflicting
+        this._timelineVisibilityFastObserver = null;
+        this._timelineVisibilityTargetObserver = null;
+        this._timelineVisibilityObservedTargets = new Set();
+        this._timelineVisibilityTimer = null;
         this._unsubscribeTheme = null;
         
         // Event handlers
@@ -519,11 +523,13 @@ class TimelineManager {
         // 3. 鼠标进入按钮：取消自动隐藏
         this.ui.toggleBtn.addEventListener('mouseenter', () => {
             clearAutoHideTimer();
+            this.showToggleButtonTooltip();
         });
         
         // 4. 鼠标离开按钮：隐藏
         this.ui.toggleBtn.addEventListener('mouseleave', () => {
             if (!this.ui.wrapper || !this.ui.toggleBtn) return;
+            window.globalTooltipManager?.hide();
             
             // 如果鼠标回到 wrapper 上，重新启动定时器
             if (this.ui.wrapper.matches(':hover')) {
@@ -536,6 +542,21 @@ class TimelineManager {
                 hideButton();
             }
         });
+    }
+
+    showToggleButtonTooltip() {
+        if (!this.ui.wrapper || !this.ui.toggleBtn || !window.globalTooltipManager) return;
+        const isCollapsed = this.ui.wrapper.classList.contains('ait-collapsed');
+        const text = isCollapsed
+            ? (chrome.i18n.getMessage('timelineToggleExpandTooltip') || '展开时间轴')
+            : (chrome.i18n.getMessage('timelineToggleCollapseTooltip') || '收起时间轴');
+        window.globalTooltipManager.show(
+            'timeline-toggle',
+            'button',
+            this.ui.toggleBtn,
+            text,
+            { placement: 'left', showDelay: 200 }
+        );
     }
     
     /**
@@ -1136,6 +1157,7 @@ class TimelineManager {
                 visualN,        // 原始位置比例（0~1）
                 dotN: visualN,  // 圆点定位值（0~1，经过 minGap 调整，用于视觉渲染）
                 dotElement: null,
+                timeLabel: null,
                 starred: false,
                 pinned: false,
             };
@@ -1379,6 +1401,69 @@ class TimelineManager {
                 debounce: 300  // 300ms 防抖，降低执行频率
             });
         }
+
+        this.setupFastTimelineVisibilityObserver(checkAndUpdateTimelineVisibility);
+    }
+
+    setupFastTimelineVisibilityObserver(checkAndUpdateTimelineVisibility) {
+        const selectors = this.adapter.getTimelineVisibilitySelectors?.() || [];
+        if (!selectors.length || !document.body) return;
+
+        const selector = selectors.join(',');
+        const attributeSelectors = this.adapter.getTimelineVisibilityAttributeSelectors?.() || [];
+        const attributeSelector = attributeSelectors.join(',');
+        const scheduleCheck = () => {
+            if (this._timelineVisibilityTimer) {
+                clearTimeout(this._timelineVisibilityTimer);
+            }
+            this._timelineVisibilityTimer = setTimeout(() => {
+                this._timelineVisibilityTimer = null;
+                checkAndUpdateTimelineVisibility();
+            }, 50);
+        };
+
+        const matchesTarget = node => {
+            if (node?.nodeType !== Node.ELEMENT_NODE) return false;
+            return node.matches?.(selector) || node.querySelector?.(selector);
+        };
+
+        const observeTargets = () => {
+            if (!attributeSelector) return;
+
+            TimelineUtils.disconnectObserverSafe(this._timelineVisibilityTargetObserver);
+            this._timelineVisibilityTargetObserver = new MutationObserver(scheduleCheck);
+            this._timelineVisibilityObservedTargets.clear();
+
+            document.querySelectorAll(attributeSelector).forEach(target => {
+                this._timelineVisibilityObservedTargets.add(target);
+                try {
+                    this._timelineVisibilityTargetObserver.observe(target, {
+                        attributes: true,
+                        attributeFilter: ['class', 'style', 'hidden', 'aria-hidden']
+                    });
+                } catch {}
+            });
+        };
+
+        observeTargets();
+
+        this._timelineVisibilityFastObserver = new MutationObserver(mutations => {
+            const hasRelevantChange = mutations.some(mutation =>
+                Array.from(mutation.addedNodes).some(matchesTarget) ||
+                Array.from(mutation.removedNodes).some(matchesTarget)
+            );
+            if (!hasRelevantChange) return;
+
+            observeTargets();
+            scheduleCheck();
+        });
+
+        try {
+            this._timelineVisibilityFastObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        } catch {}
     }
 
     /**
@@ -2288,7 +2373,13 @@ class TimelineManager {
         
         // 时间标签（从节点 DOM 读取）
         const marker = this.markerMap.get(id);
-        const timeStr = marker?.element?.getAttribute('data-ait-time');
+        const timeTarget = marker?.element
+            ? (this.adapter.getTimeLabelTarget?.(marker.element) || marker.element)
+            : null;
+        const timeStr = marker?.timeLabel
+            || timeTarget?.getAttribute('data-ait-time')
+            || marker?.element?.querySelector?.('[data-ait-time]')?.getAttribute('data-ait-time')
+            || marker?.element?.getAttribute('data-ait-time');
         if (timeStr) {
             const timeTag = document.createElement('span');
             timeTag.className = 'timeline-tooltip-time';
@@ -3251,6 +3342,15 @@ class TimelineManager {
         if (this._unsubscribeDomCheck) {
             this._unsubscribeDomCheck();
             this._unsubscribeDomCheck = null;
+        }
+        TimelineUtils.disconnectObserverSafe(this._timelineVisibilityFastObserver);
+        TimelineUtils.disconnectObserverSafe(this._timelineVisibilityTargetObserver);
+        this._timelineVisibilityFastObserver = null;
+        this._timelineVisibilityTargetObserver = null;
+        this._timelineVisibilityObservedTargets.clear();
+        if (this._timelineVisibilityTimer) {
+            clearTimeout(this._timelineVisibilityTimer);
+            this._timelineVisibilityTimer = null;
         }
         if (this._unsubscribeTheme) {
             this._unsubscribeTheme();

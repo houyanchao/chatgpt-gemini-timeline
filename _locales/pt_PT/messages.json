@@ -84,7 +84,31 @@
     "message": "Todas as definições"
   },
   "promptCommonSmartInputHint": {
-    "message": "Defina como o Enter insere novas linhas e envia mensagens"
+    "message": "Na caixa de conversa, defina como a tecla Enter controla novas linhas e o envio de mensagens"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Comunicar problemas ou pedir funcionalidades"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Encontrou um erro ou tem uma ideia? Deixe feedback na área de avaliações da loja de extensões."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Dar feedback"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Apoiar com uma 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Se o Timeline lhe for útil, apoie-o com uma estrela no GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Ir para GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Recolher linha do tempo"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Expandir linha do tempo"
   },
   "sidebarStarredHint": {
     "message": "Quando ativado, as pastas são exibidas na barra lateral"

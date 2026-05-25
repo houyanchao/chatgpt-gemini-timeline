@@ -23,6 +23,10 @@
     position: fixed;
     border-radius: 8px;
     padding: 8px 12px;
+    box-sizing: border-box;
+    background-color: var(--timeline-tooltip-bg);
+    color: var(--timeline-tooltip-text);
+    border: 1px solid var(--timeline-tooltip-border);
     font-size: 15px;
     font-weight: 500;
     line-height: 1.5;
@@ -51,71 +55,110 @@
 
 /* 白色背景 tooltip（用于降级逻辑） */
 .timeline-tooltip-light {
-    background-color: #ffffff;
-    color: #000000;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
 }
 
 /* ============================================
    Tooltip 箭头样式（所有 tooltip 共用）
    ============================================ */
 
-/* 箭头基础样式 */
+/* 箭头基础样式：before 负责边框，after 负责填充，避免旋转方块在浅色主题下露出交界边 */
+.timeline-tooltip::before,
+.timeline-tooltip-base::before,
 .timeline-tooltip::after,
 .timeline-tooltip-base::after {
     content: '';
     position: absolute;
-    width: 8px;
-    height: 8px;
-    transform: rotate(45deg);
-    /* 使用CSS变量设置箭头颜色（支持动态切换） */
-    background: var(--timeline-tooltip-bg);
-    border: 1px solid var(--timeline-tooltip-border);
-    z-index: 1;
+    width: 0;
+    height: 0;
+    background: transparent;
+    pointer-events: none;
 }
 
 /* 显示在上方时，箭头在底部指向下方 */
+.timeline-tooltip[data-placement="top"]::before,
+.timeline-tooltip-base[data-placement="top"]::before {
+    bottom: -8px;
+    left: var(--arrow-offset, 50%);
+    margin-left: -8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--timeline-tooltip-border);
+}
+
 .timeline-tooltip[data-placement="top"]::after,
 .timeline-tooltip-base[data-placement="top"]::after {
-    bottom: -4px;
+    bottom: -6px;
     left: var(--arrow-offset, 50%);
-    margin-left: -4px;
-    border-top: none;
-    border-left: none;
-    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.05);
+    margin-left: -7px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 7px solid var(--timeline-tooltip-bg);
 }
 
 /* 显示在下方时，箭头在顶部指向上方 */
+.timeline-tooltip[data-placement="bottom"]::before,
+.timeline-tooltip-base[data-placement="bottom"]::before {
+    top: -8px;
+    left: var(--arrow-offset, 50%);
+    margin-left: -8px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid var(--timeline-tooltip-border);
+}
+
 .timeline-tooltip[data-placement="bottom"]::after,
 .timeline-tooltip-base[data-placement="bottom"]::after {
-    top: -4px;
+    top: -6px;
     left: var(--arrow-offset, 50%);
-    margin-left: -4px;
-    border-bottom: none;
-    border-right: none;
-    box-shadow: -2px -2px 2px rgba(0, 0, 0, 0.05);
+    margin-left: -7px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 7px solid var(--timeline-tooltip-bg);
 }
 
 /* 显示在左侧时，箭头在右边指向右方 */
+.timeline-tooltip[data-placement="left"]::before,
+.timeline-tooltip-base[data-placement="left"]::before {
+    right: -8px;
+    top: var(--arrow-offset, 50%);
+    margin-top: -8px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 8px solid var(--timeline-tooltip-border);
+}
+
 .timeline-tooltip[data-placement="left"]::after,
 .timeline-tooltip-base[data-placement="left"]::after {
-    right: -5px;
+    right: -6px;
     top: var(--arrow-offset, 50%);
-    margin-top: -4px;
-    border-left: none;
-    border-bottom: none;
-    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.05);
+    margin-top: -7px;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 7px solid var(--timeline-tooltip-bg);
 }
 
 /* 显示在右侧时，箭头在左边指向左方 */
+.timeline-tooltip[data-placement="right"]::before,
+.timeline-tooltip-base[data-placement="right"]::before {
+    left: -8px;
+    top: var(--arrow-offset, 50%);
+    margin-top: -8px;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid var(--timeline-tooltip-border);
+}
+
 .timeline-tooltip[data-placement="right"]::after,
 .timeline-tooltip-base[data-placement="right"]::after {
-    left: -4px;
+    left: -6px;
     top: var(--arrow-offset, 50%);
-    margin-top: -4px;
-    border-right: none;
-    border-top: none;
-    box-shadow: -2px -2px 2px rgba(0, 0, 0, 0.05);
+    margin-top: -7px;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid var(--timeline-tooltip-bg);
 }
 
 /* ============================================
@@ -145,4 +188,3 @@
 .timeline-tooltip-overlay.visible {
     opacity: 1;
 }
-

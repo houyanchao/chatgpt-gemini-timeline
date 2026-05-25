@@ -84,7 +84,31 @@
     "message": "Все настройки"
   },
   "promptCommonSmartInputHint": {
-    "message": "Настройте, как Enter добавляет переносы строк и отправляет сообщения"
+    "message": "В поле чата настройте, как клавиша Enter управляет переносом строк и отправкой сообщений"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Сообщить о проблеме или предложить функцию"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Нашли ошибку или есть идея? Оставьте отзыв в разделе отзывов магазина расширений."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Оставить отзыв"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Поддержать 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Если Timeline полезен, поддержите проект звездой на GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Перейти на GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Свернуть шкалу времени"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Развернуть шкалу времени"
   },
   "sidebarStarredHint": {
     "message": "При включении папки отображаются на боковой панели"

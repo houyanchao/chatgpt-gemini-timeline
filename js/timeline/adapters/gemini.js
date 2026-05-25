@@ -114,11 +114,18 @@ class GeminiAdapter extends SiteAdapter {
     
     /**
      * 获取时间标签的渲染目标元素
-     * Gemini: 使用第一个 p.query-text-line 元素
+     * Gemini: 使用 user-query 元素本身，避免上移后被文本行容器裁剪
      */
     getTimeLabelTarget(element) {
-        const firstLine = element.querySelector('.query-text-line');
-        return firstLine || element;
+        const oldTarget = element.querySelector('.query-text-line[data-ait-time]');
+        if (oldTarget) {
+            oldTarget.removeAttribute('data-ait-time');
+            oldTarget.style.removeProperty('--ait-time-top');
+            oldTarget.style.removeProperty('--ait-time-right');
+            oldTarget.style.removeProperty('--ait-time-left');
+            oldTarget.style.removeProperty('--ait-time-bottom');
+        }
+        return element;
     }
     
     /**
@@ -127,8 +134,8 @@ class GeminiAdapter extends SiteAdapter {
      */
     getTimeLabelPosition() {
         return {
-            top: '-10px',
-            right: '2px'
+            top: '-20px',
+            right: '12px'
         };
     }
 
@@ -226,7 +233,32 @@ class GeminiAdapter extends SiteAdapter {
      */
     shouldHideTimeline() {
         return document.querySelector('.ng-trigger-immersivePanelTransitions') !== null ||
-               document.querySelector('generative-ui-frame') !== null;
+               document.querySelector('generative-ui-frame') !== null ||
+               this._isElementVisible(document.querySelector('context-sidebar'));
+    }
+
+    _isElementVisible(element) {
+        if (!element) return false;
+        if (element.hidden || element.getAttribute('aria-hidden') === 'true') return false;
+        const style = window.getComputedStyle(element);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    }
+
+    getTimelineVisibilitySelectors() {
+        return [
+            '.ng-trigger-immersivePanelTransitions',
+            'generative-ui-frame',
+            'context-sidebar'
+        ];
+    }
+
+    getTimelineVisibilityAttributeSelectors() {
+        return [
+            '.ng-trigger-immersivePanelTransitions',
+            'context-sidebar'
+        ];
     }
     
     /**

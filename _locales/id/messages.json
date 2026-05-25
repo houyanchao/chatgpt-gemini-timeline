@@ -84,7 +84,31 @@
     "message": "Semua pengaturan"
   },
   "promptCommonSmartInputHint": {
-    "message": "Atur cara Enter membuat baris baru dan mengirim pesan"
+    "message": "Di kotak chat, atur cara tombol Enter mengontrol baris baru dan pengiriman pesan"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Laporkan masalah atau minta fitur"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Menemukan bug atau punya ide fitur? Tinggalkan masukan di area ulasan toko ekstensi."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Beri masukan"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Dukung dengan 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Jika Timeline berguna bagi Anda, dukung dengan Star di GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Buka GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Ciutkan linimasa"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Perluas linimasa"
   },
   "sidebarStarredHint": {
     "message": "Saat diaktifkan, folder ditampilkan di bilah sisi"

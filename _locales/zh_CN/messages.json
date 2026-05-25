@@ -78,7 +78,31 @@
     "message": "全部设置"
   },
   "promptCommonSmartInputHint": {
-    "message": "设置 Enter 换行和发送消息方式"
+    "message": "对话框，设置 Enter 键控制「换行」和「发送消息」"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "反馈问题、提需求"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "遇到 bug 或有功能想法，欢迎到插件商店评价区留言。"
+  },
+  "promptCommonFeedbackButton": {
+    "message": "去反馈"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "给一颗 🌟 支持"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。"
+  },
+  "promptCommonGithubStarButton": {
+    "message": "去 GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "收起时间轴"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "展开时间轴"
   },
   "sidebarStarredHint": {
     "message": "启用后，在侧边栏中显示文件夹"

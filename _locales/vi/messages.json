@@ -84,7 +84,31 @@
     "message": "Tất cả cài đặt"
   },
   "promptCommonSmartInputHint": {
-    "message": "Thiết lập cách Enter xuống dòng và gửi tin nhắn"
+    "message": "Trong hộp trò chuyện, thiết lập cách phím Enter điều khiển xuống dòng và gửi tin nhắn"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Báo lỗi hoặc đề xuất tính năng"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Gặp lỗi hoặc có ý tưởng tính năng? Hãy để lại phản hồi trong khu vực đánh giá của cửa hàng tiện ích."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Gửi phản hồi"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Ủng hộ bằng một 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Nếu Timeline hữu ích với bạn, hãy ủng hộ bằng một Star trên GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Đến GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Thu gọn dòng thời gian"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Mở rộng dòng thời gian"
   },
   "sidebarStarredHint": {
     "message": "Khi bật, thư mục sẽ hiển thị trong thanh bên"

@@ -78,7 +78,31 @@
     "message": "All settings"
   },
   "promptCommonSmartInputHint": {
-    "message": "Set how Enter inserts new lines and sends messages"
+    "message": "In the chat box, set how the Enter key controls new lines and sending messages"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Report issues or request features"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Found a bug or have a feature idea? Leave feedback in the extension store review area."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Give feedback"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Give a 🌟 to support"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "If Timeline is useful to you, please support it with a GitHub Star."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Go to GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Collapse timeline"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Expand timeline"
   },
   "sidebarStarredHint": {
     "message": "When enabled, folders are displayed in the sidebar"

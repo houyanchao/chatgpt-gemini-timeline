@@ -84,7 +84,31 @@
     "message": "सभी सेटिंग्स"
   },
   "promptCommonSmartInputHint": {
-    "message": "सेट करें कि Enter नई पंक्ति कैसे डाले और संदेश कैसे भेजे"
+    "message": "चैट बॉक्स में सेट करें कि Enter कुंजी नई पंक्ति और संदेश भेजने को कैसे नियंत्रित करे"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "समस्या बताएं या फीचर मांगें"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "कोई बग मिला या फीचर आइडिया है? एक्सटेंशन स्टोर की समीक्षा जगह में प्रतिक्रिया छोड़ें।"
+  },
+  "promptCommonFeedbackButton": {
+    "message": "प्रतिक्रिया दें"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "एक 🌟 देकर समर्थन करें"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "अगर Timeline आपके लिए उपयोगी है, तो GitHub Star देकर समर्थन करें।"
+  },
+  "promptCommonGithubStarButton": {
+    "message": "GitHub पर जाएं"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "टाइमलाइन समेटें"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "टाइमलाइन फैलाएं"
   },
   "sidebarStarredHint": {
     "message": "सक्षम होने पर, साइडबार में फ़ोल्डर प्रदर्शित होते हैं"

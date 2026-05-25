@@ -84,7 +84,31 @@
     "message": "すべての設定"
   },
   "promptCommonSmartInputHint": {
-    "message": "Enter で改行するかメッセージを送信するかを設定します"
+    "message": "チャットボックスで、Enter キーによる「改行」と「メッセージ送信」の操作を設定します"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "問題の報告・機能リクエスト"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "バグや機能のアイデアがあれば、拡張機能ストアのレビュー欄にお寄せください。"
+  },
+  "promptCommonFeedbackButton": {
+    "message": "フィードバック"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "🌟 でサポート"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Timeline が役に立ったら、GitHub で Star をお願いします。"
+  },
+  "promptCommonGithubStarButton": {
+    "message": "GitHub へ"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "タイムラインを折りたたむ"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "タイムラインを展開"
   },
   "sidebarStarredHint": {
     "message": "有効にすると、サイドバーにフォルダが表示されます"

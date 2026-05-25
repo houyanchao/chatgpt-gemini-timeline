@@ -357,19 +357,19 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
     transition: opacity 0.15s;
 }
 
-/* 未标记 — 浅色 tooltip（黑色背景）：白色描边，低透明度 */
+/* 未标记 — 浅色 tooltip：深灰描边，低透明度 */
 .timeline-tooltip-pin.not-pinned {
     opacity: 0.35;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>');
 }
 
 .timeline-tooltip-pin.not-pinned:hover {
     opacity: 0.7;
 }
 
-/* 未标记 — 深色 tooltip（白色背景）：深灰描边 */
+/* 未标记 — 深色 tooltip：浅灰描边 */
 [data-tooltip-theme="dark"] .timeline-tooltip-pin.not-pinned {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231f2937" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e5e7eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>');
 }
 
 /* 已标记 — 橙色填充（与星标激活色统一） */
@@ -395,19 +395,19 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
     transition: opacity 0.15s;
 }
 
-/* 未收藏 — 浅色 tooltip（黑色背景）：白色描边，低透明度 */
+/* 未收藏 — 浅色 tooltip：深灰描边，低透明度 */
 .timeline-tooltip-star.not-starred {
     opacity: 0.35;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26"><path fill="none" stroke="%23ffffff" stroke-width="1.5" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26"><path fill="none" stroke="%23334155" stroke-width="1.5" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>');
 }
 
 .timeline-tooltip-star.not-starred:hover {
     opacity: 0.7;
 }
 
-/* 未收藏 — 深色 tooltip（白色背景）：深灰描边 */
+/* 未收藏 — 深色 tooltip：浅灰描边 */
 [data-tooltip-theme="dark"] .timeline-tooltip-star.not-starred {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26"><path fill="none" stroke="%231f2937" stroke-width="1.5" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>');
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26"><path fill="none" stroke="%23e5e7eb" stroke-width="1.5" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>');
 }
 
 /* 已收藏 — 橙色填充（与图钉激活色统一） */
@@ -429,9 +429,13 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
 .timeline-tooltip-time {
     font-size: 11px;
     font-weight: 500;
-    opacity: 0.5;
+    color: #64748b;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+}
+
+[data-tooltip-theme="dark"] .timeline-tooltip-time {
+    color: #a1a1aa;
 }
 
 /* ✅ 重新设计：Tooltip 内容区域（简化，不依赖 -webkit-line-clamp） */

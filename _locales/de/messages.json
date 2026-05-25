@@ -84,7 +84,31 @@
     "message": "Alle Einstellungen"
   },
   "promptCommonSmartInputHint": {
-    "message": "Lege fest, wie Enter Zeilenumbrüche einfügt und Nachrichten sendet"
+    "message": "Lege im Chatfeld fest, wie die Eingabetaste Zeilenumbrüche und das Senden von Nachrichten steuert"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Probleme melden oder Funktionen anfragen"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Einen Fehler gefunden oder eine Funktionsidee? Hinterlasse Feedback im Bewertungsbereich des Erweiterungs-Stores."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Feedback geben"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Mit einem 🌟 unterstützen"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Wenn Timeline hilfreich ist, unterstütze es bitte mit einem GitHub-Star."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Zu GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Timeline einklappen"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Timeline ausklappen"
   },
   "sidebarStarredHint": {
     "message": "Wenn aktiviert, werden Ordner in der Seitenleiste angezeigt"

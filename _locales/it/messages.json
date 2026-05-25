@@ -84,7 +84,31 @@
     "message": "Tutte le impostazioni"
   },
   "promptCommonSmartInputHint": {
-    "message": "Imposta come Enter inserisce nuove righe e invia messaggi"
+    "message": "Nella casella di chat, imposta come il tasto Enter controlla le nuove righe e l'invio dei messaggi"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Segnala problemi o richiedi funzioni"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Hai trovato un bug o hai un'idea? Lascia un feedback nell'area recensioni dello store dell'estensione."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Invia feedback"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Supporta con una 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Se Timeline ti è utile, supportalo con una stella su GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Vai su GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Comprimi timeline"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Espandi timeline"
   },
   "sidebarStarredHint": {
     "message": "Quando attivato, le cartelle vengono visualizzate nella barra laterale"

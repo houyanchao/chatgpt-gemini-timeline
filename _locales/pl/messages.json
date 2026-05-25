@@ -84,7 +84,31 @@
     "message": "Wszystkie ustawienia"
   },
   "promptCommonSmartInputHint": {
-    "message": "Ustaw, jak Enter dodaje nowe wiersze i wysyła wiadomości"
+    "message": "W polu czatu ustaw, jak klawisz Enter steruje nowymi wierszami i wysyłaniem wiadomości"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Zgłoś problem lub zaproponuj funkcję"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Masz błąd lub pomysł na funkcję? Zostaw opinię w sekcji recenzji sklepu z rozszerzeniami."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Przekaż opinię"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Wesprzyj 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Jeśli Timeline jest przydatny, wesprzyj go gwiazdką na GitHubie."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Przejdź do GitHuba"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Zwiń oś czasu"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Rozwiń oś czasu"
   },
   "sidebarStarredHint": {
     "message": "Po włączeniu foldery są wyświetlane na pasku bocznym"

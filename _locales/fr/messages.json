@@ -84,7 +84,31 @@
     "message": "Tous les paramètres"
   },
   "promptCommonSmartInputHint": {
-    "message": "Définissez comment Entrée insère des sauts de ligne et envoie les messages"
+    "message": "Dans la zone de discussion, définissez comment la touche Entrée contrôle les sauts de ligne et l'envoi des messages"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Signaler un problème ou demander une fonctionnalité"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "Vous avez trouvé un bug ou avez une idée de fonctionnalité ? Laissez un avis dans la boutique d'extensions."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Donner un avis"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Soutenir avec une 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Si Timeline vous est utile, soutenez-le avec une étoile GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Aller sur GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Réduire la chronologie"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Développer la chronologie"
   },
   "sidebarStarredHint": {
     "message": "Lorsque activé, les dossiers sont affichés dans la barre latérale"

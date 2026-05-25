@@ -84,7 +84,31 @@
     "message": "全部設定"
   },
   "promptCommonSmartInputHint": {
-    "message": "設定 Enter 換行和傳送訊息方式"
+    "message": "在對話框中，設定 Enter 鍵控制「換行」和「傳送訊息」"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "回報問題、提出需求"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "遇到 bug 或有功能想法，歡迎到擴充商店評價區留言。"
+  },
+  "promptCommonFeedbackButton": {
+    "message": "去回饋"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "給一顆 🌟 支持"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "如果 Timeline 對你有幫助，歡迎在 GitHub 點 Star 支持。"
+  },
+  "promptCommonGithubStarButton": {
+    "message": "去 GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "收起時間軸"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "展開時間軸"
   },
   "sidebarStarredHint": {
     "message": "啟用後，在側邊欄中顯示資料夾"

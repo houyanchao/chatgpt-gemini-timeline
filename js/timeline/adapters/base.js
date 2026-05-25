@@ -140,6 +140,24 @@ class SiteAdapter {
     shouldHideTimeline() {
         return false; // 默认不隐藏
     }
+
+    /**
+     * Selectors that can affect timeline visibility.
+     * TimelineManager uses these for fast, scoped DOM checks.
+     * @returns {string[]}
+     */
+    getTimelineVisibilitySelectors() {
+        return [];
+    }
+
+    /**
+     * Selectors whose own attributes can affect timeline visibility.
+     * These are observed directly after matching nodes appear.
+     * @returns {string[]}
+     */
+    getTimelineVisibilityAttributeSelectors() {
+        return [];
+    }
     
     /**
      * Get scroll offset for this site when clicking timeline nodes
@@ -160,4 +178,3 @@ class SiteAdapter {
     }
     
 }
-

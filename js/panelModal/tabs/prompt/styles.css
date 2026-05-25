@@ -853,6 +853,142 @@
     transform: none;
 }
 
+/* ==================== 深色模式适配：提示词 / 常用设置下拉面板 ==================== */
+
+html[data-timeline-theme="dark"] .prompt-dropdown-container {
+    background: #262626;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 16px 48px rgba(0, 0, 0, 0.24);
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tabs {
+    background: #262626;
+    border-bottom-color: #404040;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tab {
+    color: #a3a3a3;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tab:hover,
+html[data-timeline-theme="dark"] .prompt-dropdown-tab.active {
+    color: #c4b5fd;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tab.active .prompt-dropdown-tab-text::after {
+    background: #8b5cf6;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tab-icon:hover {
+    background: rgba(139, 92, 246, 0.18);
+    color: #ddd6fe;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-search-input {
+    background: #1f1f1f;
+    border-color: #404040;
+    color: #f5f5f5;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-search-input::placeholder {
+    color: #737373;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-search-input:focus {
+    background: #171717;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-search-empty,
+html[data-timeline-theme="dark"] .prompt-dropdown-empty-hint {
+    color: #a3a3a3;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-body::-webkit-scrollbar-thumb,
+html[data-timeline-theme="dark"] .prompt-common-settings::-webkit-scrollbar-thumb {
+    background: #525252;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-body::-webkit-scrollbar-thumb:hover,
+html[data-timeline-theme="dark"] .prompt-common-settings::-webkit-scrollbar-thumb:hover {
+    background: #737373;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item,
+html[data-timeline-theme="dark"] .prompt-common-setting-item {
+    background: #1f1f1f;
+    border-color: #3f3f46;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item:hover,
+html[data-timeline-theme="dark"] .prompt-common-setting-item:hover {
+    border-color: #52525b;
+    background: #27272a;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item:active {
+    background: rgba(139, 92, 246, 0.16);
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item.disabled {
+    color: #737373;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item.disabled:hover {
+    background: transparent;
+    border-color: #3f3f46;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item-name,
+html[data-timeline-theme="dark"] .prompt-dropdown-item-label,
+html[data-timeline-theme="dark"] .prompt-common-setting-label {
+    color: #f5f5f5;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-item-content,
+html[data-timeline-theme="dark"] .prompt-common-setting-hint {
+    color: #a3a3a3;
+}
+
+html[data-timeline-theme="dark"] .prompt-common-setting-value {
+    background: #333333;
+    color: #d4d4d4;
+}
+
+html[data-timeline-theme="dark"] .prompt-common-setting-btn,
+html[data-timeline-theme="dark"] .prompt-dropdown-empty-action {
+    background: #f5f5f5;
+    color: #171717;
+}
+
+html[data-timeline-theme="dark"] .prompt-common-setting-btn:hover,
+html[data-timeline-theme="dark"] .prompt-dropdown-empty-action:hover {
+    background: #e5e5e5;
+}
+
+html[data-timeline-theme="dark"] .prompt-common-setting-btn:disabled {
+    background: #3f3f46;
+    color: #8a8a8a;
+}
+
+html[data-timeline-theme="dark"] .prompt-settings .ait-toggle-slider,
+html[data-timeline-theme="dark"] .prompt-common-settings .ait-toggle-slider {
+    background-color: #525252;
+}
+
+html[data-timeline-theme="dark"] .prompt-settings .ait-toggle-switch input:checked + .ait-toggle-slider,
+html[data-timeline-theme="dark"] .prompt-common-settings .ait-toggle-switch input:checked + .ait-toggle-slider {
+    background-color: #8b5cf6;
+}
+
+html[data-timeline-theme="dark"] .prompt-settings .ait-toggle-switch input:focus + .ait-toggle-slider,
+html[data-timeline-theme="dark"] .prompt-common-settings .ait-toggle-switch input:focus + .ait-toggle-slider {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.24);
+}
+
 
 /* ==================== 滚动条样式 ==================== */
 

@@ -84,7 +84,31 @@
     "message": "การตั้งค่าทั้งหมด"
   },
   "promptCommonSmartInputHint": {
-    "message": "ตั้งค่าว่า Enter จะขึ้นบรรทัดใหม่หรือส่งข้อความอย่างไร"
+    "message": "ในช่องแชท ให้ตั้งค่าว่าปุ่ม Enter จะควบคุมการขึ้นบรรทัดใหม่และการส่งข้อความอย่างไร"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "แจ้งปัญหาหรือขอฟีเจอร์"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "พบข้อผิดพลาดหรือมีไอเดียฟีเจอร์? ฝากความคิดเห็นไว้ในหน้าร้านส่วนขยายได้เลย"
+  },
+  "promptCommonFeedbackButton": {
+    "message": "ส่งความคิดเห็น"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "สนับสนุนด้วย 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "หาก Timeline มีประโยชน์กับคุณ โปรดสนับสนุนด้วย Star บน GitHub"
+  },
+  "promptCommonGithubStarButton": {
+    "message": "ไปที่ GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "ยุบไทม์ไลน์"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "ขยายไทม์ไลน์"
   },
   "sidebarStarredHint": {
     "message": "เมื่อเปิดใช้งาน โฟลเดอร์จะแสดงในแถบด้านข้าง"

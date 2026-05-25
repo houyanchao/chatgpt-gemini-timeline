@@ -61,14 +61,14 @@ class GlobalTooltipManager {
                     // ✅ 支持浅色/深色模式的颜色配置
                     color: {
                         light: {
-                            backgroundColor: '#0d0d0d',  // 浅色模式：黑色背景
-                            textColor: '#ffffff',        // 浅色模式：白色文字
-                            borderColor: '#0d0d0d'       // 浅色模式：黑色边框
+                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
+                            textColor: '#334155',        // 浅色模式：深灰文字
+                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
                         },
                         dark: {
-                            backgroundColor: '#ffffff',  // 深色模式：白色背景
-                            textColor: '#1f2937',        // 深色模式：深灰色文字
-                            borderColor: '#e5e7eb'       // 深色模式：浅灰色边框
+                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
+                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
+                            borderColor: '#3f3f46'       // 深色模式：深灰边框
                         }
                     }
                 },
@@ -82,14 +82,14 @@ class GlobalTooltipManager {
                     gap: 12,
                     color: {
                         light: {
-                            backgroundColor: '#0d0d0d',  // 浅色模式：黑色背景
-                            textColor: '#ffffff',        // 浅色模式：白色文字
-                            borderColor: '#0d0d0d'       // 浅色模式：黑色边框
+                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
+                            textColor: '#334155',        // 浅色模式：深灰文字
+                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
                         },
                         dark: {
-                            backgroundColor: '#ffffff',  // 深色模式：白色背景
-                            textColor: '#1f2937',        // 深色模式：深灰色文字
-                            borderColor: '#e5e7eb'       // 深色模式：浅灰色边框
+                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
+                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
+                            borderColor: '#3f3f46'       // 深色模式：深灰边框
                         }
                     }
                 },
@@ -103,14 +103,14 @@ class GlobalTooltipManager {
                     gap: 12,
                     color: {
                         light: {
-                            backgroundColor: '#0d0d0d',  // 浅色模式：黑色背景
-                            textColor: '#ffffff',        // 浅色模式：白色文字
-                            borderColor: '#0d0d0d'       // 浅色模式：黑色边框
+                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
+                            textColor: '#334155',        // 浅色模式：深灰文字
+                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
                         },
                         dark: {
-                            backgroundColor: '#ffffff',  // 深色模式：白色背景
-                            textColor: '#1f2937',        // 深色模式：深灰色文字
-                            borderColor: '#e5e7eb'       // 深色模式：浅灰色边框
+                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
+                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
+                            borderColor: '#3f3f46'       // 深色模式：深灰边框
                         }
                     }
                 }
@@ -1051,4 +1051,3 @@ if (typeof window.globalTooltipManager === 'undefined') {
         debug: false  // 生产环境关闭，调试时可设为 true
     });
 }
-

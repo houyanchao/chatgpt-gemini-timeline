@@ -354,6 +354,10 @@ class ChatTimeRecorder {
             if (!timestamp) return;
             
             const formattedTime = this.formatNodeTime(timestamp);
+            try {
+                const marker = window.timelineManager?.markerMap?.get?.(String(nodeId));
+                if (marker) marker.timeLabel = formattedTime;
+            } catch {}
             
             // 获取时间标签的实际渲染目标元素
             const target = adapter.getTimeLabelTarget(element);
@@ -453,6 +457,11 @@ class ChatTimeRecorder {
             document.querySelectorAll('[data-ait-time]').forEach(el => {
                 el.removeAttribute('data-ait-time');
             });
+            try {
+                window.timelineManager?.markers?.forEach(marker => {
+                    marker.timeLabel = null;
+                });
+            } catch {}
         }
     }
 

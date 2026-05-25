@@ -84,7 +84,31 @@
     "message": "Todos los ajustes"
   },
   "promptCommonSmartInputHint": {
-    "message": "Configura cómo Enter inserta saltos de línea y envía mensajes"
+    "message": "En el cuadro de chat, configura cómo la tecla Enter controla los saltos de línea y el envío de mensajes"
+  },
+  "promptCommonFeedbackTitle": {
+    "message": "Informar problemas o pedir funciones"
+  },
+  "promptCommonFeedbackHint": {
+    "message": "¿Encontraste un error o tienes una idea? Deja tus comentarios en la sección de reseñas de la tienda de extensiones."
+  },
+  "promptCommonFeedbackButton": {
+    "message": "Enviar feedback"
+  },
+  "promptCommonGithubStarTitle": {
+    "message": "Apoya con una 🌟"
+  },
+  "promptCommonGithubStarHint": {
+    "message": "Si Timeline te resulta útil, apóyalo con una estrella en GitHub."
+  },
+  "promptCommonGithubStarButton": {
+    "message": "Ir a GitHub"
+  },
+  "timelineToggleCollapseTooltip": {
+    "message": "Contraer la línea de tiempo"
+  },
+  "timelineToggleExpandTooltip": {
+    "message": "Expandir la línea de tiempo"
   },
   "sidebarStarredHint": {
     "message": "Cuando está habilitado, se muestran carpetas en la barra lateral"

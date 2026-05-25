@@ -1,9 +1,34 @@
 /* ============================================
-   闪记面板 & 入口按钮（固定浅色主题）
+   闪记面板 & 入口按钮（适配 light/dark 主题）
    ============================================ */
 
 /* ── 面板容器 ── */
 .ait-notepad-panel {
+    --ait-notepad-bg: #fffdf7;
+    --ait-notepad-border: rgba(0, 0, 0, 0.08);
+    --ait-notepad-shadow-strong: rgba(0, 0, 0, 0.10);
+    --ait-notepad-shadow-soft: rgba(0, 0, 0, 0.05);
+    --ait-notepad-header-bg: rgba(0, 0, 0, 0.025);
+    --ait-notepad-footer-bg: rgba(0, 0, 0, 0.015);
+    --ait-notepad-divider: rgba(0, 0, 0, 0.06);
+    --ait-notepad-text: #222;
+    --ait-notepad-title: #444;
+    --ait-notepad-muted: #888;
+    --ait-notepad-secondary: #aaa;
+    --ait-notepad-placeholder: #c0c0c0;
+    --ait-notepad-empty: #bbb;
+    --ait-notepad-accent: #6128FF;
+    --ait-notepad-folder: #8b7adf;
+    --ait-notepad-hover: rgba(0, 0, 0, 0.05);
+    --ait-notepad-hover-strong: rgba(0, 0, 0, 0.07);
+    --ait-notepad-active-bg: rgba(0, 0, 0, 0.12);
+    --ait-notepad-scrollbar: rgba(0, 0, 0, 0.15);
+    --ait-notepad-list-scrollbar: rgba(0, 0, 0, 0.12);
+    --ait-notepad-danger-bg: rgba(220, 50, 50, 0.08);
+    --ait-notepad-danger-bg-active: rgba(220, 50, 50, 0.15);
+    --ait-notepad-danger: #e53e3e;
+    --ait-notepad-delete: #ccc;
+
     position: fixed;
     top: -9999px;
     left: -9999px;
@@ -13,11 +38,11 @@
     display: flex;
     flex-direction: column;
     border-radius: 12px;
-    background: #fffdf7;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--ait-notepad-bg);
+    border: 1px solid var(--ait-notepad-border);
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.10),
-        0 2px 8px rgba(0, 0, 0, 0.05);
+        0 8px 32px var(--ait-notepad-shadow-strong),
+        0 2px 8px var(--ait-notepad-shadow-soft);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
     opacity: 0;
     pointer-events: none;
@@ -27,6 +52,34 @@
         opacity 0.15s cubic-bezier(0, 0, 0.2, 1),
         transform 0.15s cubic-bezier(0, 0, 0.2, 1);
     overflow: hidden;
+}
+
+body.dark-theme .ait-notepad-panel,
+html[data-timeline-theme="dark"] .ait-notepad-panel {
+    --ait-notepad-bg: #1f1f23;
+    --ait-notepad-border: rgba(255, 255, 255, 0.12);
+    --ait-notepad-shadow-strong: rgba(0, 0, 0, 0.45);
+    --ait-notepad-shadow-soft: rgba(0, 0, 0, 0.30);
+    --ait-notepad-header-bg: rgba(255, 255, 255, 0.04);
+    --ait-notepad-footer-bg: rgba(255, 255, 255, 0.03);
+    --ait-notepad-divider: rgba(255, 255, 255, 0.08);
+    --ait-notepad-text: #f2f2f3;
+    --ait-notepad-title: #f5f5f7;
+    --ait-notepad-muted: #a0a0a6;
+    --ait-notepad-secondary: #8e8e93;
+    --ait-notepad-placeholder: #77777d;
+    --ait-notepad-empty: #77777d;
+    --ait-notepad-accent: #8B5CF6;
+    --ait-notepad-folder: #a78bfa;
+    --ait-notepad-hover: rgba(255, 255, 255, 0.06);
+    --ait-notepad-hover-strong: rgba(255, 255, 255, 0.09);
+    --ait-notepad-active-bg: rgba(255, 255, 255, 0.13);
+    --ait-notepad-scrollbar: rgba(255, 255, 255, 0.22);
+    --ait-notepad-list-scrollbar: rgba(255, 255, 255, 0.18);
+    --ait-notepad-danger-bg: rgba(248, 113, 113, 0.14);
+    --ait-notepad-danger-bg-active: rgba(248, 113, 113, 0.22);
+    --ait-notepad-danger: #f87171;
+    --ait-notepad-delete: #77777d;
 }
 
 .ait-notepad-panel.ait-notepad-visible {
@@ -46,8 +99,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 10px 10px 14px;
-    background: rgba(0, 0, 0, 0.025);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    background: var(--ait-notepad-header-bg);
+    border-bottom: 1px solid var(--ait-notepad-divider);
     flex-shrink: 0;
     user-select: none;
     cursor: move;
@@ -68,7 +121,7 @@
     gap: 6px;
     font-size: 14px;
     font-weight: 600;
-    color: #444;
+    color: var(--ait-notepad-title);
     letter-spacing: 0.01em;
     line-height: 1;
     white-space: nowrap;
@@ -79,7 +132,7 @@
 .ait-notepad-title svg {
     display: block;
     flex-shrink: 0;
-    color: #6128FF;
+    color: var(--ait-notepad-accent);
 }
 
 /* ── 头部按钮（关闭 / 列表 / 新增） ── */
@@ -95,7 +148,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #888;
+    color: var(--ait-notepad-muted);
     transition: background-color 0.15s ease, color 0.15s ease;
     padding: 0;
     flex-shrink: 0;
@@ -104,14 +157,14 @@
 .ait-notepad-close-btn:hover,
 .ait-notepad-list-btn:hover,
 .ait-notepad-add-btn:hover {
-    background: rgba(0, 0, 0, 0.07);
-    color: #444;
+    background: var(--ait-notepad-hover-strong);
+    color: var(--ait-notepad-title);
 }
 
 .ait-notepad-close-btn:active,
 .ait-notepad-list-btn:active,
 .ait-notepad-add-btn:active {
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--ait-notepad-active-bg);
 }
 
 /* ── 主体区域 ── */
@@ -129,7 +182,7 @@
     overflow-y: auto;
     padding: 6px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+    scrollbar-color: var(--ait-notepad-list-scrollbar) transparent;
 }
 
 .ait-notepad-list::-webkit-scrollbar {
@@ -137,7 +190,7 @@
 }
 
 .ait-notepad-list::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--ait-notepad-list-scrollbar);
     border-radius: 2px;
 }
 
@@ -153,11 +206,11 @@
 }
 
 .ait-notepad-item:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--ait-notepad-hover);
 }
 
 .ait-notepad-item:active {
-    background: rgba(0, 0, 0, 0.07);
+    background: var(--ait-notepad-hover-strong);
 }
 
 .ait-notepad-item-content {
@@ -168,7 +221,7 @@
 .ait-notepad-item-title {
     font-size: 13.5px;
     font-weight: 500;
-    color: #222;
+    color: var(--ait-notepad-text);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
@@ -188,7 +241,7 @@
 
 .ait-notepad-item-folder {
     flex-shrink: 0;
-    color: #8b7adf;
+    color: var(--ait-notepad-folder);
     font-size: 11.5px;
     font-weight: 400;
 }
@@ -200,7 +253,7 @@
 }
 
 .ait-notepad-item-star-title {
-    color: #aaa;
+    color: var(--ait-notepad-secondary);
     font-size: 11.5px;
     white-space: nowrap;
     overflow: hidden;
@@ -214,7 +267,7 @@
     gap: 8px;
     margin-top: 3px;
     font-size: 11.5px;
-    color: #aaa;
+    color: var(--ait-notepad-secondary);
     line-height: 1.3;
 }
 
@@ -240,7 +293,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #ccc;
+    color: var(--ait-notepad-delete);
     transition: background-color 0.12s ease, color 0.12s ease;
     padding: 0;
     flex-shrink: 0;
@@ -252,12 +305,12 @@
 }
 
 .ait-notepad-item-delete:hover {
-    background: rgba(220, 50, 50, 0.08);
-    color: #e53e3e;
+    background: var(--ait-notepad-danger-bg);
+    color: var(--ait-notepad-danger);
 }
 
 .ait-notepad-item-delete:active {
-    background: rgba(220, 50, 50, 0.15);
+    background: var(--ait-notepad-danger-bg-active);
 }
 
 /* ── 编辑器 ── */
@@ -272,11 +325,11 @@
     line-height: 1.65;
     font-family: inherit;
     background: transparent;
-    color: #222;
+    color: var(--ait-notepad-text);
     box-sizing: border-box;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    scrollbar-color: var(--ait-notepad-scrollbar) transparent;
 }
 
 .ait-notepad-editor::-webkit-scrollbar {
@@ -284,12 +337,12 @@
 }
 
 .ait-notepad-editor::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--ait-notepad-scrollbar);
     border-radius: 2px;
 }
 
 .ait-notepad-editor::placeholder {
-    color: #c0c0c0;
+    color: var(--ait-notepad-placeholder);
     font-size: 13px;
 }
 
@@ -312,13 +365,13 @@
     font-size: 15px;
     line-height: 1.65;
     font-family: inherit;
-    color: #222;
+    color: var(--ait-notepad-text);
     box-sizing: border-box;
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-word;
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    scrollbar-color: var(--ait-notepad-scrollbar) transparent;
     -webkit-user-select: none !important;
     user-select: none !important;
     pointer-events: none;
@@ -329,12 +382,12 @@
 }
 
 .ait-notepad-preview::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--ait-notepad-scrollbar);
     border-radius: 2px;
 }
 
 .ait-notepad-preview.ait-notepad-preview-empty {
-    color: #c0c0c0;
+    color: var(--ait-notepad-placeholder);
     font-size: 13px;
 }
 
@@ -349,9 +402,9 @@
 /* ── 底部文件夹位置栏 ── */
 .ait-notepad-footer {
     flex-shrink: 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: 1px solid var(--ait-notepad-divider);
     padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.015);
+    background: var(--ait-notepad-footer-bg);
 }
 
 .ait-notepad-location {
@@ -363,16 +416,16 @@
     border-radius: 6px;
     transition: background-color 0.12s ease;
     max-width: 100%;
-    color: #888;
+    color: var(--ait-notepad-muted);
 }
 
 .ait-notepad-location:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #666;
+    background: var(--ait-notepad-hover);
+    color: var(--ait-notepad-title);
 }
 
 .ait-notepad-location:active {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--ait-notepad-hover-strong);
 }
 
 .ait-notepad-location > svg {
@@ -386,20 +439,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
-    color: #666;
+    color: var(--ait-notepad-title);
     display: flex;
     align-items: center;
     gap: 0;
 }
 
 .ait-notepad-location-text.ait-notepad-location-empty {
-    color: #bbb;
+    color: var(--ait-notepad-empty);
     display: inline;
 }
 
 .ait-notepad-loc-folder {
     flex-shrink: 0;
-    color: #8b7adf;
+    color: var(--ait-notepad-folder);
 }
 
 .ait-notepad-loc-folder::after {
@@ -409,7 +462,7 @@
 }
 
 .ait-notepad-loc-title {
-    color: #aaa;
+    color: var(--ait-notepad-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
