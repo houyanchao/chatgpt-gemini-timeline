@@ -1521,6 +1521,7 @@ class TimelineManager {
         }
         try { this.mutationObserver?.disconnect(); } catch {}
         try { this.intersectionObserver?.disconnect(); } catch {}
+        this.cleanupScrollPadding(this.conversationContainer);
 
         this.conversationContainer = newConv;
         
@@ -1534,6 +1535,7 @@ class TimelineManager {
         }
         
         // ✅ Padding 状态由 adapter.isAIGenerating() 实时控制
+        this._currentPadding = 0;
 
         // Find (or re-find) scroll container
         let parent = newConv;
@@ -1567,6 +1569,14 @@ class TimelineManager {
 
         // Force a recalc right away to rebuild markers
         this.recalculateAndRenderMarkers();
+    }
+
+    cleanupScrollPadding(container = null) {
+        const root = container || document;
+        try {
+            root.querySelectorAll?.('.ait-scroll-padding').forEach(el => el.remove());
+        } catch {}
+        this._currentPadding = 0;
     }
 
     updateIntersectionObserverTargets() {
@@ -3446,11 +3456,8 @@ class TimelineManager {
         // ✅ 清理 AI 完成提示定位锚点
         TimelineUtils.removeElementSafe(this.aiCompleteToastAnchor);
 
-        // ✅ 清理底部空白元素
-        if (this.conversationContainer) {
-            const paddingEl = this.conversationContainer.querySelector('.ait-scroll-padding');
-            if (paddingEl) paddingEl.remove();
-        }
+        // ✅ 清理底部空白元素。切换会话时旧容器可能仍留在 DOM 中，必须全局清理残留。
+        this.cleanupScrollPadding();
         
         // Clear references
         this.ui = { timelineBar: null, track: null, trackContent: null };
