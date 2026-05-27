@@ -50,7 +50,7 @@
   "zmxvkp": {
     "message": "請輸入"
   },
-  "pxvkmz": {
+  "commonCancel": {
     "message": "取消"
   },
   "vkmzpx": {
@@ -840,7 +840,7 @@
     "message": "目前平台暫不支援調整對話寬度"
   },
   "mirrorSiteTabName": {
-    "message": "鏡像站點"
+    "message": "自訂平台"
   },
   "mirrorSiteHint": {
     "message": "添加 AI 鏡像站域名後，在這些網站上會出現浮窗按鈕，可使用本插件的部分功能。"
@@ -874,6 +874,93 @@
   },
   "mirrorSiteCopied": {
     "message": "已複製到剪貼簿"
+  },
+  "mirrorSiteCreateAdapterTitle": {
+    "message": "配置自訂平台"
+  },
+  "mirrorSiteCreateAdapterHint": {
+    "message": "按步驟讓 AI 幫你產生 selector 配置，讓時間軸支援該站點。"
+  },
+  "mirrorSiteAdapterBadge": {
+    "message": "時間軸適配"
+  },
+  "mirrorSiteAdapterHeroTitle": {
+    "message": "適配新的 AI 平台"
+  },
+  "mirrorSiteAdapterHeroDesc": {
+    "message": "為其他 AI 網站適配時間軸、提示詞、閃記等功能。"
+  },
+  "mirrorSiteAdapterStartButton": {
+    "message": "開始配置"
+  },
+  "mirrorSiteNativeSupportedTitle": {
+    "message": "原生支援以下 AI 網站："
+  },
+  "mirrorSiteWizardStep1": {
+    "message": "打開你想適配的 AI 網站，發起一個新對話"
+  },
+  "mirrorSiteWizardStep2": {
+    "message": "在新對話中發送以下內容："
+  },
+  "mirrorSiteWizardStep3": {
+    "message": "複製新對話頁面的網址，貼到下方輸入框"
+  },
+  "mirrorSiteUrlInputPlaceholder": {
+    "message": "請輸入新對話網址"
+  },
+  "mirrorSiteNextButton": {
+    "message": "下一步"
+  },
+  "mirrorSiteUrlRequired": {
+    "message": "請輸入 URL"
+  },
+  "mirrorSiteUrlInvalid": {
+    "message": "URL 格式無效"
+  },
+  "mirrorSiteAlreadySupported": {
+    "message": "已支援，無需適配"
+  },
+  "mirrorSiteDemoInfoIntro": {
+    "message": "從命中「$1」的節點開始，向上 5 層祖先 demo："
+  },
+  "mirrorSiteDetectWaitingTitle": {
+    "message": "等待發送「$1」"
+  },
+  "mirrorSiteDetectWaitingDesc": {
+    "message": "在目前對話中發送後自動採集"
+  },
+  "mirrorSiteFeedbackSuccessLine1": {
+    "message": "頁面結構解析成功！請複製下面資訊，"
+  },
+  "mirrorSiteFeedbackSuccessLine2": {
+    "message": "透過 GitHub 或郵件發送給開發者，我會盡快完成適配。"
+  },
+  "mirrorSiteCopyInfo": {
+    "message": "複製資訊"
+  },
+  "mirrorSiteGoGithub": {
+    "message": "前往 GitHub"
+  },
+  "mirrorSiteCopyEmail": {
+    "message": "複製郵箱"
+  },
+  "mirrorSiteEmailCopied": {
+    "message": "郵箱已複製"
+  },
+  "mirrorSiteIssueTitle": {
+    "message": "[適配請求] $1"
+  },
+  "mirrorSiteDemoErrorDomain": {
+    "message": "域名"
+  },
+  "mirrorSiteDemoErrorStatusTitle": {
+    "message": "採集狀態"
+  },
+  "mirrorSiteDemoErrorDetectedButFailed": {
+    "message": "已檢測到測試訊息，但頁面結構採集失敗。"
+  },
+  "mirrorSiteDemoErrorMessage": {
+    "message": "錯誤資訊"
   },
   "hideStarredFromListLabel": {
     "message": "去重模式"

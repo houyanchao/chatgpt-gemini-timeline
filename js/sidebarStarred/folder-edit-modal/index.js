@@ -146,7 +146,7 @@ class FolderEditModal {
                 requiredMessage: options.requiredMessage || chrome.i18n.getMessage('kmxpvz') || 'Name is required',
                 validator: options.validator || null,
                 confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx') || 'OK',
-                cancelText: options.cancelText || chrome.i18n.getMessage('pxvkmz') || 'Cancel'
+                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel') || 'Cancel'
             };
 
             return await this._showModal(config);

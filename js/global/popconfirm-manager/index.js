@@ -58,7 +58,7 @@ class GlobalPopconfirmManager {
                 title: options.title || '',
                 content: options.content || '',
                 confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('pxvkmz'),
+                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel'),
                 confirmTextType: options.confirmTextType || 'danger', // 默认红色（危险操作）
                 showCancel: options.showCancel !== false // 默认显示取消按钮
             };

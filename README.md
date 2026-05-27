@@ -13,7 +13,7 @@
   <p>
     <img src="https://img.shields.io/badge/Manifest-V3-2B6CB0?style=flat-square" alt="Manifest V3">
     <img src="https://img.shields.io/badge/License-GPL--3.0-2F855A?style=flat-square" alt="GPL-3.0 License">
-    <a href="https://github.com/houyanchao/AITimeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
+    <a href="https://github.com/houyanchao/chatgpt-gemini-timeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
   </p>
 
   <p><strong>简体中文</strong> | <a href="./README.en.md">English</a></p>
@@ -146,7 +146,7 @@ Firefox 调试可使用 `about:debugging` 临时加载扩展。
 
 欢迎通过以下方式反馈问题或提出需求：
 
-- [GitHub Issues](https://github.com/houyanchao/AITimeline/issues)
+- [GitHub Issues](https://github.com/houyanchao/chatgpt-gemini-timeline/issues)
 - 邮件：houyanchao@outlook.com
 - Chrome / Edge / Firefox 插件商店评价区
 

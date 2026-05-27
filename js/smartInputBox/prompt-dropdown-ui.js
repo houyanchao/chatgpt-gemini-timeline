@@ -317,7 +317,7 @@ function _promptDropdownCreateCommonSettings({
     const githubStarBtn = panel.querySelector('.prompt-common-github-star-btn');
     githubStarBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
-        _promptDropdownOpenExternalUrl('https://github.com/houyanchao/AITimeline');
+        _promptDropdownOpenExternalUrl('https://github.com/houyanchao/chatgpt-gemini-timeline');
     });
 
     return panel;

@@ -426,7 +426,7 @@ class NotepadManager {
             title: chrome.i18n.getMessage('notepadConfirmDeleteTitle') || '确认删除',
             content: chrome.i18n.getMessage('notepadConfirmDeleteContent') || '删除后将无法恢复，确定要继续吗？',
             confirmText: chrome.i18n.getMessage('mzxvkp') || '删除',
-            cancelText: chrome.i18n.getMessage('pxvkmz') || '取消'
+            cancelText: chrome.i18n.getMessage('commonCancel') || '取消'
         });
         if (!confirmed) return;
 

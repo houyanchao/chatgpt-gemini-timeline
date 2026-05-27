@@ -17,6 +17,10 @@ const GDRIVE_API = 'https://www.googleapis.com';
 const IS_FIREFOX = typeof browser !== 'undefined' && browser.runtime?.id;
 const browserAPI = IS_FIREFOX ? browser : chrome;
 
+try {
+    importScripts(browserAPI.runtime.getURL('js/timeline/adapters/custom-sites.js'));
+} catch {}
+
 const OAUTH_CLIENT_ID = '945798922226-jve664u0ibs7lsji89kr8s7f9lsnilla.apps.googleusercontent.com';
 const OAUTH_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
@@ -202,12 +206,18 @@ function isSupportedSite(url) {
     } catch { return false; }
 }
 
-async function isMirrorSiteBg(url) {
+function isCustomTimelineSiteBg(url) {
     try {
-        const result = await chrome.storage.local.get('mirrorSiteDomains');
-        const domains = result.mirrorSiteDomains || [];
+        const staticConfigs = Array.isArray(globalThis.CUSTOM_SITE_INFO)
+            ? globalThis.CUSTOM_SITE_INFO
+            : [];
+        const domains = staticConfigs
+            .filter(config => config?.enabled !== false && Array.isArray(config.sites))
+            .flatMap(config => config.sites)
+            .map(site => String(site || '').trim().toLowerCase())
+            .filter(Boolean);
         if (domains.length === 0) return false;
-        const hostname = new URL(url).hostname;
+        const hostname = new URL(url).hostname.toLowerCase();
         return domains.some(d => hostname === d || hostname.endsWith('.' + d));
     } catch { return false; }
 }
@@ -219,7 +229,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         } catch {
             chrome.tabs.create({ url: chrome.runtime.getURL('popup/guide.html') });
         }
-    } else if (tab.url && await isMirrorSiteBg(tab.url)) {
+    } else if (tab.url && isCustomTimelineSiteBg(tab.url)) {
         try {
             await chrome.tabs.sendMessage(tab.id, { type: 'OPEN_PANEL_MODAL' });
         } catch {
@@ -235,6 +245,33 @@ chrome.action.onClicked.addListener(async (tab) => {
 // ============================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // --- 当前内容脚本是否位于聚焦窗口的活动标签页 ---
+    if (request.type === 'AIT_IS_ACTIVE_FOCUSED_TAB') {
+        (async () => {
+            try {
+                const senderTab = sender.tab;
+                if (!senderTab?.id || senderTab.windowId == null) {
+                    sendResponse({ success: true, active: false });
+                    return;
+                }
+
+                const [activeTab] = await chrome.tabs.query({
+                    active: true,
+                    windowId: senderTab.windowId
+                });
+                const win = await chrome.windows.get(senderTab.windowId);
+
+                sendResponse({
+                    success: true,
+                    active: activeTab?.id === senderTab.id && win?.focused === true
+                });
+            } catch (e) {
+                sendResponse({ success: false, error: e.message });
+            }
+        })();
+        return true;
+    }
+
     
     // --- Google Drive 同步 ---
     

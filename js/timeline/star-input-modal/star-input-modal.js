@@ -94,7 +94,7 @@ class StarInputModal {
                 requiredMessage: options.requiredMessage || chrome.i18n.getMessage('mzpxvk'),
                 maxLength: options.maxLength || this.config.defaultMaxLength,
                 confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('pxvkmz'),
+                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel'),
                 folderManager: options.folderManager,
                 defaultFolderId: options.defaultFolderId || null
             };

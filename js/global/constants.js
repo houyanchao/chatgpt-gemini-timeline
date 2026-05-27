@@ -33,14 +33,18 @@ const SITE_INFO = [
         logoPath: 'images/logo/chatgpt.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             quickAskPosition: 'bottomLeft',  // 追问按钮位置
             chatTimes: true,  // 提问时间记录
             stableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
-            chatWidth: {
+            chatWidth: { // 对话宽度
                 selectors: ['.text-token-text-primary > div > div']
             }
         }
@@ -52,7 +56,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/gemini.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             scrollToBottom: true,  // 回到底部按钮
@@ -71,7 +79,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/doubao.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
@@ -86,7 +98,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/deepseek.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
@@ -100,7 +116,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/wenxin.webp',
         features: {
             timeline: true,
-            smartInput: false,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: false,
+            smartEnter: false,
             inputAnimation: false,
             quickAsk: true,
             chatTimes: false  // 提问时间记录
@@ -113,7 +133,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/tongyi.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
@@ -128,7 +152,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/tongyi.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,
@@ -143,7 +171,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/kimi.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
@@ -157,7 +189,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/yuanbao.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             chatTimes: false  // 提问时间记录
@@ -170,7 +206,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/grok.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: true,
             quickAsk: true,
             quickAskPosition: 'bottomLeft',
@@ -184,7 +224,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/perplexity.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: false,
             quickAsk: true,
             quickAskPosition: 'bottomLeft',
@@ -198,7 +242,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/claude.webp',
         features: {
             timeline: true,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: false,
             quickAsk: true,
             quickAskPosition: 'bottomLeft',
@@ -213,7 +261,11 @@ const SITE_INFO = [
         logoPath: 'images/logo/notebooklm.svg',
         features: {
             timeline: false,
-            smartInput: true,
+            timeline_tooltipActions: true,  // 时间轴 tooltip 操作按钮
+            questionList: true,
+            notepad: true,
+            promptButton: true,
+            smartEnter: true,
             inputAnimation: false,
             quickAsk: true
         }
@@ -309,6 +361,22 @@ function getPlatformByUrl(url) {
             }
         }
     }
+
+    const customConfigs = Array.isArray(window.CUSTOM_SITE_INFO) ? window.CUSTOM_SITE_INFO : [];
+    for (const config of customConfigs) {
+        if (config?.enabled === false || !Array.isArray(config.sites)) continue;
+        for (const site of config.sites) {
+            if (site && url.includes(site)) {
+                return {
+                    id: config.id || `custom-${site.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')}`,
+                    sites: config.sites,
+                    name: config.name || site,
+                    features: config.features || {}
+                };
+            }
+        }
+    }
+
     return null;
 }
 
@@ -322,7 +390,7 @@ function getCurrentPlatform() {
 
 /**
  * 获取支持某功能的平台列表
- * @param {string} feature - 功能名：'timeline' | 'smartInput'
+ * @param {string} feature - 功能名：'timeline' | 'promptButton'
  * @returns {Array} 支持该功能的平台列表
  */
 function getPlatformsByFeature(feature) {

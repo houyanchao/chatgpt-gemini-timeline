@@ -1,32 +1,33 @@
 /**
  * Mirror Site Utils
  *
- * 镜像站点检测工具：加载用户配置的域名列表，判断当前页面是否为镜像站。
- * 依赖 constants.js 中的 getPlatformByUrl（排除已适配平台）。
+ * 自定义站点检测工具：加载自定义时间轴适配配置，判断当前页面是否命中。
  */
 
-let _mirrorSiteDomains = null;
+let _customTimelineSiteDomains = null;
 
-async function loadMirrorSiteDomains() {
+function loadCustomTimelineSiteDomains() {
     try {
-        const result = await chrome.storage.local.get('mirrorSiteDomains');
-        _mirrorSiteDomains = result.mirrorSiteDomains || [];
+        const staticConfigs = Array.isArray(window.CUSTOM_SITE_INFO)
+            ? window.CUSTOM_SITE_INFO
+            : [];
+        const domains = staticConfigs
+            .filter(config => config?.enabled !== false && Array.isArray(config.sites))
+            .flatMap(config => config.sites)
+            .map(site => String(site || '').trim().toLowerCase())
+            .filter(Boolean);
+        _customTimelineSiteDomains = [...new Set(domains)];
     } catch (e) {
-        _mirrorSiteDomains = [];
+        _customTimelineSiteDomains = [];
     }
 }
 
-function getMirrorSiteDomains() {
-    return _mirrorSiteDomains || [];
-}
-
-function isMirrorSite(url) {
-    if (!_mirrorSiteDomains || _mirrorSiteDomains.length === 0) return false;
-    if (getPlatformByUrl(url)) return false;
+function isCustomTimelineSite(url) {
+    if (!_customTimelineSiteDomains || _customTimelineSiteDomains.length === 0) return false;
 
     try {
-        const hostname = new URL(url).hostname;
-        return _mirrorSiteDomains.some(domain =>
+        const hostname = new URL(url).hostname.toLowerCase();
+        return _customTimelineSiteDomains.some(domain =>
             hostname === domain || hostname.endsWith('.' + domain)
         );
     } catch {
@@ -34,6 +35,6 @@ function isMirrorSite(url) {
     }
 }
 
-function isCurrentMirrorSite() {
-    return isMirrorSite(location.href);
+function isCurrentCustomTimelineSite() {
+    return isCustomTimelineSite(location.href);
 }

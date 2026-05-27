@@ -216,7 +216,7 @@ class ChangelogModal {
         docsLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>';
 
         const githubLink = document.createElement('a');
-        githubLink.href = 'https://github.com/houyanchao/AITimeline';
+        githubLink.href = 'https://github.com/houyanchao/chatgpt-gemini-timeline';
         githubLink.target = '_blank';
         githubLink.className = 'changelog-footer-icon';
         githubLink.title = chrome.i18n.getMessage('aboutBtnGithub') || 'GitHub 开源';

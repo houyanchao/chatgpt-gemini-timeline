@@ -16,6 +16,7 @@ let currentUrl = location.href;
 let initVersion = 0; // Version number for initialization, increments on URL change
 let unsubscribePageObserver = null;  // DOMObserverManager 取消订阅函数
 let routeListenersAttached = false;
+let settingsListenerAttached = false;
 let adapterRegistry = new SiteAdapterRegistry();
 let currentAdapter = null;
 
@@ -62,6 +63,7 @@ function canInitialize() {
     if (!currentAdapter) return false;
     
     const selector = currentAdapter.getUserMessageSelector();
+    if (!selector) return false;
     return document.querySelector(selector) !== null;
 }
 
@@ -125,6 +127,21 @@ function cleanupGlobalObservers() {
     }
 }
 
+function destroyTimelineInstance() {
+    if (timelineManagerInstance) {
+        try { timelineManagerInstance.destroy(); } catch (e) { console.warn('[AIT] destroy error:', e); }
+        timelineManagerInstance = null;
+    }
+
+    if (window.AIStateMonitor) {
+        window.AIStateMonitor.getInstance().stop();
+    }
+
+    TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
+    TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
+    cleanupGlobalObservers();
+}
+
 function initializeTimeline() {
     // Detect current site adapter
     currentAdapter = adapterRegistry.detectAdapter();
@@ -133,21 +150,8 @@ function initializeTimeline() {
     }
     
 
-    if (timelineManagerInstance) {
-        try { timelineManagerInstance.destroy(); } catch {}
-        timelineManagerInstance = null;
-    }
-    
-    // ============================================
-    // 清理所有可能残留的 UI 元素（重新初始化前确保页面干净）
-    // ============================================
-    
-    // 1. 清理时间轴主容器（包含整个时间轴 UI 和收藏按钮的包装器）
-    TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
-    
-    // 2. 清理原生收藏按钮（正常文档流中的收藏按钮）
-    TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
-    
+    destroyTimelineInstance();
+
     try {
         timelineManagerInstance = new TimelineManager(currentAdapter);
         timelineManagerInstance.init().catch(err => {});
@@ -171,29 +175,10 @@ async function handleUrlChange() {
 
     currentUrl = location.href;
     initVersion++;
+    currentAdapter = adapterRegistry.detectAdapter();
 
     // URL 变化了，先清理旧时间轴实例（内部会销毁 ChatTimeRecorder）
-    if (timelineManagerInstance) {
-        try { timelineManagerInstance.destroy(); } catch {}
-        timelineManagerInstance = null;
-    }
-    
-    // 停止 AI 状态监控（initializeTimeline 中会重新启动）
-    if (window.AIStateMonitor) {
-        window.AIStateMonitor.getInstance().stop();
-    }
-    
-    // ============================================
-    // 清理时间轴相关的所有 UI 元素
-    // ============================================
-    
-    // 1. 清理时间轴主容器（包含整个时间轴 UI 和收藏按钮的包装器）
-    TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
-    
-    // 2. 清理原生收藏按钮（正常文档流中的收藏按钮）
-    TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
-    
-    cleanupGlobalObservers();
+    destroyTimelineInstance();
 
     // 如果当前是对话 URL，重新初始化
     if (isConversationRoute()) {
@@ -205,9 +190,12 @@ async function handleUrlChange() {
 
 // ✅ 监听平台设置变化，动态启用/禁用时间轴
 function setupPlatformSettingsListener() {
+    if (settingsListenerAttached) return;
+    settingsListenerAttached = true;
+
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName !== 'local') return;
-        
+
         // 监听平台设置变化
         if (changes.timelinePlatformSettings) {
             const platform = getCurrentPlatform();
@@ -235,27 +223,23 @@ function setupPlatformSettingsListener() {
                     }
                 } else {
                     // 从启用到禁用：销毁时间轴
-                    if (timelineManagerInstance) {
-                        try { timelineManagerInstance.destroy(); } catch {}
-                        timelineManagerInstance = null;
-                    }
-                    
-                    // 清理 UI 元素
-                    TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
-                    TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
+                    destroyTimelineInstance();
                 }
             }
         }
     });
 }
 
-// Check if current site is supported before initializing
-if (!adapterRegistry.isSupportedSite()) {
-} else {
-    currentAdapter = adapterRegistry.detectAdapter();
-    
-    // ✅ 设置平台设置监听器（监听用户在设置中切换平台开关）
+async function bootstrapTimeline() {
+    adapterRegistry.loadCustomAdapters();
+
+    // Check if current site is supported before initializing
+    if (!adapterRegistry.isSupportedSite()) {
+        return;
+    }
+
     setupPlatformSettingsListener();
+    currentAdapter = adapterRegistry.detectAdapter();
     
     // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
     const checkAndInit = () => {
@@ -305,3 +289,5 @@ if (!adapterRegistry.isSupportedSite()) {
         }
     })();
 }
+
+bootstrapTimeline();

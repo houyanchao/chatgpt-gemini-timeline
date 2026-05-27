@@ -320,7 +320,7 @@ class HighlightTab extends BaseTab {
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'folder-edit-modal-cancel';
-            cancelBtn.textContent = chrome.i18n.getMessage('pxvkmz') || '取消';
+            cancelBtn.textContent = chrome.i18n.getMessage('commonCancel') || '取消';
 
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'folder-edit-modal-confirm';

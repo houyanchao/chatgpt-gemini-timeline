@@ -13,7 +13,7 @@
   <p>
     <img src="https://img.shields.io/badge/Manifest-V3-2B6CB0?style=flat-square" alt="Manifest V3">
     <img src="https://img.shields.io/badge/License-GPL--3.0-2F855A?style=flat-square" alt="GPL-3.0 License">
-    <a href="https://github.com/houyanchao/AITimeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
+    <a href="https://github.com/houyanchao/chatgpt-gemini-timeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
   </p>
 
   <p><a href="./README.md">简体中文</a> | <strong>English</strong></p>
@@ -146,7 +146,7 @@ For Firefox, use `about:debugging` to temporarily load the extension.
 
 Feedback and feature requests are welcome:
 
-- [GitHub Issues](https://github.com/houyanchao/AITimeline/issues)
+- [GitHub Issues](https://github.com/houyanchao/chatgpt-gemini-timeline/issues)
 - Email: houyanchao@outlook.com
 - Chrome / Edge / Firefox extension store reviews
 

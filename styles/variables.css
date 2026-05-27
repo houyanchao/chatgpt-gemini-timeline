@@ -60,7 +60,7 @@
  * 根因：插件向宿主页面 DOM 注入了多个 UI 元素，若不设置 user-select: none，
  *       用户全选复制时会将插件 UI 中的文案（按钮文字、placeholder、提示语等）一起复制。
  * 新增注入到页面的根级 UI 组件时，需要将其选择器加入此列表。
- * ref: https://github.com/houyanchao/Timeline/issues/72
+ * ref: https://github.com/houyanchao/chatgpt-gemini-timeline/issues/72
  */
 .ait-chat-timeline-wrapper,
 .timeline-toggle-btn,

@@ -138,7 +138,7 @@ class PromptButtonManager {
         try {
             const platform = getCurrentPlatform();
             if (!platform) return false;
-            if (platform.features?.smartInput !== true) return false;
+            if (platform.features?.promptButton !== true) return false;
             return this.platformSettings[platform.id] !== false;
         } catch (e) {
             return true;

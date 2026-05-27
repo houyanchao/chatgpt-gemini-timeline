@@ -155,6 +155,10 @@ class TimelineManager {
         this.aiCompleteToastAnchor = null;
     }
 
+    getTimelineFeatures() {
+        return this.adapter.getFeatures?.() || getCurrentPlatform()?.features || {};
+    }
+
     async init() {
         const elementsFound = await this.findCriticalElements();
         if (!elementsFound) return;
@@ -326,34 +330,36 @@ class TimelineManager {
         });
         
         // ✅ 添加提问列表按钮（在收藏按钮上方）
-        let questionListBtn = document.querySelector('.ait-question-list-btn');
-        if (!questionListBtn) {
-            questionListBtn = document.createElement('button');
-            questionListBtn.className = 'ait-question-list-btn';
-            questionListBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
-            questionListBtn.setAttribute('aria-label', chrome.i18n.getMessage('questionListTitle') || 'Questions');
-            questionListBtn.style.display = 'none';
+        if (this.getTimelineFeatures()?.questionList !== false) {
+            let questionListBtn = document.querySelector('.ait-question-list-btn');
+            if (!questionListBtn) {
+                questionListBtn = document.createElement('button');
+                questionListBtn.className = 'ait-question-list-btn';
+                questionListBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
+                questionListBtn.setAttribute('aria-label', chrome.i18n.getMessage('questionListTitle') || 'Questions');
+                questionListBtn.style.display = 'none';
 
-            questionListBtn.addEventListener('mouseenter', () => {
-                window.globalTooltipManager.show(
-                    'question-list-btn',
-                    'button',
-                    questionListBtn,
-                    chrome.i18n.getMessage('questionListTitle') || 'Questions',
-                    { placement: 'left' }
-                );
-            });
-            questionListBtn.addEventListener('mouseleave', () => {
-                window.globalTooltipManager.hide();
-            });
+                questionListBtn.addEventListener('mouseenter', () => {
+                    window.globalTooltipManager.show(
+                        'question-list-btn',
+                        'button',
+                        questionListBtn,
+                        chrome.i18n.getMessage('questionListTitle') || 'Questions',
+                        { placement: 'left' }
+                    );
+                });
+                questionListBtn.addEventListener('mouseleave', () => {
+                    window.globalTooltipManager.hide();
+                });
 
-            wrapper.appendChild(questionListBtn);
-        }
-        this.ui.questionListBtn = questionListBtn;
+                wrapper.appendChild(questionListBtn);
+            }
+            this.ui.questionListBtn = questionListBtn;
 
-        // ✅ 绑定提问列表面板到 wrapper
-        if (window.questionListPopup) {
-            window.questionListPopup.bind(wrapper, timelineBar);
+            // ✅ 绑定提问列表面板到 wrapper
+            if (window.questionListPopup) {
+                window.questionListPopup.bind(wrapper, timelineBar);
+            }
         }
 
         // ✅ 添加收藏按钮（在 timeline-bar 下方 10px 处，垂直居中对齐）
@@ -388,35 +394,37 @@ class TimelineManager {
         this.ui.starredBtn = starredBtn;
         
         // ✅ 添加闪记按钮（在收藏按钮下方）
-        let notepadBtn = document.querySelector('.ait-notepad-btn');
-        if (!notepadBtn) {
-            notepadBtn = document.createElement('button');
-            notepadBtn.className = 'ait-notepad-btn';
-            notepadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-            notepadBtn.setAttribute('aria-label', 'Notepad');
-            notepadBtn.style.display = 'none';
-            
-            notepadBtn.addEventListener('mouseenter', () => {
-                window.globalTooltipManager.show(
-                    'notepad-btn',
-                    'button',
-                    notepadBtn,
-                    chrome.i18n.getMessage('notepadTitle') || '闪记',
-                    { placement: 'left' }
-                );
-            });
-            
-            notepadBtn.addEventListener('mouseleave', () => {
-                window.globalTooltipManager.hide();
-            });
-            
-            wrapper.appendChild(notepadBtn);
+        if (this.getTimelineFeatures()?.notepad !== false) {
+            let notepadBtn = document.querySelector('.ait-notepad-btn');
+            if (!notepadBtn) {
+                notepadBtn = document.createElement('button');
+                notepadBtn.className = 'ait-notepad-btn';
+                notepadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+                notepadBtn.setAttribute('aria-label', 'Notepad');
+                notepadBtn.style.display = 'none';
+
+                notepadBtn.addEventListener('mouseenter', () => {
+                    window.globalTooltipManager.show(
+                        'notepad-btn',
+                        'button',
+                        notepadBtn,
+                        chrome.i18n.getMessage('notepadTitle') || '闪记',
+                        { placement: 'left' }
+                    );
+                });
+
+                notepadBtn.addEventListener('mouseleave', () => {
+                    window.globalTooltipManager.hide();
+                });
+
+                wrapper.appendChild(notepadBtn);
+            }
+            // 恢复激活状态（跨页面导航后按钮重建时同步）
+            if (window.notepadManager && window.notepadManager.isOpen) {
+                notepadBtn.classList.add('active');
+            }
+            this.ui.notepadBtn = notepadBtn;
         }
-        // 恢复激活状态（跨页面导航后按钮重建时同步）
-        if (window.notepadManager && window.notepadManager.isOpen) {
-            notepadBtn.classList.add('active');
-        }
-        this.ui.notepadBtn = notepadBtn;
         
         // ✅ 收藏按钮使用相对定位，不需要动态计算位置
         
@@ -1703,6 +1711,8 @@ class TimelineManager {
         
         // ✅ 保存为实例方法以便在 destroy 中清理
         this.startLongPress = (e) => {
+            if (this.getTimelineFeatures()?.timeline_tooltipActions !== true) return;
+
             const dot = e.target.closest('.ait-timeline-dot');
             if (!dot) return;
             
@@ -2409,85 +2419,91 @@ class TimelineManager {
         });
         
         // 底部操作区（图钉 + 星标，水平排列）
-        const actions = document.createElement('div');
-        actions.className = 'timeline-tooltip-actions';
+        const supportsTimelineTooltipActions = this.getTimelineFeatures()?.timeline_tooltipActions === true;
+        let actions = null;
+        if (supportsTimelineTooltipActions) {
+            actions = document.createElement('div');
+            actions.className = 'timeline-tooltip-actions';
 
-        // 创建图钉图标
-        const isPinned = id && this.pinned.has(id);
-        const pinSpan = document.createElement('span');
-        pinSpan.className = 'timeline-tooltip-pin';
-        pinSpan.dataset.targetTurnId = id;
-        if (!isPinned) pinSpan.classList.add('not-pinned');
-        pinSpan.dataset.tip = isPinned
-            ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
-            : (chrome.i18n.getMessage('pinAction') || '标记重点');
-        pinSpan.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            window.globalTooltipManager.hideOverlay();
-            const turnId = pinSpan.dataset.targetTurnId;
-            const ok = await this.togglePin(turnId);
-            if (ok) {
-                const nowPinned = this.pinned.has(turnId);
-                pinSpan.classList.toggle('not-pinned', !nowPinned);
-                pinSpan.dataset.tip = nowPinned
-                    ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
-                    : (chrome.i18n.getMessage('pinAction') || '标记重点');
-            }
-        });
-        pinSpan.addEventListener('mouseenter', () => {
-            window.globalTooltipManager.showOverlay(pinSpan, pinSpan.dataset.tip, { placement: 'top' });
-        });
-        pinSpan.addEventListener('mouseleave', () => {
-            window.globalTooltipManager.hideOverlay();
-        });
+            // 创建图钉图标
+            const isPinned = id && this.pinned.has(id);
+            const pinSpan = document.createElement('span');
+            pinSpan.className = 'timeline-tooltip-pin';
+            pinSpan.dataset.targetTurnId = id;
+            if (!isPinned) pinSpan.classList.add('not-pinned');
+            pinSpan.dataset.tip = isPinned
+                ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
+                : (chrome.i18n.getMessage('pinAction') || '标记重点');
+            pinSpan.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                window.globalTooltipManager.hideOverlay();
+                const turnId = pinSpan.dataset.targetTurnId;
+                const ok = await this.togglePin(turnId);
+                if (ok) {
+                    const nowPinned = this.pinned.has(turnId);
+                    pinSpan.classList.toggle('not-pinned', !nowPinned);
+                    pinSpan.dataset.tip = nowPinned
+                        ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
+                        : (chrome.i18n.getMessage('pinAction') || '标记重点');
+                }
+            });
+            pinSpan.addEventListener('mouseenter', () => {
+                window.globalTooltipManager.showOverlay(pinSpan, pinSpan.dataset.tip, { placement: 'top' });
+            });
+            pinSpan.addEventListener('mouseleave', () => {
+                window.globalTooltipManager.hideOverlay();
+            });
 
-        // 创建星标图标
-        const starSpan = document.createElement('span');
-        starSpan.className = 'timeline-tooltip-star';
-        starSpan.dataset.targetTurnId = id;
-        if (!isStarred) starSpan.classList.add('not-starred');
-        starSpan.dataset.tip = isStarred
-            ? (chrome.i18n.getMessage('unstarAction') || '取消收藏')
-            : (chrome.i18n.getMessage('starAction') || '收藏到文件夹');
-        starSpan.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            window.globalTooltipManager.hideOverlay();
-            const turnId = starSpan.dataset.targetTurnId;
-            const result = await this.toggleStar(turnId);
-            if (result && result.success) {
-                const toastColor = {
-                    light: { backgroundColor: '#0d0d0d', textColor: '#ffffff', borderColor: '#262626' },
-                    dark: { backgroundColor: '#ffffff', textColor: '#1f2937', borderColor: '#d1d5db' }
-                };
-                if (result.action === 'star') {
-                    starSpan.classList.remove('not-starred');
-                    starSpan.dataset.tip = chrome.i18n.getMessage('unstarAction') || '取消收藏';
-                    if (window.globalToastManager) {
-                        window.globalToastManager.success(chrome.i18n.getMessage('kxpmzv'), null, { color: toastColor });
-                    }
-                } else if (result.action === 'unstar') {
-                    starSpan.classList.add('not-starred');
-                    starSpan.dataset.tip = chrome.i18n.getMessage('starAction') || '收藏到文件夹';
-                    if (window.globalToastManager) {
-                        window.globalToastManager.info(chrome.i18n.getMessage('pzmvkx'), null, { color: toastColor });
+            // 创建星标图标
+            const starSpan = document.createElement('span');
+            starSpan.className = 'timeline-tooltip-star';
+            starSpan.dataset.targetTurnId = id;
+            if (!isStarred) starSpan.classList.add('not-starred');
+            starSpan.dataset.tip = isStarred
+                ? (chrome.i18n.getMessage('unstarAction') || '取消收藏')
+                : (chrome.i18n.getMessage('starAction') || '收藏到文件夹');
+            starSpan.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                window.globalTooltipManager.hideOverlay();
+                const turnId = starSpan.dataset.targetTurnId;
+                const result = await this.toggleStar(turnId);
+                if (result && result.success) {
+                    const toastColor = {
+                        light: { backgroundColor: '#0d0d0d', textColor: '#ffffff', borderColor: '#262626' },
+                        dark: { backgroundColor: '#ffffff', textColor: '#1f2937', borderColor: '#d1d5db' }
+                    };
+                    if (result.action === 'star') {
+                        starSpan.classList.remove('not-starred');
+                        starSpan.dataset.tip = chrome.i18n.getMessage('unstarAction') || '取消收藏';
+                        if (window.globalToastManager) {
+                            window.globalToastManager.success(chrome.i18n.getMessage('kxpmzv'), null, { color: toastColor });
+                        }
+                    } else if (result.action === 'unstar') {
+                        starSpan.classList.add('not-starred');
+                        starSpan.dataset.tip = chrome.i18n.getMessage('starAction') || '收藏到文件夹';
+                        if (window.globalToastManager) {
+                            window.globalToastManager.info(chrome.i18n.getMessage('pzmvkx'), null, { color: toastColor });
+                        }
                     }
                 }
-            }
-        });
-        starSpan.addEventListener('mouseenter', () => {
-            window.globalTooltipManager.showOverlay(starSpan, starSpan.dataset.tip, { placement: 'top' });
-        });
-        starSpan.addEventListener('mouseleave', () => {
-            window.globalTooltipManager.hideOverlay();
-        });
+            });
+            starSpan.addEventListener('mouseenter', () => {
+                window.globalTooltipManager.showOverlay(starSpan, starSpan.dataset.tip, { placement: 'top' });
+            });
+            starSpan.addEventListener('mouseleave', () => {
+                window.globalTooltipManager.hideOverlay();
+            });
 
-        actions.appendChild(pinSpan);
-        actions.appendChild(starSpan);
+            actions.appendChild(pinSpan);
+            actions.appendChild(starSpan);
+        }
 
         // 组装
         contentWrap.appendChild(content);
         container.appendChild(contentWrap);
-        container.appendChild(actions);
+        if (actions) {
+            container.appendChild(actions);
+        }
         
         return container;
     }
@@ -3988,16 +4004,16 @@ class TimelineManager {
     
     // ✅ 更新收藏按钮显示状态
     async updateStarredBtnVisibility() {
-        if (this.ui.questionListBtn) {
+        if (this.ui.questionListBtn && this.getTimelineFeatures()?.questionList !== false) {
             this.ui.questionListBtn.style.display = 'flex';
         }
         if (!this.ui.starredBtn) return;
-        
+
         // 隐藏收藏按钮（功能已合并到提问列表中）
         this.ui.starredBtn.style.display = 'none';
-        
+
         // 同步显示闪记按钮（受开关控制，默认开启）
-        if (this.ui.notepadBtn) {
+        if (this.ui.notepadBtn && this.getTimelineFeatures()?.notepad !== false) {
             try {
                 const result = await chrome.storage.local.get('aitNotepadEnabled');
                 const enabled = result.aitNotepadEnabled !== false;

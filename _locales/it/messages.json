@@ -50,7 +50,7 @@
   "zmxvkp": {
     "message": "Inserisci"
   },
-  "pxvkmz": {
+  "commonCancel": {
     "message": "Annulla"
   },
   "vkmzpx": {
@@ -783,7 +783,7 @@
     "message": "La regolazione della larghezza della chat non è supportata su questa piattaforma"
   },
   "mirrorSiteTabName": {
-    "message": "Siti mirror"
+    "message": "Custom Platform"
   },
   "mirrorSiteHint": {
     "message": "Aggiungi domini di siti mirror AI. Su questi siti apparirà un pulsante flottante che consente di utilizzare alcune funzionalità di questa estensione."
@@ -817,6 +817,93 @@
   },
   "mirrorSiteCopied": {
     "message": "Copiato negli appunti"
+  },
+  "mirrorSiteCreateAdapterTitle": {
+    "message": "Configure custom platform"
+  },
+  "mirrorSiteCreateAdapterHint": {
+    "message": "Use a guided flow to generate selector config with AI for this site."
+  },
+  "mirrorSiteAdapterBadge": {
+    "message": "Timeline adapter"
+  },
+  "mirrorSiteAdapterHeroTitle": {
+    "message": "Adapt a new AI platform"
+  },
+  "mirrorSiteAdapterHeroDesc": {
+    "message": "Adapt Timeline, prompts, flash notes, and more for other AI sites."
+  },
+  "mirrorSiteAdapterStartButton": {
+    "message": "Start setup"
+  },
+  "mirrorSiteNativeSupportedTitle": {
+    "message": "Natively supported AI sites:"
+  },
+  "mirrorSiteWizardStep1": {
+    "message": "Open the AI site you want to adapt and start a new conversation"
+  },
+  "mirrorSiteWizardStep2": {
+    "message": "Send the following in the new conversation:"
+  },
+  "mirrorSiteWizardStep3": {
+    "message": "Copy the new conversation page URL and paste it into the input below"
+  },
+  "mirrorSiteUrlInputPlaceholder": {
+    "message": "Enter new conversation URL"
+  },
+  "mirrorSiteNextButton": {
+    "message": "Next"
+  },
+  "mirrorSiteUrlRequired": {
+    "message": "Please enter URL"
+  },
+  "mirrorSiteUrlInvalid": {
+    "message": "Invalid URL format"
+  },
+  "mirrorSiteAlreadySupported": {
+    "message": "Already supported, no adaptation needed"
+  },
+  "mirrorSiteDemoInfoIntro": {
+    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+  },
+  "mirrorSiteDetectWaitingTitle": {
+    "message": "Waiting for \"$1\""
+  },
+  "mirrorSiteDetectWaitingDesc": {
+    "message": "Send it in the current conversation to collect automatically"
+  },
+  "mirrorSiteFeedbackSuccessLine1": {
+    "message": "Page structure parsed. Copy the information below,"
+  },
+  "mirrorSiteFeedbackSuccessLine2": {
+    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+  },
+  "mirrorSiteCopyInfo": {
+    "message": "Copy info"
+  },
+  "mirrorSiteGoGithub": {
+    "message": "Go to GitHub"
+  },
+  "mirrorSiteCopyEmail": {
+    "message": "Copy email"
+  },
+  "mirrorSiteEmailCopied": {
+    "message": "Email copied"
+  },
+  "mirrorSiteIssueTitle": {
+    "message": "[Adaptation Request] $1"
+  },
+  "mirrorSiteDemoErrorDomain": {
+    "message": "Domain"
+  },
+  "mirrorSiteDemoErrorStatusTitle": {
+    "message": "Collection status"
+  },
+  "mirrorSiteDemoErrorDetectedButFailed": {
+    "message": "The test message was detected, but page structure collection failed."
+  },
+  "mirrorSiteDemoErrorMessage": {
+    "message": "Error"
   },
   "hideStarredFromListLabel": {
     "message": "Modalità deduplicazione"

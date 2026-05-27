@@ -119,8 +119,8 @@ class SmartEnterManager {
             const platform = getCurrentPlatform();
             if (!platform) return true; // 未知平台，默认启用
             
-            // ✅ 首先检查平台是否支持智能输入功能
-            if (platform.features?.smartInput !== true) {
+            // ✅ 首先检查平台是否支持智能回车功能
+            if (platform.features?.smartEnter !== true) {
                 return false; // 平台不支持该功能
             }
             

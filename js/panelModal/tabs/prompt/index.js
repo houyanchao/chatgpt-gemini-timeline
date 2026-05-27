@@ -378,7 +378,7 @@ class PromptTab extends BaseTab {
         const platforms = [{ id: '', name: chrome.i18n.getMessage('allptfm') }];
         if (typeof SITE_INFO !== 'undefined') {
             SITE_INFO.forEach(site => {
-                if (site.features?.smartInput === true) {
+                if (site.features?.promptButton === true) {
                     platforms.push({ id: site.id, name: site.name });
                 }
             });
@@ -442,7 +442,7 @@ class PromptTab extends BaseTab {
                 </div>
             </div>
             <div class="prompt-modal-footer">
-                <button class="prompt-modal-btn prompt-modal-cancel">${chrome.i18n.getMessage('pxvkmz')}</button>
+                <button class="prompt-modal-btn prompt-modal-cancel">${chrome.i18n.getMessage('commonCancel')}</button>
                 <button class="prompt-modal-btn prompt-modal-confirm">${chrome.i18n.getMessage('svkbtn')}</button>
             </div>
         `;
@@ -629,7 +629,7 @@ class PromptTab extends BaseTab {
             const confirmed = await window.globalPopconfirmManager.show({
                 title: chrome.i18n.getMessage('dcnfmq'),
                 confirmText: chrome.i18n.getMessage('mzxvkp'),
-                cancelText: chrome.i18n.getMessage('pxvkmz'),
+                cancelText: chrome.i18n.getMessage('commonCancel'),
                 confirmTextType: 'danger'
             });
             
@@ -648,7 +648,7 @@ class PromptTab extends BaseTab {
     }
     
     async _showPlatformManageModal() {
-        const platforms = getPlatformsByFeature('smartInput');
+        const platforms = getPlatformsByFeature('promptButton');
         const result = await chrome.storage.local.get('promptButtonPlatformSettings');
         const settings = result.promptButtonPlatformSettings || {};
 

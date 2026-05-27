@@ -92,7 +92,7 @@ class GlobalInputModal {
                 maxLength: options.maxLength || this.config.defaultMaxLength,
                 validator: options.validator || null,
                 confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('pxvkmz')
+                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel')
             };
             
             return await this._showModal(config);

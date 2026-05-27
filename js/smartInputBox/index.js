@@ -8,20 +8,20 @@
  * - Enter 键换行 + 快速双击 Enter 发送（独立开关控制）
  * 
  * 支持平台：
- * - 所有 features.smartInput === true 的平台
+ * - 所有 features.promptButton === true 或 features.smartEnter === true 的平台
  */
 
 (function() {
     'use strict';
-    
+
     // ✅ 检查当前平台是否支持智能输入功能
     function isPlatformSupported() {
         try {
             const platform = getCurrentPlatform();
             if (!platform) return false;
-            
-            // 检查平台是否支持智能输入功能
-            return platform.features?.smartInput === true;
+
+            // 检查平台是否支持智能输入功能（提示词按钮或智能回车之一）
+            return platform.features?.promptButton === true || platform.features?.smartEnter === true;
         } catch (e) {
             return false;
         }
