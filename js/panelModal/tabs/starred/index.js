@@ -114,7 +114,7 @@ class StarredTab extends BaseTab {
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-label">${chrome.i18n.getMessage('hideStarredFromListLabel') || '去重模式'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('hideStarredFromListHint') || '开启后，已加入文件夹的对话将从原版侧边栏列表中隐藏'}</div>
+                        <div class="setting-hint">${chrome.i18n.getMessage('hideStarredFromListHint') || '开启后，已加入文件夹的对话将从侧边栏列表中隐藏'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="hide-starred-from-list-toggle">

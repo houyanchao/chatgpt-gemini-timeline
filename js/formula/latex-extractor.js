@@ -8,6 +8,7 @@
  * - DeepSeek (KaTeX + annotation)
  * - 豆包 (copy-text)
  * - Grok (KaTeX + annotation)
+ * - 千问/Qwen (KaTeX MathML direct text + MathML)
  * - 维基百科 (MathML + annotation)
  * - MathJax (script[type="math/tex"])
  */
@@ -57,19 +58,31 @@ class FormulaSourceParser {
             if (!parent || parent === document.body) break;
         }
 
-        // 方法6: ChatGPT 格式 - 从 annotation 标签获取
+        // 方法6: 千问/Qwen 格式 - 从 .qwen-markdown-latex .katex-mathml math 的直接文本节点获取
+        const qwenLatexRoot = formulaElement.closest('.qwen-markdown-latex');
+        const qwenMath = qwenLatexRoot?.querySelector('.katex-mathml math');
+        if (qwenLatexRoot && qwenMath) {
+            const latex = Array.from(qwenMath.childNodes)
+                .filter(node => node.nodeType === 3)
+                .map(node => node.textContent)
+                .join('')
+                .trim();
+            if (latex) return latex;
+        }
+
+        // 方法7: ChatGPT 格式 - 从 annotation 标签获取
         const annotation = formulaElement.querySelector('annotation[encoding="application/x-tex"]');
         if (annotation) {
             return annotation.textContent.trim();
         }
 
-        // 方法7: 从 .katex-mathml 中的 annotation 获取
+        // 方法8: 从 .katex-mathml 中的 annotation 获取
         const mathml = formulaElement.querySelector('.katex-mathml annotation');
         if (mathml) {
             return mathml.textContent.trim();
         }
 
-        // 方法8: 维基百科格式 - mwe-math-element 中的 annotation
+        // 方法9: 维基百科格式 - mwe-math-element 中的 annotation
         let mweElement = formulaElement;
         if (!formulaElement.classList.contains('mwe-math-element')) {
             mweElement = formulaElement.closest('.mwe-math-element');
@@ -82,7 +95,7 @@ class FormulaSourceParser {
             }
         }
 
-        // 方法9: MathJax 格式 - 从兄弟 script 提取
+        // 方法10: MathJax 格式 - 从兄弟 script 提取
         let nextSibling = formulaElement.nextElementSibling;
         if (nextSibling?.tagName === 'SCRIPT' && nextSibling.type?.startsWith('math/tex')) {
             return nextSibling.textContent.trim();
@@ -94,7 +107,7 @@ class FormulaSourceParser {
             }
         }
 
-        // 方法10: 通用 data-latex 属性
+        // 方法11: 通用 data-latex 属性
         if (formulaElement.hasAttribute('data-latex')) {
             return formulaElement.getAttribute('data-latex').trim();
         }
@@ -129,7 +142,18 @@ class FormulaSourceParser {
             return assistiveMath.outerHTML;
         }
 
-        // 方法3: 兄弟 script[type="math/mml"]（MathJax MathML 输入格式）
+        // 方法3: 千问/Qwen 格式 - 从 .qwen-markdown-latex .katex-mathml math 获取，移除混在 <math> 下的 LaTeX 文本
+        const qwenMathmlRoot = formulaElement.closest('.qwen-markdown-latex');
+        const qwenMath = qwenMathmlRoot?.querySelector('.katex-mathml math');
+        if (qwenMathmlRoot && qwenMath) {
+            const mathClone = qwenMath.cloneNode(true);
+            Array.from(mathClone.childNodes)
+                .filter(node => node.nodeType === 3)
+                .forEach(node => node.remove());
+            return mathClone.outerHTML;
+        }
+
+        // 方法4: 兄弟 script[type="math/mml"]（MathJax MathML 输入格式）
         const mmlScript = FormulaSourceParser._findMathMmlScript(formulaElement);
         if (mmlScript) {
             return mmlScript;

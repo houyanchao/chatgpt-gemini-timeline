@@ -330,7 +330,7 @@ class TimelineManager {
         });
         
         // ✅ 添加提问列表按钮（在收藏按钮上方）
-        if (this.getTimelineFeatures()?.questionList !== false) {
+        if (this.getTimelineFeatures()?.questionList === true) {
             let questionListBtn = document.querySelector('.ait-question-list-btn');
             if (!questionListBtn) {
                 questionListBtn = document.createElement('button');
@@ -394,7 +394,7 @@ class TimelineManager {
         this.ui.starredBtn = starredBtn;
         
         // ✅ 添加闪记按钮（在收藏按钮下方）
-        if (this.getTimelineFeatures()?.notepad !== false) {
+        if (this.getTimelineFeatures()?.notepad === true) {
             let notepadBtn = document.querySelector('.ait-notepad-btn');
             if (!notepadBtn) {
                 notepadBtn = document.createElement('button');
@@ -3770,10 +3770,10 @@ class TimelineManager {
         const m = this.markerMap.get(id);
         if (!m) return { success: false, action: null };
         
-        // ✅ 检查是否是 stableNodeId 平台但还没有真正的 ID
+        // ✅ 检查是否是 useStableNodeId 平台但还没有真正的 ID
         // 临时 ID 格式：平台名-小数字（如 doubao-0），真实 ID 的数字部分远大于 1000
         const features = getCurrentPlatform()?.features;
-        if (features?.stableNodeId) {
+        if (features?.useStableNodeId === true) {
             const tempMatch = id.match(/-(\d+)$/);
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
             if (isTempId) {
@@ -4004,7 +4004,7 @@ class TimelineManager {
     
     // ✅ 更新收藏按钮显示状态
     async updateStarredBtnVisibility() {
-        if (this.ui.questionListBtn && this.getTimelineFeatures()?.questionList !== false) {
+        if (this.ui.questionListBtn && this.getTimelineFeatures()?.questionList === true) {
             this.ui.questionListBtn.style.display = 'flex';
         }
         if (!this.ui.starredBtn) return;
@@ -4013,7 +4013,7 @@ class TimelineManager {
         this.ui.starredBtn.style.display = 'none';
 
         // 同步显示闪记按钮（受开关控制，默认开启）
-        if (this.ui.notepadBtn && this.getTimelineFeatures()?.notepad !== false) {
+        if (this.ui.notepadBtn && this.getTimelineFeatures()?.notepad === true) {
             try {
                 const result = await chrome.storage.local.get('aitNotepadEnabled');
                 const enabled = result.aitNotepadEnabled !== false;
@@ -4117,10 +4117,10 @@ class TimelineManager {
             return false;
         }
         
-        // ✅ 检查是否是 stableNodeId 平台但还没有真正的 ID
+        // ✅ 检查是否是 useStableNodeId 平台但还没有真正的 ID
         // 临时 ID 格式：平台名-小数字（如 doubao-0），真实 ID 的数字部分远大于 1000
         const features = getCurrentPlatform()?.features;
-        if (features?.stableNodeId) {
+        if (features?.useStableNodeId === true) {
             const tempMatch = id.match(/-(\d+)$/);
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
             if (isTempId) {

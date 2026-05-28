@@ -924,7 +924,7 @@
     "message": "适配新的 AI 平台"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "为其他 AI 网站适配 时间轴、提示词、闪记等功能。"
+    "message": "没找到你常用的 AI 对话网站？可申请适配，适配后即可解锁「时间轴、提示词、闪记」等高效功能。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "开始配置"
@@ -942,7 +942,7 @@
     "message": "复制新对话页面的网址，粘贴到下方输入框"
   },
   "mirrorSiteUrlInputPlaceholder": {
-    "message": "请输入新对话网址"
+    "message": "请粘贴新对话网址"
   },
   "mirrorSiteNextButton": {
     "message": "下一步"
@@ -1002,7 +1002,7 @@
     "message": "去重模式"
   },
   "hideStarredFromListHint": {
-    "message": "开启后，已加入文件夹的对话将从原版侧边栏列表中隐藏"
+    "message": "开启后，已加入文件夹的对话将从侧边栏列表中隐藏"
   },
   "timelineAICompleteNotLatestToast": {
     "message": "$1 回复已完成"

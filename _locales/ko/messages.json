@@ -882,7 +882,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Adapt Timeline, prompts, flash notes, and more for other AI sites."
+    "message": "자주 사용하는 AI 대화 사이트가 없나요? 지원을 요청하면 적용 후 ‘타임라인’, ‘프롬프트’, ‘플래시 노트’ 같은 기능을 사용할 수 있습니다."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
@@ -900,7 +900,7 @@
     "message": "Copy the new conversation page URL and paste it into the input below"
   },
   "mirrorSiteUrlInputPlaceholder": {
-    "message": "Enter new conversation URL"
+    "message": "새 대화 URL 붙여넣기"
   },
   "mirrorSiteNextButton": {
     "message": "Next"

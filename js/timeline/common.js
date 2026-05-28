@@ -619,7 +619,7 @@ const ChatTimeStorageManager = {
 
     /**
      * 清理临时节点 ID（格式：平台名-纯数字，如 gemini-0, chatgpt-8）
-     * 仅用于 stableNodeId=true 的平台
+     * 仅用于 useStableNodeId=true 的平台
      * @param {string} conversationKey - 会话标识
      * @returns {Promise<number>} - 清理的数量
      */

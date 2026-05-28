@@ -81,8 +81,8 @@ class ChatTimeRecorder {
             // 更新 lastVisit
             await ChatTimeStorageManager.updateLastVisit(conversationKey);
             
-            // stableNodeId=true 的平台，清理临时 ID（如 gemini-0）
-            if (features?.stableNodeId === true) {
+            // useStableNodeId=true 的平台，清理临时 ID（如 gemini-0）
+            if (features?.useStableNodeId === true) {
                 await ChatTimeStorageManager.cleanupTempIds(conversationKey);
             }
         } catch (e) {
@@ -175,7 +175,7 @@ class ChatTimeRecorder {
         
         // 检查平台是否使用稳定的节点 ID
         const features = this._getPlatformFeatures();
-        const usesStableId = features?.stableNodeId || false;
+        const usesStableId = features?.useStableNodeId === true;
         const isTempId = lastNodeId.endsWith(`-${lastIndex}`);
         
         // 直接用当前 ID（可能是临时 ID）记录时间

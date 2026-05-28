@@ -855,7 +855,7 @@
     "message": "適配新的 AI 平台"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "為其他 AI 網站適配時間軸、提示詞、閃記等功能。"
+    "message": "未找到你常用的 AI 對話網站？可申請適配，適配後即可解鎖「時間軸、提示詞、閃記」等高效功能。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "開始配置"
@@ -873,7 +873,7 @@
     "message": "複製新對話頁面的網址，貼到下方輸入框"
   },
   "mirrorSiteUrlInputPlaceholder": {
-    "message": "請輸入新對話網址"
+    "message": "請貼上新對話網址"
   },
   "mirrorSiteNextButton": {
     "message": "下一步"
@@ -933,7 +933,7 @@
     "message": "去重模式"
   },
   "hideStarredFromListHint": {
-    "message": "開啟後，已加入資料夾的對話將從原版側邊欄列表中隱藏"
+    "message": "開啟後，已加入資料夾的對話將從側邊欄列表中隱藏"
   },
   "timelineAICompleteNotLatestToast": {
     "message": "$1 回覆已完成"

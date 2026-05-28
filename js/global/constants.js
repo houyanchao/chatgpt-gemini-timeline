@@ -42,7 +42,7 @@ const SITE_INFO = [
             quickAsk: true,
             quickAskPosition: 'bottomLeft',  // 追问按钮位置
             chatTimes: true,  // 提问时间记录
-            stableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
+            useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
             chatWidth: { // 对话宽度
                 selectors: ['.text-token-text-primary > div > div']
@@ -65,7 +65,7 @@ const SITE_INFO = [
             quickAsk: true,
             scrollToBottom: true,  // 回到底部按钮
             chatTimes: true,  // 提问时间记录
-            stableNodeId: true,  // 使用稳定的节点 ID（父元素 id），需等待 id 分配后记录
+            useStableNodeId: true,  // 使用稳定的节点 ID（父元素 id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
             chatWidth: {
                 selectors: ['.conversation-container', 'user-query']
@@ -87,7 +87,7 @@ const SITE_INFO = [
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
-            stableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
+            useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true  // 侧边栏收藏列表
         }
     },
@@ -141,7 +141,7 @@ const SITE_INFO = [
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
-            stableNodeId: true,  // data-msgid 提供稳定节点 ID
+            useStableNodeId: true,  // 使用稳定的节点 ID（data-msgid），需等待 id 分配后记录
             sidebarStarred: true  // 侧边栏收藏列表
         }
     },
@@ -160,7 +160,7 @@ const SITE_INFO = [
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,
-            stableNodeId: true,
+            useStableNodeId: true,  // 使用稳定的节点 ID，需等待 id 分配后记录
             sidebarStarred: true
         }
     },

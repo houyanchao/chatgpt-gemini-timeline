@@ -43,12 +43,8 @@ globalThis.CUSTOM_SITE_INFO = [
         conversationContainerSelector: '#message-list',
         features: {
             timeline: true,
-            chatTimes: false,
-            timeline_tooltipActions: false,
-            questionList: false,
-            notepad: false,
-            promptButton: false,
-            smartEnter: false
+            questionList: true,
+            notepad: true
         },
     }
 ];
