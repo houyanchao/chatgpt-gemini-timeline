@@ -11,6 +11,7 @@
  * @param {boolean}  [options.showCommonSettings=false] - 是否显示"常用设置"Tab
  * @param {Function} [options.onChatWidthClick] - () => void 点击对话宽度设置按钮
  * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
+ * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
@@ -22,6 +23,7 @@ function createPromptDropdownUI({
     showCommonSettings = false,
     onChatWidthClick,
     onSmartInputSettingsClick,
+    onMirrorSiteClick,
     onSettingsClick,
     tooltipPlacement = 'right'
 }) {
@@ -174,7 +176,8 @@ function createPromptDropdownUI({
     if (showCommonSettings) {
         container.appendChild(_promptDropdownCreateCommonSettings({
             onChatWidthClick,
-            onSmartInputSettingsClick
+            onSmartInputSettingsClick,
+            onMirrorSiteClick
         }));
         _promptDropdownBindTabs(container);
     }
@@ -197,7 +200,8 @@ function _promptDropdownBindTabs(container) {
 
 function _promptDropdownCreateCommonSettings({
     onChatWidthClick,
-    onSmartInputSettingsClick
+    onSmartInputSettingsClick,
+    onMirrorSiteClick
 }) {
     const panel = document.createElement('div');
     panel.className = 'prompt-dropdown-panel prompt-common-settings-panel';
@@ -273,6 +277,17 @@ function _promptDropdownCreateCommonSettings({
                     ${chrome.i18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
                 </button>
             </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-mirror-site-btn">
+                    ${chrome.i18n.getMessage('mirrorSiteAdapterStartButton') || '开始配置'}
+                </button>
+            </div>
         </div>
     `;
 
@@ -318,6 +333,12 @@ function _promptDropdownCreateCommonSettings({
     githubStarBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
         _promptDropdownOpenExternalUrl('https://github.com/houyanchao/chatgpt-gemini-timeline');
+    });
+
+    const mirrorSiteBtn = panel.querySelector('.prompt-common-mirror-site-btn');
+    mirrorSiteBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onMirrorSiteClick) onMirrorSiteClick();
     });
 
     return panel;

@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "Timeline이 도움이 되었다면 GitHub에서 Star로 지원해 주세요."
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "새로운 AI 대화 사이트를 추가하여 타임라인, 프롬프트 등의 기능을 사용할 수 있습니다."
+  },
   "promptCommonGithubStarButton": {
     "message": "GitHub로 이동"
   },
@@ -834,7 +837,7 @@
     "message": "이 플랫폼에서는 채팅 너비 조정을 지원하지 않습니다"
   },
   "mirrorSiteTabName": {
-    "message": "Custom Platform"
+    "message": "새 플랫폼 대응"
   },
   "mirrorSiteHint": {
     "message": "AI 미러 사이트 도메인을 추가하면 해당 사이트에 플로팅 버튼이 표시되어 이 확장 프로그램의 일부 기능을 사용할 수 있습니다."
@@ -882,19 +885,19 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "자주 사용하는 AI 대화 사이트가 없나요? 지원을 요청하면 적용 후 ‘타임라인’, ‘프롬프트’, ‘플래시 노트’ 같은 기능을 사용할 수 있습니다."
+    "message": "사용 중인 AI 대화 사이트가 없나요? AI 미러 사이트, 사내 AI 대화 사이트, 잘 알려지지 않은 AI 사이트 모두 지원을 요청할 수 있습니다. 적용 후에는 ‘타임라인’, ‘프롬프트’, ‘플래시 노트’ 같은 기능을 사용할 수 있습니다."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI sites:"
+    "message": "기본 지원 AI 플랫폼:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
   },
   "mirrorSiteWizardStep2": {
-    "message": "Send the following in the new conversation:"
+    "message": "새 대화에서 보내기:"
   },
   "mirrorSiteWizardStep3": {
     "message": "Copy the new conversation page URL and paste it into the input below"
@@ -912,28 +915,25 @@
     "message": "Invalid URL format"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "Already supported, no adaptation needed"
+    "message": "이 사이트는 이미 적용되었습니다. 다시 신청할 필요가 없습니다."
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+    "message": "Starting from the node that contains \"$1\", 10 ancestor demo levels:"
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "Waiting for \"$1\""
+    "message": "메시지 「$1」 감지 중"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "Send it in the current conversation to collect automatically"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "Page structure parsed. Copy the information below,"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+    "message": "페이지 구조 분석에 성공했습니다! GitHub에서 적응을 제출해 주세요."
   },
   "mirrorSiteCopyInfo": {
     "message": "Copy info"
   },
   "mirrorSiteGoGithub": {
-    "message": "Go to GitHub"
+    "message": "GitHub에서 적응 제출"
   },
   "mirrorSiteCopyEmail": {
     "message": "Copy email"

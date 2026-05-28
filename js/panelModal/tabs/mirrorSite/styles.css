@@ -131,7 +131,7 @@
 
 .mirror-site-wizard-modal {
     position: fixed;
-    right: 24px;
+    right: 34px;
     top: 88px;
     width: min(520px, calc(100vw - 48px));
     max-height: calc(100vh - 120px);
@@ -145,6 +145,13 @@
     overflow: hidden;
     color: #1f2937;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.mirror-site-wizard-modal-centered {
+    right: auto;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .mirror-site-wizard-header {

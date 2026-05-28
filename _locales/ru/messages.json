@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "Если Timeline полезен, поддержите проект звездой на GitHub."
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "Добавьте новый AI-чат, чтобы открыть функции «Таймлайн», подсказки и другие."
+  },
   "promptCommonGithubStarButton": {
     "message": "Перейти на GitHub"
   },
@@ -783,7 +786,7 @@
     "message": "Настройка ширины чата не поддерживается на этой платформе"
   },
   "mirrorSiteTabName": {
-    "message": "Custom Platform"
+    "message": "Адаптировать новую платформу"
   },
   "mirrorSiteHint": {
     "message": "Добавьте домены зеркал AI-сайтов. На этих сайтах появится плавающая кнопка, позволяющая использовать некоторые функции этого расширения."
@@ -831,19 +834,19 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Не нашли AI-чат, которым часто пользуетесь? Запросите адаптацию, и после неё станут доступны функции «Таймлайн», подсказки и быстрые заметки."
+    "message": "Не нашли AI-чат, которым пользуетесь? Будь то AI-зеркало, внутренний корпоративный AI-чат или малоизвестный AI-сайт — вы можете запросить адаптацию. После неё станут доступны функции «Таймлайн», подсказки и быстрые заметки."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI sites:"
+    "message": "AI-платформы с нативной поддержкой:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
   },
   "mirrorSiteWizardStep2": {
-    "message": "Send the following in the new conversation:"
+    "message": "Отправьте в новом диалоге:"
   },
   "mirrorSiteWizardStep3": {
     "message": "Copy the new conversation page URL and paste it into the input below"
@@ -861,28 +864,25 @@
     "message": "Invalid URL format"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "Already supported, no adaptation needed"
+    "message": "Этот сайт уже адаптирован. Повторная заявка не требуется."
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+    "message": "Starting from the node that contains \"$1\", 10 ancestor demo levels:"
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "Waiting for \"$1\""
+    "message": "Идёт обнаружение сообщения 「$1」"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "Send it in the current conversation to collect automatically"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "Page structure parsed. Copy the information below,"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+    "message": "Структура страницы успешно проанализирована! Пожалуйста, отправьте адаптацию на GitHub."
   },
   "mirrorSiteCopyInfo": {
     "message": "Copy info"
   },
   "mirrorSiteGoGithub": {
-    "message": "Go to GitHub"
+    "message": "Отправить адаптацию на GitHub"
   },
   "mirrorSiteCopyEmail": {
     "message": "Copy email"

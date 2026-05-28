@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "如果 Timeline 對你有幫助，歡迎在 GitHub 點 Star 支持。"
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "添加新的 AI 對話網站，解鎖時間軸、提示詞等功能。"
+  },
   "promptCommonGithubStarButton": {
     "message": "去 GitHub"
   },
@@ -840,7 +843,7 @@
     "message": "目前平台暫不支援調整對話寬度"
   },
   "mirrorSiteTabName": {
-    "message": "自訂平台"
+    "message": "適配新平台"
   },
   "mirrorSiteHint": {
     "message": "添加 AI 鏡像站域名後，在這些網站上會出現浮窗按鈕，可使用本插件的部分功能。"
@@ -888,19 +891,19 @@
     "message": "適配新的 AI 平台"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "沒找到你常用的 AI 對話網站？可申請適配，適配後即可解鎖「時間軸、提示詞、閃記」等高效功能。"
+    "message": "沒找到你在用的 AI 對話網站？比如 AI 鏡像站、公司內部 AI 對話網站、小眾 AI 對話網站，都可申請適配，適配後可解鎖「時間軸、提示詞、閃記」等功能。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "開始配置"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "原生支援以下 AI 網站："
+    "message": "原生支援以下 AI 平台："
   },
   "mirrorSiteWizardStep1": {
     "message": "打開你想適配的 AI 網站，發起一個新對話"
   },
   "mirrorSiteWizardStep2": {
-    "message": "在新對話中發送以下內容："
+    "message": "在新對話中發送："
   },
   "mirrorSiteWizardStep3": {
     "message": "複製新對話頁面的網址，貼到下方輸入框"
@@ -918,28 +921,25 @@
     "message": "URL 格式無效"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "已支援，無需適配"
+    "message": "該網站已適配，無需重複申請。"
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "從命中「$1」的節點開始，向上 5 層祖先 demo："
+    "message": "從命中「$1」的節點開始，向上 10 層祖先 demo："
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "等待發送「$1」"
+    "message": "正在檢測訊息「$1」"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "在目前對話中發送後自動採集"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "頁面結構解析成功！請複製下面資訊，"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "透過 GitHub 或郵件發送給開發者，我會盡快完成適配。"
+    "message": "頁面結構解析成功！請前往 GitHub 提交適配。"
   },
   "mirrorSiteCopyInfo": {
     "message": "複製資訊"
   },
   "mirrorSiteGoGithub": {
-    "message": "前往 GitHub"
+    "message": "前往 GitHub 提交適配"
   },
   "mirrorSiteCopyEmail": {
     "message": "複製郵箱"

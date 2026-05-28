@@ -5,8 +5,8 @@
 /* 浮窗按钮 */
 .mirror-site-float-btn {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: 80px;
+    bottom: 30px;
     z-index: 9999;
     display: flex;
     align-items: center;

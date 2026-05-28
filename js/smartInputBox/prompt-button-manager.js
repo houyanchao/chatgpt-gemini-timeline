@@ -569,6 +569,10 @@ class PromptButtonManager {
                 this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('smartInputBox');
             },
+            onMirrorSiteClick: () => {
+                this._hidePromptDropdown();
+                if (window.panelModal) window.panelModal.show('mirror-site');
+            },
             onSettingsClick: () => {
                 this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('timeline');

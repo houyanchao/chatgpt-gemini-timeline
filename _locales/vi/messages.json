@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "Nếu Timeline hữu ích với bạn, hãy ủng hộ bằng một Star trên GitHub."
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "Thêm trang chat AI mới để mở khóa các tính năng như Dòng thời gian và prompt."
+  },
   "promptCommonGithubStarButton": {
     "message": "Đến GitHub"
   },
@@ -783,7 +786,7 @@
     "message": "Nền tảng này không hỗ trợ điều chỉnh độ rộng khung chat"
   },
   "mirrorSiteTabName": {
-    "message": "Custom Platform"
+    "message": "Thích ứng nền tảng mới"
   },
   "mirrorSiteHint": {
     "message": "Thêm tên miền trang mirror AI. Nút nổi sẽ xuất hiện trên các trang này, cho phép sử dụng một số tính năng của tiện ích mở rộng."
@@ -831,19 +834,19 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Không thấy trang chat AI bạn thường dùng? Hãy yêu cầu hỗ trợ; sau khi được điều chỉnh, bạn có thể mở khóa các tính năng như Dòng thời gian, prompt và ghi chú nhanh."
+    "message": "Không thấy trang chat AI bạn đang dùng? Dù là trang chat AI mirror, trang chat AI nội bộ công ty hay trang AI ít phổ biến, bạn đều có thể yêu cầu hỗ trợ. Sau khi được điều chỉnh, bạn có thể mở khóa các tính năng như Dòng thời gian, prompt và ghi chú nhanh."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI sites:"
+    "message": "Các nền tảng AI được hỗ trợ nguyên bản:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
   },
   "mirrorSiteWizardStep2": {
-    "message": "Send the following in the new conversation:"
+    "message": "Gửi trong cuộc trò chuyện mới:"
   },
   "mirrorSiteWizardStep3": {
     "message": "Copy the new conversation page URL and paste it into the input below"
@@ -861,28 +864,25 @@
     "message": "Invalid URL format"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "Already supported, no adaptation needed"
+    "message": "Trang web này đã được điều chỉnh. Không cần gửi yêu cầu lại."
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+    "message": "Starting from the node that contains \"$1\", 10 ancestor demo levels:"
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "Waiting for \"$1\""
+    "message": "Đang phát hiện tin nhắn 「$1」"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "Send it in the current conversation to collect automatically"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "Page structure parsed. Copy the information below,"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+    "message": "Phân tích cấu trúc trang thành công! Vui lòng vào GitHub để gửi yêu cầu điều chỉnh."
   },
   "mirrorSiteCopyInfo": {
     "message": "Copy info"
   },
   "mirrorSiteGoGithub": {
-    "message": "Go to GitHub"
+    "message": "Gửi yêu cầu điều chỉnh trên GitHub"
   },
   "mirrorSiteCopyEmail": {
     "message": "Copy email"

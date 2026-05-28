@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "Wenn Timeline hilfreich ist, unterstütze es bitte mit einem GitHub-Star."
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "Füge eine neue AI-Chat-Website hinzu und schalte Funktionen wie Timeline und Prompts frei."
+  },
   "promptCommonGithubStarButton": {
     "message": "Zu GitHub"
   },
@@ -783,7 +786,7 @@
     "message": "Die Anpassung der Chatbreite wird auf dieser Plattform nicht unterstützt"
   },
   "mirrorSiteTabName": {
-    "message": "Custom Platform"
+    "message": "Neue Plattform anpassen"
   },
   "mirrorSiteHint": {
     "message": "Fügen Sie AI-Spiegelseiten-Domains hinzu. Auf diesen Seiten erscheint eine schwebende Schaltfläche, mit der einige Funktionen dieser Erweiterung genutzt werden können."
@@ -831,19 +834,19 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Deine häufig genutzte AI-Chat-Website ist nicht dabei? Beantrage eine Anpassung. Nach erfolgreicher Anpassung kannst du Funktionen wie „Timeline“, „Prompts“ und „Flash Notes“ nutzen."
+    "message": "Deine genutzte AI-Chat-Website ist nicht dabei? Egal ob AI-Spiegelseite, firmeninterne AI-Chat-Website oder eine Nischenseite – beantrage eine Anpassung. Nach der Anpassung kannst du Funktionen wie „Timeline“, „Prompts“ und „Flash Notes“ freischalten."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI sites:"
+    "message": "Nativ unterstützte AI-Plattformen:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
   },
   "mirrorSiteWizardStep2": {
-    "message": "Send the following in the new conversation:"
+    "message": "In einer neuen Unterhaltung senden:"
   },
   "mirrorSiteWizardStep3": {
     "message": "Copy the new conversation page URL and paste it into the input below"
@@ -861,28 +864,25 @@
     "message": "Invalid URL format"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "Already supported, no adaptation needed"
+    "message": "Diese Website ist bereits angepasst. Keine erneute Anfrage erforderlich."
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+    "message": "Starting from the node that contains \"$1\", 10 ancestor demo levels:"
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "Waiting for \"$1\""
+    "message": "Nachricht 「$1」 wird erkannt"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "Send it in the current conversation to collect automatically"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "Page structure parsed. Copy the information below,"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+    "message": "Seitenstruktur erfolgreich analysiert! Bitte reichen Sie die Anpassung auf GitHub ein."
   },
   "mirrorSiteCopyInfo": {
     "message": "Copy info"
   },
   "mirrorSiteGoGithub": {
-    "message": "Go to GitHub"
+    "message": "Anpassung auf GitHub einreichen"
   },
   "mirrorSiteCopyEmail": {
     "message": "Copy email"

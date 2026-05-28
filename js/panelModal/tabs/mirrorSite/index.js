@@ -17,7 +17,6 @@
 const AIT_DETECT_TRIGGER = '123456';
 const AIT_DETECT_STORAGE_KEY = 'customTimelineAdapterDetecting';
 const AIT_DETECT_TIMEOUT = 30000;
-const AIT_FEEDBACK_EMAIL = 'houyanchao@outlook.com';
 
 function _mirrorSiteMsg(key, fallbackOrSubstitutions = '', maybeSubstitutions) {
     const fallback = Array.isArray(fallbackOrSubstitutions) ? '' : fallbackOrSubstitutions;
@@ -76,6 +75,7 @@ function _makeWizardModalDraggable(shell) {
         modal.style.top = `${rect.top}px`;
         modal.style.right = 'auto';
         modal.style.margin = '0';
+        modal.style.transform = 'none';
         event.preventDefault();
 
         const onMouseMove = (moveEvent) => {
@@ -191,7 +191,7 @@ class MirrorSiteTab extends BaseTab {
         shell.className = 'mirror-site-wizard-shell';
         const title = _mirrorSiteMsg('mirrorSiteAdapterHeroTitle');
         shell.innerHTML = `
-            <div class="mirror-site-wizard-modal">
+            <div class="mirror-site-wizard-modal mirror-site-wizard-modal-centered">
                 <div class="mirror-site-wizard-header">
                     <div class="mirror-site-wizard-title">${this._esc(title)}</div>
                     <button class="mirror-site-wizard-close" type="button">✕</button>
@@ -243,7 +243,12 @@ class MirrorSiteTab extends BaseTab {
 
         const existingSupport = await this._getExistingSupportForDomain(domain);
         if (existingSupport) {
-            window.globalToastManager?.show('warning', _mirrorSiteMsg('mirrorSiteAlreadySupported'), { target: input, duration: 2600 });
+            await window.globalPopconfirmManager?.show({
+                title: _mirrorSiteMsg('mirrorSiteAlreadySupported'),
+                showCancel: false,
+                confirmText: _mirrorSiteMsg('vkmzpx', '确定'),
+                confirmTextType: 'primary'
+            });
             input?.focus();
             return;
         }
@@ -362,34 +367,23 @@ const PageDetector = (() => {
         });
         const textNode = walker.nextNode();
         if (!textNode) return null;
-        let el = textNode.parentElement;
-        let climb = 0;
-        while (climb < 6 && el?.parentElement && el.textContent.trim() === el.parentElement.textContent.trim()) {
-            el = el.parentElement; climb++;
-            if (el.matches('body')) break;
-        }
-        return el?.matches('body') ? textNode.parentElement : el;
+        return textNode.parentElement;
     }
 
     function buildDemoInfo(messageElement) {
         const ancestors = [];
         let current = messageElement;
 
-        for (let level = 0; level < 5 && current && current.nodeType === Node.ELEMENT_NODE && !current.matches('html'); level++) {
+        for (let level = 0; level < 10 && current && current.nodeType === Node.ELEMENT_NODE && !current.matches('html'); level++) {
             ancestors.push({ level, element: current });
             current = current.parentElement;
         }
 
         const lines = [
-            `URL: ${location.href}`,
-            `Domain: ${location.hostname}`,
-            '',
-            _mirrorSiteMsg('mirrorSiteDemoInfoIntro', [AIT_DETECT_TRIGGER])
+            `URL: ${location.href}`
         ];
 
-        ancestors.forEach(({ level, element }) => {
-            lines.push('');
-            lines.push(`===== Level ${level}${level === 0 ? ' detected-message-node' : ''} =====`);
+        ancestors.forEach(({ element }) => {
             lines.push(getDemoOpenTag(element));
         });
 
@@ -466,26 +460,19 @@ const PageDetector = (() => {
                     <div class="mirror-site-wizard-section">
                         <div class="mirror-site-wizard-hint">
                             <div>${_escapeHtml(_mirrorSiteMsg('mirrorSiteFeedbackSuccessLine1'))}</div>
-                            <div>${_escapeHtml(_mirrorSiteMsg('mirrorSiteFeedbackSuccessLine2'))}</div>
-                        </div>
-                        <div class="mirror-site-wizard-copy-row">
-                            <button class="mirror-site-wizard-secondary mirror-site-wizard-icon-btn" data-action="copy">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                <span>${_escapeHtml(_mirrorSiteMsg('mirrorSiteCopyInfo'))}</span>
-                            </button>
-                            <button class="mirror-site-wizard-secondary mirror-site-wizard-icon-btn" data-action="issue">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0 1 12 6c1.02 0 2.05.14 3.01.4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z"/></svg>
-                                <span>${_escapeHtml(_mirrorSiteMsg('mirrorSiteGoGithub'))}</span>
-                            </button>
-                            <button class="mirror-site-wizard-secondary mirror-site-wizard-icon-btn" data-action="copy-email">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-                                <span>${_escapeHtml(_mirrorSiteMsg('mirrorSiteCopyEmail'))}</span>
-                            </button>
                         </div>
                     </div>
                     <textarea class="mirror-site-wizard-prompt" readonly></textarea>
                     <div class="mirror-site-wizard-footer">
                         <button class="mirror-site-wizard-secondary" data-action="close">${_escapeHtml(_mirrorSiteMsg('notepadClose'))}</button>
+                        <button class="mirror-site-wizard-secondary mirror-site-wizard-icon-btn" data-action="copy">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            <span>${_escapeHtml(_mirrorSiteMsg('mirrorSiteCopyInfo'))}</span>
+                        </button>
+                        <button class="mirror-site-wizard-primary mirror-site-wizard-icon-btn" data-action="issue">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0 1 12 6c1.02 0 2.05.14 3.01.4 2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.93.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z"/></svg>
+                            <span>${_escapeHtml(_mirrorSiteMsg('mirrorSiteGoGithub'))}</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -500,10 +487,6 @@ const PageDetector = (() => {
         shell.querySelector('[data-action="copy"]')?.addEventListener('click', async (e) => {
             await navigator.clipboard?.writeText(safeDemoInfo);
             window.globalToastManager?.success(_mirrorSiteMsg('mirrorSiteCopied'), e.currentTarget, { position: 'top', gap: 8 });
-        });
-        shell.querySelector('[data-action="copy-email"]')?.addEventListener('click', async (e) => {
-            await navigator.clipboard?.writeText(AIT_FEEDBACK_EMAIL);
-            window.globalToastManager?.success(_mirrorSiteMsg('mirrorSiteEmailCopied'), e.currentTarget, { position: 'top', gap: 8 });
         });
         shell.querySelector('[data-action="issue"]')?.addEventListener('click', () => {
             const title = encodeURIComponent(_mirrorSiteMsg('mirrorSiteIssueTitle', [location.hostname]));

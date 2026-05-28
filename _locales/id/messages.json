@@ -101,6 +101,9 @@
   "promptCommonGithubStarHint": {
     "message": "Jika Timeline berguna bagi Anda, dukung dengan Star di GitHub."
   },
+  "promptCommonMirrorSiteHint": {
+    "message": "Tambahkan situs chat AI baru untuk membuka fitur seperti Timeline dan prompt."
+  },
   "promptCommonGithubStarButton": {
     "message": "Buka GitHub"
   },
@@ -783,7 +786,7 @@
     "message": "Penyesuaian lebar chat tidak didukung di platform ini"
   },
   "mirrorSiteTabName": {
-    "message": "Custom Platform"
+    "message": "Adaptasi Platform Baru"
   },
   "mirrorSiteHint": {
     "message": "Tambahkan domain situs cermin AI. Tombol mengambang akan muncul di situs ini, memungkinkan penggunaan beberapa fitur ekstensi ini."
@@ -831,19 +834,19 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Tidak menemukan situs chat AI yang sering Anda gunakan? Ajukan adaptasi; setelah berhasil, Anda dapat membuka fitur seperti Timeline, prompt, dan catatan cepat."
+    "message": "Tidak menemukan situs chat AI yang Anda gunakan? Baik itu situs cermin AI, chat AI internal perusahaan, atau situs AI khusus, Anda dapat mengajukan adaptasi. Setelah berhasil, Anda dapat membuka fitur seperti Timeline, prompt, dan catatan cepat."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI sites:"
+    "message": "Platform AI yang didukung secara native:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
   },
   "mirrorSiteWizardStep2": {
-    "message": "Send the following in the new conversation:"
+    "message": "Kirim dalam percakapan baru:"
   },
   "mirrorSiteWizardStep3": {
     "message": "Copy the new conversation page URL and paste it into the input below"
@@ -861,28 +864,25 @@
     "message": "Invalid URL format"
   },
   "mirrorSiteAlreadySupported": {
-    "message": "Already supported, no adaptation needed"
+    "message": "Situs ini sudah diadaptasi. Tidak perlu mengajukan lagi."
   },
   "mirrorSiteDemoInfoIntro": {
-    "message": "Starting from the node that contains \"$1\", 5 ancestor demo levels:"
+    "message": "Starting from the node that contains \"$1\", 10 ancestor demo levels:"
   },
   "mirrorSiteDetectWaitingTitle": {
-    "message": "Waiting for \"$1\""
+    "message": "Sedang mendeteksi pesan 「$1」"
   },
   "mirrorSiteDetectWaitingDesc": {
     "message": "Send it in the current conversation to collect automatically"
   },
   "mirrorSiteFeedbackSuccessLine1": {
-    "message": "Page structure parsed. Copy the information below,"
-  },
-  "mirrorSiteFeedbackSuccessLine2": {
-    "message": "Send it to the developer through GitHub or email. I will adapt it as soon as possible."
+    "message": "Struktur halaman berhasil dianalisis! Silakan kirim adaptasi di GitHub."
   },
   "mirrorSiteCopyInfo": {
     "message": "Copy info"
   },
   "mirrorSiteGoGithub": {
-    "message": "Go to GitHub"
+    "message": "Kirim adaptasi di GitHub"
   },
   "mirrorSiteCopyEmail": {
     "message": "Copy email"
