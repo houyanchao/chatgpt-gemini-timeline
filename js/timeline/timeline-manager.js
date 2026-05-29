@@ -24,7 +24,7 @@ class TimelineManager {
         this.conversationContainer = null;
         this.markers = [];
         this.activeTurnId = null;
-        this.ui = { timelineBar: null, tooltip: null, track: null, trackContent: null };
+        this.ui = { timelineBar: null, tooltip: null, track: null, trackContent: null, tempPinBtn: null };
         
         // ✅ 上次渲染时的节点状态（用于变化检测，决定是否需要重新计算）
         this._renderedNodeCount = 0;
@@ -131,7 +131,8 @@ class TimelineManager {
         // 临时存储加载的收藏 index（在 markers 创建前）
         this.starredIndexes = new Set();
         
-        // ✅ Pin（标记）功能状态
+        // ✅ 临时 Pin 功能状态：只保存在当前页面内存中，不写入 chrome.storage
+        this.temporaryPin = null;
         this.pinned = new Set();
         this.pinnedIndexes = new Set();
         
@@ -393,37 +394,36 @@ class TimelineManager {
         // 如果按钮已存在，直接复用，保留原有事件监听器
         this.ui.starredBtn = starredBtn;
         
-        // ✅ 添加闪记按钮（在收藏按钮下方）
-        if (this.getTimelineFeatures()?.notepad === true) {
-            let notepadBtn = document.querySelector('.ait-notepad-btn');
-            if (!notepadBtn) {
-                notepadBtn = document.createElement('button');
-                notepadBtn.className = 'ait-notepad-btn';
-                notepadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-                notepadBtn.setAttribute('aria-label', 'Notepad');
-                notepadBtn.style.display = 'none';
+        // ✅ 添加临时 Pin 按钮（替换原闪记入口）
+        if (this.getTimelineFeatures()?.timeline_tooltipActions === true) {
+            let tempPinBtn = document.querySelector('.ait-temp-pin-btn');
+            if (!tempPinBtn) {
+                tempPinBtn = document.createElement('button');
+                tempPinBtn.className = 'ait-temp-pin-btn';
+                tempPinBtn.type = 'button';
+                tempPinBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>';
+                tempPinBtn.setAttribute('aria-label', chrome.i18n.getMessage('pinChatAction') || 'Pin chat');
+                tempPinBtn.setAttribute('aria-pressed', 'false');
+                tempPinBtn.style.display = 'none';
 
-                notepadBtn.addEventListener('mouseenter', () => {
+                tempPinBtn.addEventListener('mouseenter', () => {
                     window.globalTooltipManager.show(
-                        'notepad-btn',
+                        'temp-pin-btn',
                         'button',
-                        notepadBtn,
-                        chrome.i18n.getMessage('notepadTitle') || '闪记',
+                        tempPinBtn,
+                        chrome.i18n.getMessage('pinChatAction') || 'Pin chat',
                         { placement: 'left' }
                     );
                 });
 
-                notepadBtn.addEventListener('mouseleave', () => {
+                tempPinBtn.addEventListener('mouseleave', () => {
                     window.globalTooltipManager.hide();
                 });
 
-                wrapper.appendChild(notepadBtn);
+                wrapper.appendChild(tempPinBtn);
             }
-            // 恢复激活状态（跨页面导航后按钮重建时同步）
-            if (window.notepadManager && window.notepadManager.isOpen) {
-                notepadBtn.classList.add('active');
-            }
-            this.ui.notepadBtn = notepadBtn;
+            this.ui.tempPinBtn = tempPinBtn;
+            this.updateTempPinButtonState();
         }
         
         // ✅ 收藏按钮使用相对定位，不需要动态计算位置
@@ -1107,6 +1107,7 @@ class TimelineManager {
         if (userTurnElements.length < 2 || contentSpan <= 0) {
             contentSpan = 1;
         }
+        this.firstUserTurnOffset = firstOffsetTop;
         this.contentSpanPx = contentSpan;
         
         /**
@@ -1933,35 +1934,7 @@ class TimelineManager {
                     });
                 }
                 
-                // ✅ 处理 Pin 数组变化
-                if (changes.chatTimelinePins) {
-                    // 重新加载 Pin 数据
-                    await this.loadPins();
-                    
-                    // 同步 Pin 状态到所有 marker
-                    this.markers.forEach(marker => {
-                        const nodeId = this.adapter.extractIndexFromTurnId?.(marker.id);
-                        const nodeKey = (nodeId !== null && nodeId !== undefined) 
-                            ? nodeId 
-                            : this.markers.indexOf(marker);
-                        
-                        const isPinned = this.pinnedIndexes.has(nodeKey);
-                        
-                        if (isPinned) {
-                            this.pinned.add(marker.id);
-                            marker.pinned = true;
-                        } else {
-                            this.pinned.delete(marker.id);
-                            marker.pinned = false;
-                        }
-                        
-                        // 更新图钉图标
-                        this.updatePinIcon(marker);
-                    });
-                    
-                    // ✅ 重新渲染所有图钉
-                    this.renderPinMarkers();
-                }
+                // Pin 现在是本页临时状态，忽略旧版持久 Pin storage 的变化。
                 
                 // ✅ 监听箭头键导航功能状态变化
                 if (changes.arrowKeysNavigationEnabled) {
@@ -2005,11 +1978,9 @@ class TimelineManager {
             }
         });
         
-        // ✅ 闪记按钮点击事件
-        window.eventDelegateManager.on('click', '.ait-notepad-btn', () => {
-            if (window.notepadManager) {
-                window.notepadManager.toggle();
-            }
+        // ✅ 临时 Pin 按钮点击事件：固定当前激活回答位置
+        window.eventDelegateManager.on('click', '.ait-temp-pin-btn', () => {
+            this.toggleCurrentTemporaryPin();
         });
         
         // ✅ 优化：监听主题变化，清空缓存
@@ -2097,6 +2068,70 @@ class TimelineManager {
         });
     }
     
+    async toggleCurrentTemporaryPin() {
+        if (!this.scrollContainer) {
+            window.globalToastManager?.info?.(chrome.i18n.getMessage('pinNoTarget') || 'No answer to pin yet');
+            return false;
+        }
+
+        return this.setTemporaryPinAtScrollTop(this.scrollContainer.scrollTop || 0);
+    }
+
+    updateTempPinButtonState() {
+        const btn = this.ui?.tempPinBtn;
+        if (!btn) return;
+
+        const hasPin = !!this.temporaryPin;
+        btn.classList.toggle('active', hasPin);
+        btn.setAttribute('aria-pressed', hasPin ? 'true' : 'false');
+    }
+
+    getTemporaryPinVisualN(scrollTop) {
+        const scrollOffset = this.adapter?.getScrollOffset?.() ?? 0;
+        const contentOffset = scrollTop + scrollOffset;
+        const firstOffset = this.firstUserTurnOffset || this.markers?.[0]?.offsetTop || 0;
+        const span = Math.max(1, this.contentSpanPx || 1);
+        const n = (contentOffset - firstOffset) / span;
+        return Math.max(0, Math.min(1, Math.round(n * 1000000) / 1000000));
+    }
+
+    setTemporaryPinAtScrollTop(scrollTop, sourceMarkerId = null) {
+        if (!Number.isFinite(scrollTop)) return false;
+
+        this.markers.forEach(marker => {
+            marker.pinned = false;
+            this.updatePinIcon(marker);
+        });
+        this.pinned.clear();
+        this.pinnedIndexes.clear();
+
+        this.temporaryPin = {
+            scrollTop,
+            sourceMarkerId,
+            visualN: this.getTemporaryPinVisualN(scrollTop),
+        };
+
+        if (sourceMarkerId) {
+            this.pinned.add(sourceMarkerId);
+        }
+
+        this.renderPinMarkers();
+        this.updateTempPinButtonState();
+        return true;
+    }
+
+    clearTemporaryPin() {
+        this.temporaryPin = null;
+        this.markers.forEach(marker => {
+            marker.pinned = false;
+            this.updatePinIcon(marker);
+        });
+        this.pinned.clear();
+        this.pinnedIndexes.clear();
+        this.renderPinMarkers();
+        this.updateTempPinButtonState();
+    }
+
     /**
      * ✅ 对外 API：根据索引滚动到指定节点
      * @param {number} index - 节点索引（0-based），支持负数（-1 表示最后一个）
@@ -3190,7 +3225,10 @@ class TimelineManager {
         const nodeOffsets = this.markers.map(m => getOffsetTop(m.element, this.scrollContainer));
         const firstOffsetTop = nodeOffsets[0];
         const lastOffsetTop = nodeOffsets[nodeOffsets.length - 1];
-        const contentSpan = lastOffsetTop - firstOffsetTop || 1;
+        let contentSpan = lastOffsetTop - firstOffsetTop;
+        if (contentSpan <= 0) contentSpan = 1;
+        this.firstUserTurnOffset = firstOffsetTop;
+        this.contentSpanPx = contentSpan;
         
         this.debouncedUpdateScrollPadding(lastOffsetTop, cleanMaxScrollTop);
         
@@ -3460,11 +3498,8 @@ class TimelineManager {
         // ✅ 修复：清理收藏按钮
         TimelineUtils.removeElementSafe(this.ui.starredBtn);
         
-        // ✅ 清理闪记按钮，并关闭面板
-        if (window.notepadManager && window.notepadManager.isOpen) {
-            window.notepadManager.close();
-        }
-        TimelineUtils.removeElementSafe(this.ui.notepadBtn);
+        // ✅ 清理临时 Pin 按钮
+        TimelineUtils.removeElementSafe(this.ui.tempPinBtn);
         
         // ✅ 清理切换按钮
         TimelineUtils.removeElementSafe(this.ui.toggleBtn);
@@ -3476,7 +3511,7 @@ class TimelineManager {
         this.cleanupScrollPadding();
         
         // Clear references
-        this.ui = { timelineBar: null, track: null, trackContent: null };
+        this.ui = { timelineBar: null, track: null, trackContent: null, tempPinBtn: null };
         this.markers = [];
         this.activeTurnId = null;
         this.scrollContainer = null;
@@ -3496,6 +3531,7 @@ class TimelineManager {
         // ✅ 清理键盘导航引用
         this.onKeyDown = null;
         this.pendingActiveId = null;
+        this.temporaryPin = null;
         this.aiCompleteToastAnchor = null;
     }
 
@@ -3527,25 +3563,14 @@ class TimelineManager {
      * ✅ 加载标记数据（与loadStars类似）
      */
     async loadPins() {
+        this.temporaryPin = null;
         this.pinned.clear();
         this.pinnedIndexes.clear();
-        try {
-            const url = location.href.replace(/^https?:\/\//, '');
-            
-            // 使用 PinStorageManager 获取当前 URL 的 Pin
-            const items = await PinStorageManager.getByUrl(url);
-            
-            // ✅ 提取 nodeId/index（支持字符串和数字，与 loadStars 保持一致）
-            items.forEach(item => {
-                // 优先使用 nodeId，其次 index
-                const nodeKey = item.nodeId !== undefined ? item.nodeId : item.index;
-                if (nodeKey !== undefined && nodeKey !== '' && !Number.isNaN(nodeKey)) {
-                    this.pinnedIndexes.add(nodeKey);
-                }
-            });
-        } catch (e) {
-            // Silently fail
-        }
+        this.markers?.forEach(marker => {
+            marker.pinned = false;
+            this.updatePinIcon(marker);
+        });
+        this.renderPinMarkers();
     }
 
     /**
@@ -4012,15 +4037,10 @@ class TimelineManager {
         // 隐藏收藏按钮（功能已合并到提问列表中）
         this.ui.starredBtn.style.display = 'none';
 
-        // 同步显示闪记按钮（受开关控制，默认开启）
-        if (this.ui.notepadBtn && this.getTimelineFeatures()?.notepad === true) {
-            try {
-                const result = await chrome.storage.local.get('aitNotepadEnabled');
-                const enabled = result.aitNotepadEnabled !== false;
-                this.ui.notepadBtn.style.display = enabled ? 'flex' : 'none';
-            } catch (e) {
-                this.ui.notepadBtn.style.display = 'flex';
-            }
+        // 同步显示临时 Pin 按钮
+        if (this.ui.tempPinBtn && this.getTimelineFeatures()?.timeline_tooltipActions === true) {
+            this.ui.tempPinBtn.style.display = 'flex';
+            this.updateTempPinButtonState();
         }
         
         // 根据是否有收藏数据来设置不同的颜色状态
@@ -4117,83 +4137,17 @@ class TimelineManager {
             return false;
         }
         
-        // ✅ 检查是否是 useStableNodeId 平台但还没有真正的 ID
-        // 临时 ID 格式：平台名-小数字（如 doubao-0），真实 ID 的数字部分远大于 1000
-        const features = getCurrentPlatform()?.features;
-        if (features?.useStableNodeId === true) {
-            const tempMatch = id.match(/-(\d+)$/);
-            const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
-            if (isTempId) {
-                if (window.globalToastManager) {
-                    window.globalToastManager.info(chrome.i18n.getMessage('pleaseWait') || '请稍等，节点ID正在加载...');
-                }
-                return false;
-            }
-        }
-        
-        // ✅ 使用 adapter 提取稳定的 nodeId（与 toggleStar 一致）
-        const nodeId = this.adapter.extractIndexFromTurnId?.(id);
-        // 最终使用的存储 key（nodeId 或 fallback 到数组索引）
-        const nodeKey = (nodeId !== null && nodeId !== undefined) 
-            ? nodeId 
-            : this.markers.indexOf(marker);
-        
-        if (nodeKey === -1) {
-            return false;
-        }
-        
-        try {
-            // ✅ 修复：动态计算 urlWithoutProtocol
-            const urlWithoutProtocol = location.href.replace(/^https?:\/\//, '');
-            const key = `chatTimelinePin:${urlWithoutProtocol}:${nodeKey}`;
-            const isPinned = await PinStorageManager.findByKey(key);
-            
-            if (isPinned) {
-                // 取消标记
-                await PinStorageManager.remove(key);
-                
-                // ✅ 兼容性修复：清理可能存在的旧数据（数字索引）
-                if (typeof nodeKey !== 'number') {
-                    const index = this.markers.indexOf(marker);
-                    if (index !== -1) {
-                        const oldKey = `chatTimelinePin:${urlWithoutProtocol}:${index}`;
-                        await PinStorageManager.remove(oldKey);
-                        this.pinnedIndexes.delete(index);
-                    }
-                }
-                
-                marker.pinned = false;
-                this.pinned.delete(id);
-                this.pinnedIndexes.delete(nodeKey);
-            } else {
-                // 添加标记
-                // ✅ 限制标记文字长度为前100个字符
-                const truncatedSummary = this.truncateText(marker.summary || '', 100);
-                const pinData = {
-                    key,
-                    url: location.href,
-                    urlWithoutProtocol: urlWithoutProtocol,
-                    // ✅ 根据 nodeKey 类型决定存储字段（与 saveStarItemWithFolder 一致）
-                    ...(typeof nodeKey === 'string' ? { nodeId: nodeKey } : { index: nodeKey }),
-                    question: truncatedSummary,
-                    siteName: this.getSiteNameFromUrl(location.href),
-                    timestamp: Date.now(),
-                };
-                await PinStorageManager.add(pinData);
-                marker.pinned = true;
-                this.pinned.add(id);
-                this.pinnedIndexes.add(nodeKey);
-            }
-            
-            // 更新节点UI
-            this.updatePinIcon(marker);
-            // ✅ 重新渲染所有图钉
-            this.renderPinMarkers();
+        if (this.temporaryPin?.sourceMarkerId === id) {
+            this.clearTemporaryPin();
             return true;
-        } catch (e) {
-            console.error('Failed to toggle pin:', e);
-            return false;
         }
+
+        const scrollOffset = this.adapter?.getScrollOffset?.() ?? 0;
+        const targetScrollTop = Math.max(0, (marker.offsetTop || 0) - scrollOffset);
+        this.setTemporaryPinAtScrollTop(targetScrollTop, id);
+        marker.pinned = true;
+        this.updatePinIcon(marker);
+        return true;
     }
     
     /**
@@ -4210,25 +4164,32 @@ class TimelineManager {
      * ✅ 渲染所有图钉（独立于节点渲染）
      */
     renderPinMarkers() {
-        // 清除所有旧的图钉
-        const oldPins = this.ui.timelineBar.querySelectorAll('.timeline-pin-marker');
-        oldPins.forEach(pin => pin.remove());
-        
-        // 为所有标记的节点渲染图钉
-        this.markers.forEach(marker => {
-            if (marker.pinned && marker.dotElement) {
-                const pinMarker = document.createElement('span');
-                pinMarker.className = 'timeline-pin-marker';
-                pinMarker.dataset.markerId = marker.id;
-                
-                // 使用节点的 dotN 来定位图钉（与圆点位置一致）
-                const n = marker.dotN || 0;
-                pinMarker.style.setProperty('--n', String(n));
-                
-                // 添加到 timelineBar
-                this.ui.timelineBar.appendChild(pinMarker);
-            }
+        if (!this.ui?.timelineBar) return;
+
+        const tempPins = this.ui.timelineBar.querySelectorAll('.timeline-pin-marker');
+        tempPins.forEach(pin => pin.remove());
+
+        if (!this.temporaryPin) return;
+
+        this.temporaryPin.visualN = this.getTemporaryPinVisualN(this.temporaryPin.scrollTop);
+
+        const pinMarker = document.createElement('button');
+        pinMarker.className = 'timeline-pin-marker';
+        pinMarker.type = 'button';
+        if (this.temporaryPin.sourceMarkerId) {
+            pinMarker.dataset.markerId = this.temporaryPin.sourceMarkerId;
+        }
+        pinMarker.setAttribute('aria-label', chrome.i18n.getMessage('returnToPinnedAnswer') || 'Return to pinned answer');
+        pinMarker.style.setProperty('--n', String(this.temporaryPin.visualN));
+
+        pinMarker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!this.scrollContainer) return;
+            this.scrollContainer.scrollTop = this.temporaryPin.scrollTop;
+            this.scheduleScrollSync?.();
         });
+
+        this.ui.timelineBar.appendChild(pinMarker);
     }
 
     // ✅ 移除：cancelLongPress 方法已删除，长按收藏功能已移除

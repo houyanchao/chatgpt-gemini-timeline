@@ -1021,5 +1021,14 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Set"
+  },
+  "pinChatAction": {
+    "message": "Pin chat"
+  },
+  "pinNoTarget": {
+    "message": "No answer to pin yet"
+  },
+  "returnToPinnedAnswer": {
+    "message": "Return to pinned answer"
   }
 }
