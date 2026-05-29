@@ -11,5 +11,17 @@ globalThis.CUSTOM_SITE_INFO = [
             questionList: true,
             notepad: true
         },
+    },
+    {
+        sites: ['chatglm.cn'],
+        conversationUrlPattern: '^chatglm\\.cn/main/.*[?&]cid=[A-Za-z0-9]+',
+        userMessageSelector: '.conversation.question',
+        textSelector: '.question-txt span',
+        conversationContainerSelector: '.conversation-list',
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
     }
 ];

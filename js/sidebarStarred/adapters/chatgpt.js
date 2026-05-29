@@ -88,15 +88,21 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     }
 
     findCurrentMenuOverlay() {
-        const wrappers = document.querySelectorAll('[data-radix-popper-content-wrapper]');
-        for (const w of wrappers) {
-            if (w.querySelector('[role="menu"]')) return w;
+        // ChatGPT 菜单为 radix dropdown，新版已不再包一层 [data-radix-popper-content-wrapper]，
+        // [role="menu"] 直接挂在 body 下。取最新打开、且属于对话操作菜单（含分享/删除项）的那个。
+        const menus = document.querySelectorAll('[role="menu"][data-radix-menu-content]');
+        for (let i = menus.length - 1; i >= 0; i--) {
+            const menu = menus[i];
+            if (menu.getAttribute('data-state') === 'closed') continue;
+            if (menu.querySelector('[data-testid="share-chat-menu-item"], [data-testid="delete-chat-menu-item"]')) {
+                return menu;
+            }
         }
         return null;
     }
 
     createStarMenuItem(overlay, isStarred) {
-        const menu = overlay.querySelector('[role="menu"]');
+        const menu = overlay.matches('[role="menu"]') ? overlay : overlay.querySelector('[role="menu"]');
         if (!menu) return null;
 
         const items = menu.querySelectorAll('[role="menuitem"]');
@@ -133,8 +139,10 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         }
         if (isStarred) menuItem.style.color = '#ef4444';
 
-        const secondItem = items[1] || null;
-        menu.insertBefore(menuItem, secondItem);
+        // 插到「分享」项之后；按菜单项的实际父容器插入，避免菜单项非 menu 直接子节点时出错
+        const container = refItem.parentElement || menu;
+        const secondItem = items[1] && items[1].parentElement === container ? items[1] : null;
+        container.insertBefore(menuItem, secondItem);
         return menuItem;
     }
 
