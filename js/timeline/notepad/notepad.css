@@ -525,7 +525,8 @@ html[data-timeline-theme="dark"] .ait-notepad-panel {
 }
 
 /* ── 时间轴上的入口按钮 ── */
-.ait-notepad-btn {
+.ait-notepad-btn,
+.ait-temp-pin-btn {
     position: relative;
     width: 28px;
     height: 28px;
@@ -543,37 +544,45 @@ html[data-timeline-theme="dark"] .ait-notepad-panel {
     color: #6b6b6b;
 }
 
-.ait-notepad-btn svg {
+.ait-notepad-btn svg,
+.ait-temp-pin-btn svg {
     width: 18px;
     height: 18px;
 }
 
-.ait-notepad-btn:hover {
+.ait-notepad-btn:hover,
+.ait-temp-pin-btn:hover {
     background-color: rgba(0, 0, 0, 0.08);
     color: #444;
 }
 
-.ait-notepad-btn:active {
+.ait-notepad-btn:active,
+.ait-temp-pin-btn:active {
     background-color: rgba(0, 0, 0, 0.12);
 }
 
-.ait-notepad-btn.active {
-    color: #6128FF;
+.ait-notepad-btn.active,
+.ait-temp-pin-btn.active {
+    color: rgb(255, 125, 3);
 }
 
-html[data-timeline-theme="dark"] .ait-notepad-btn {
+html[data-timeline-theme="dark"] .ait-notepad-btn,
+html[data-timeline-theme="dark"] .ait-temp-pin-btn {
     color: #9a9a9a;
 }
 
-html[data-timeline-theme="dark"] .ait-notepad-btn:hover {
+html[data-timeline-theme="dark"] .ait-notepad-btn:hover,
+html[data-timeline-theme="dark"] .ait-temp-pin-btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #ccc;
 }
 
-html[data-timeline-theme="dark"] .ait-notepad-btn:active {
+html[data-timeline-theme="dark"] .ait-notepad-btn:active,
+html[data-timeline-theme="dark"] .ait-temp-pin-btn:active {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-html[data-timeline-theme="dark"] .ait-notepad-btn.active {
-    color: #8B5CF6;
+html[data-timeline-theme="dark"] .ait-notepad-btn.active,
+html[data-timeline-theme="dark"] .ait-temp-pin-btn.active {
+    color: rgb(255, 151, 49);
 }

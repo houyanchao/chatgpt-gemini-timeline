@@ -1021,5 +1021,14 @@
   },
   "timelineThemeColorManageButton": {
     "message": "设置"
+  },
+  "pinChatAction": {
+    "message": "固定位置"
+  },
+  "pinNoTarget": {
+    "message": "还没有可固定的回答位置"
+  },
+  "returnToPinnedAnswer": {
+    "message": "回到固定位置"
   }
 }
