@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "Afficher un rappel quand la réponse de l’IA est terminée et que vous n’êtes pas à la dernière position"
   },
+  "preventAutoScrollLabel": {
+    "message": "Conserver la position de lecture à l’envoi"
+  },
+  "preventAutoScrollHint": {
+    "message": "Lorsque vous envoyez un message en consultant l’historique précédent, la page reste à votre position de lecture actuelle au lieu de sauter en bas"
+  },
   "timelineThemeColorLabel": {
     "message": "Couleur du thème de la chronologie"
   },

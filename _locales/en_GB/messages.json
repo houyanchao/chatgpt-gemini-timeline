@@ -944,6 +944,12 @@
   "timelineAICompleteToastHint": {
     "message": "Show a reminder when an AI reply finishes while you are not at the latest position"
   },
+  "preventAutoScrollLabel": {
+    "message": "Keep reading position on send"
+  },
+  "preventAutoScrollHint": {
+    "message": "When you send a message while viewing earlier history, the page stays at your current reading position instead of jumping to the bottom"
+  },
   "timelineThemeColorLabel": {
     "message": "Timeline theme colour"
   },

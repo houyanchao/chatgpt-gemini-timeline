@@ -12,26 +12,30 @@
  */
 
 const CHANGELOG_DATA = {
-    id: '2026052001',
+    id: '2026053101',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
     features: [
         {
-            zh: '时间轴主题色：支持为不同 AI 平台设置激活节点颜色',
-            en: 'Timeline theme colors: set active node colors for different AI platforms'
+            zh: '阻止发送后自动跳到底部：向上翻看历史时发消息，页面不再被强制拉到底部，始终停留在当前阅读位置，AI 生成过程中也不会打断你',
+            en: 'Stay where you’re reading: send a message while scrolled up in the history and the page no longer jumps to the bottom—your reading position is kept, even while the AI is generating'
         },
         {
-            zh: 'AI 回复完成提醒：如果你正在查看前面的对话，回复结束后会在右上角提示',
-            en: 'AI reply completion reminders: if you are viewing earlier messages, a top-right notification appears when the reply finishes'
+            zh: '自定义平台适配：除原生支持的常用 AI 平台外，镜像站、公司内部 AI 站等也能自行接入，同样享受时间轴、闪记等功能',
+            en: 'Adapt any site: beyond the built-in mainstream AI platforms, you can now bring timeline, quick notes and more to mirror sites, internal company AI tools, and other custom pages'
         }
     ],
 
     improvements: [
         {
-            zh: '修复 Gemini 页面改版后，侧边栏收藏文件夹显示位置异常的问题',
-            en: 'Fixed incorrect starred folder placement after Gemini’s page structure update'
+            zh: '修复千问国际版（chat.qwen.ai）无法复制 LaTeX 公式的问题',
+            en: 'Fixed an issue where LaTeX formulas could not be copied on Qwen (international)'
+        },
+        {
+            zh: '修复 Gemini、ChatGPT 侧边栏对话历史列表中不显示「收藏到文件夹」的问题',
+            en: 'Fixed the missing “Save to folder” action in the conversation history list of the Gemini and ChatGPT sidebars'
         }
     ]
 };

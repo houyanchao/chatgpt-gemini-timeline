@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "जब AI का जवाब पूरा हो जाए और आप नवीनतम स्थिति पर न हों, तो रिमाइंडर दिखाएँ"
   },
+  "preventAutoScrollLabel": {
+    "message": "भेजने पर पढ़ने की स्थिति बनाए रखें"
+  },
+  "preventAutoScrollHint": {
+    "message": "जब आप पुराना इतिहास देखते समय कोई संदेश भेजते हैं, तो पेज सबसे नीचे जाने के बजाय आपकी वर्तमान पढ़ने की स्थिति पर बना रहता है"
+  },
   "timelineThemeColorLabel": {
     "message": "टाइमलाइन थीम रंग"
   },

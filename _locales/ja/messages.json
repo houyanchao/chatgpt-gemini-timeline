@@ -971,6 +971,12 @@
   "timelineAICompleteToastHint": {
     "message": "AI の返信が完了し、最新位置にいないときに通知を表示します"
   },
+  "preventAutoScrollLabel": {
+    "message": "送信時に読書位置を維持"
+  },
+  "preventAutoScrollHint": {
+    "message": "過去の履歴を見ているときにメッセージを送信しても、ページは一番下へ移動せず現在の読書位置を保ちます"
+  },
   "timelineThemeColorLabel": {
     "message": "タイムラインのテーマカラー"
   },

@@ -69,6 +69,19 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
+                        <div class="setting-label">${chrome.i18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
+                        <div class="setting-hint">${chrome.i18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
+                    </div>
+                    <label class="ait-toggle-switch">
+                        <input type="checkbox" id="prevent-auto-scroll-toggle">
+                        <span class="ait-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            ${divider}
+            <div class="setting-section">
+                <div class="setting-item">
+                    <div class="setting-info">
                         <div class="setting-label"><svg class="setting-label-icon setting-label-icon-pin" viewBox="0 0 24 24" fill="rgb(255, 125, 3)" stroke="rgb(255, 125, 3)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>${chrome.i18n.getMessage('pxmzkv')}</div>
                         <div class="setting-hint">${chrome.i18n.getMessage('kzxvpm')}</div>
                     </div>
@@ -192,6 +205,28 @@ class TimelineSettingsTab extends BaseTab {
                 } catch (e) {
                     console.error('[TimelineSettingsTab] Failed to save AI complete toast state:', e);
                     aiCompleteToastCheckbox.checked = !aiCompleteToastCheckbox.checked;
+                }
+            });
+        }
+
+        // 处理「阻止发送后跳到底部」开关（默认开启）
+        const preventAutoScrollCheckbox = document.getElementById('prevent-auto-scroll-toggle');
+        if (preventAutoScrollCheckbox) {
+            try {
+                const result = await chrome.storage.local.get('preventAutoScrollEnabled');
+                preventAutoScrollCheckbox.checked = result.preventAutoScrollEnabled !== false;
+            } catch (e) {
+                console.error('[TimelineSettingsTab] Failed to load prevent-auto-scroll state:', e);
+                preventAutoScrollCheckbox.checked = true;
+            }
+
+            this.addEventListener(preventAutoScrollCheckbox, 'change', async (e) => {
+                try {
+                    const enabled = e.target.checked;
+                    await chrome.storage.local.set({ preventAutoScrollEnabled: enabled });
+                } catch (e) {
+                    console.error('[TimelineSettingsTab] Failed to save prevent-auto-scroll state:', e);
+                    preventAutoScrollCheckbox.checked = !preventAutoScrollCheckbox.checked;
                 }
             });
         }

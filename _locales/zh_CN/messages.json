@@ -1013,6 +1013,12 @@
   "timelineAICompleteToastHint": {
     "message": "AI 回复完成且当前不在最新位置时显示提醒"
   },
+  "preventAutoScrollLabel": {
+    "message": "阻止发送后跳到底部"
+  },
+  "preventAutoScrollHint": {
+    "message": "向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部"
+  },
   "timelineThemeColorLabel": {
     "message": "时间轴主题色"
   },

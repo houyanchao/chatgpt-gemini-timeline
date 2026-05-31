@@ -217,6 +217,30 @@ function _promptDropdownCreateCommonSettings({
 
     panel.innerHTML = `
         <div class="prompt-common-settings">
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                </div>
+                <label class="ait-toggle-switch">
+                    <input type="checkbox" class="prompt-common-ai-complete-toast-toggle">
+                    <span class="ait-toggle-slider"></span>
+                </label>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
+                </div>
+                <label class="ait-toggle-switch">
+                    <input type="checkbox" class="prompt-common-prevent-auto-scroll-toggle">
+                    <span class="ait-toggle-slider"></span>
+                </label>
+            </div>
             <div class="prompt-common-setting-item ${supported ? '' : 'disabled'}">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
@@ -231,18 +255,6 @@ function _promptDropdownCreateCommonSettings({
                 <button class="prompt-common-setting-btn" ${supported ? '' : 'disabled'}>
                     ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
                 </button>
-            </div>
-            <div class="prompt-common-setting-item">
-                <div class="prompt-common-setting-info">
-                    <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
-                    </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
-                </div>
-                <label class="ait-toggle-switch">
-                    <input type="checkbox" class="prompt-common-ai-complete-toast-toggle">
-                    <span class="ait-toggle-slider"></span>
-                </label>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
@@ -313,6 +325,25 @@ function _promptDropdownCreateCommonSettings({
             } catch (error) {
                 console.error('[PromptDropdown] Failed to save AI complete toast setting:', error);
                 aiCompleteToggle.checked = !aiCompleteToggle.checked;
+            }
+        });
+    }
+
+    const preventAutoScrollToggle = panel.querySelector('.prompt-common-prevent-auto-scroll-toggle');
+    if (preventAutoScrollToggle) {
+        chrome.storage.local.get('preventAutoScrollEnabled').then(result => {
+            preventAutoScrollToggle.checked = result.preventAutoScrollEnabled !== false;
+        }).catch(() => {
+            preventAutoScrollToggle.checked = true;
+        });
+        preventAutoScrollToggle.addEventListener('change', async (e) => {
+            try {
+                await chrome.storage.local.set({
+                    preventAutoScrollEnabled: e.target.checked
+                });
+            } catch (error) {
+                console.error('[PromptDropdown] Failed to save prevent-auto-scroll setting:', error);
+                preventAutoScrollToggle.checked = !preventAutoScrollToggle.checked;
             }
         });
     }

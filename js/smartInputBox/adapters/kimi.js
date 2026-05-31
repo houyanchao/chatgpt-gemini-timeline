@@ -21,6 +21,14 @@ class KimiSmartEnterAdapter extends BaseSmartEnterAdapter {
     }
 
     /**
+     * 获取发送按钮选择器
+     * Kimi 的发送按钮容器为 .send-button-container（生成时带 .stop class）
+     */
+    getSendButtonSelector() {
+        return '.send-button-container';
+    }
+
+    /**
      * 获取定位参考元素
      * 使用 .chat-editor 祖先元素作为定位参考
      * @param {HTMLElement} inputElement - 输入框元素

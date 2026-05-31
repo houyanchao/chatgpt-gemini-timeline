@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "Tampilkan pengingat saat balasan AI selesai dan Anda tidak berada di posisi terbaru"
   },
+  "preventAutoScrollLabel": {
+    "message": "Pertahankan posisi baca saat mengirim"
+  },
+  "preventAutoScrollHint": {
+    "message": "Saat Anda mengirim pesan sambil melihat riwayat sebelumnya, halaman tetap pada posisi baca Anda saat ini alih-alih melompat ke bawah"
+  },
   "timelineThemeColorLabel": {
     "message": "Warna tema linimasa"
   },

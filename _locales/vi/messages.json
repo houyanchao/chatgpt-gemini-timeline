@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "Hiển thị nhắc nhở khi AI trả lời xong và bạn không ở vị trí mới nhất"
   },
+  "preventAutoScrollLabel": {
+    "message": "Giữ vị trí đọc khi gửi"
+  },
+  "preventAutoScrollHint": {
+    "message": "Khi bạn gửi tin nhắn trong lúc xem lịch sử trước đó, trang sẽ giữ nguyên vị trí đọc hiện tại thay vì nhảy xuống dưới cùng"
+  },
   "timelineThemeColorLabel": {
     "message": "Màu chủ đề dòng thời gian"
   },

@@ -977,6 +977,12 @@
   "timelineAICompleteToastHint": {
     "message": "AI 回覆完成且目前不在最新位置時顯示提醒"
   },
+  "preventAutoScrollLabel": {
+    "message": "阻止傳送後跳到底部"
+  },
+  "preventAutoScrollHint": {
+    "message": "向上查看歷史時傳送訊息，頁面保持在目前閱讀位置，不跳到底部"
+  },
   "timelineThemeColorLabel": {
     "message": "時間軸主題色"
   },

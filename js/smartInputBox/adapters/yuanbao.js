@@ -21,6 +21,14 @@ class YuanbaoSmartEnterAdapter extends BaseSmartEnterAdapter {
     }
 
     /**
+     * 获取发送按钮选择器
+     * 元宝发送按钮 id 为 yuanbao-send-btn（生成时该按钮被替换为停止按钮）
+     */
+    getSendButtonSelector() {
+        return '#yuanbao-send-btn';
+    }
+
+    /**
      * 获取定位参考元素
      * 使用 .yb-input-box-textarea 作为定位参考
      * @param {HTMLElement} inputElement - 输入框元素

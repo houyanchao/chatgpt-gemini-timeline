@@ -22,6 +22,13 @@ class GeminiSmartEnterAdapter extends BaseSmartEnterAdapter {
     }
     
     /**
+     * 获取发送按钮选择器
+     */
+    getSendButtonSelector() {
+        return '.send-button';
+    }
+    
+    /**
      * 获取定位参考元素
      * 使用 .input-area 祖先元素作为定位参考
      * @param {HTMLElement} inputElement - 输入框元素

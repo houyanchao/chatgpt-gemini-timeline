@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "Zeigt eine Erinnerung an, wenn die KI-Antwort fertig ist und du nicht an der neuesten Position bist"
   },
+  "preventAutoScrollLabel": {
+    "message": "Leseposition beim Senden beibehalten"
+  },
+  "preventAutoScrollHint": {
+    "message": "Wenn du eine Nachricht sendest, während du ältere Verläufe ansiehst, bleibt die Seite an deiner aktuellen Leseposition, anstatt nach unten zu springen"
+  },
   "timelineThemeColorLabel": {
     "message": "Timeline-Designfarbe"
   },

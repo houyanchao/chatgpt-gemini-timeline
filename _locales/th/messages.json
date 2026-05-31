@@ -920,6 +920,12 @@
   "timelineAICompleteToastHint": {
     "message": "แสดงการแจ้งเตือนเมื่อ AI ตอบเสร็จและคุณไม่ได้อยู่ที่ตำแหน่งล่าสุด"
   },
+  "preventAutoScrollLabel": {
+    "message": "คงตำแหน่งการอ่านเมื่อส่ง"
+  },
+  "preventAutoScrollHint": {
+    "message": "เมื่อคุณส่งข้อความขณะกำลังดูประวัติก่อนหน้า หน้าจะอยู่ที่ตำแหน่งการอ่านปัจจุบันแทนที่จะเลื่อนลงไปด้านล่าง"
+  },
   "timelineThemeColorLabel": {
     "message": "สีธีมไทม์ไลน์"
   },

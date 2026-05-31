@@ -23,6 +23,15 @@ class BaseSmartEnterAdapter {
     }
     
     /**
+     * 获取发送按钮的 CSS 选择器
+     * 默认返回 null，表示该平台未提供（调用方需自行降级）
+     * @returns {string|null}
+     */
+    getSendButtonSelector() {
+        return null;
+    }
+    
+    /**
      * 判断是否可以发送消息（输入框是否有内容）
      * @param {HTMLElement} inputElement - 输入框元素
      * @returns {boolean}

@@ -1380,6 +1380,9 @@ class TimelineManager {
             '.gemini-timeline-bar',      // Gemini 时间轴插件
             '.chatgpt-timeline-bar',     // ChatGPT 时间轴插件
             '[style*="--scroll-nav-page-padding"]', // DeepSeek 原生滚动导航时间轴
+            // ChatGPT 原生时间轴：会话内搜索高亮容器下的 .no-scrollbar 工具条
+            // 仅当其第一个子元素是 button 时才是原生时间轴导航条（:has 在 querySelectorAll 中受支持）
+            '[class*="convSearchResultHighlightRoot"] .no-scrollbar:has(> button:first-child)',
         ];
         
         // 检查并更新时间轴可见性
