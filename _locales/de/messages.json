@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Alle Einstellungen"
   },
+  "shareExtension": {
+    "message": "Erweiterung teilen"
+  },
   "promptCommonSmartInputHint": {
     "message": "Lege im Chatfeld fest, wie die Eingabetaste Zeilenumbrüche und das Senden von Nachrichten steuert"
   },

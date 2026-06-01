@@ -37,12 +37,12 @@ const TAB_CONFIG = [
     { id: 'prompt', className: 'PromptTab' },
     { id: 'smart-input-box', className: 'SmartInputBoxTab' },
     { id: 'formula', className: 'FormulaTab' },
-    { id: 'runner', className: 'RunnerTab' },
     { id: 'highlight', className: 'HighlightTab' },
     { id: 'chat-width', className: 'ChatWidthTab' },
     { id: 'animation', className: 'AnimationTab' },
-    { id: 'data-sync', className: 'DataSyncTab' },
-    { id: 'mirror-site', className: 'MirrorSiteTab' }
+    { id: 'runner', className: 'RunnerTab' },
+    { id: 'mirror-site', className: 'MirrorSiteTab' },
+    { id: 'data-sync', className: 'DataSyncTab' }
 ];
 
 /**

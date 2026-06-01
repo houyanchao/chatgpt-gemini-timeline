@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "全部設定"
   },
+  "shareExtension": {
+    "message": "分享外掛"
+  },
   "promptCommonSmartInputHint": {
     "message": "在對話框中，設定 Enter 鍵控制「換行」和「傳送訊息」"
   },

@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Wszystkie ustawienia"
   },
+  "shareExtension": {
+    "message": "Udostępnij rozszerzenie"
+  },
   "promptCommonSmartInputHint": {
     "message": "W polu czatu ustaw, jak klawisz Enter steruje nowymi wierszami i wysyłaniem wiadomości"
   },

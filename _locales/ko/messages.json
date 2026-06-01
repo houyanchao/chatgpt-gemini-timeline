@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "전체 설정"
   },
+  "shareExtension": {
+    "message": "확장 프로그램 공유"
+  },
   "promptCommonSmartInputHint": {
     "message": "대화 상자에서 Enter 키로 줄바꿈과 메시지 전송을 제어하는 방식을 설정합니다"
   },

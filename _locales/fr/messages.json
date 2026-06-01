@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Tous les paramètres"
   },
+  "shareExtension": {
+    "message": "Partager l’extension"
+  },
   "promptCommonSmartInputHint": {
     "message": "Dans la zone de discussion, définissez comment la touche Entrée contrôle les sauts de ligne et l'envoi des messages"
   },

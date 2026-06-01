@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "すべての設定"
   },
+  "shareExtension": {
+    "message": "拡張機能を共有"
+  },
   "promptCommonSmartInputHint": {
     "message": "チャットボックスで、Enter キーによる「改行」と「メッセージ送信」の操作を設定します"
   },

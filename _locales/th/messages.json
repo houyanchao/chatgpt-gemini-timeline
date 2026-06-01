@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "การตั้งค่าทั้งหมด"
   },
+  "shareExtension": {
+    "message": "แชร์ส่วนขยาย"
+  },
   "promptCommonSmartInputHint": {
     "message": "ในช่องแชท ให้ตั้งค่าว่าปุ่ม Enter จะควบคุมการขึ้นบรรทัดใหม่และการส่งข้อความอย่างไร"
   },

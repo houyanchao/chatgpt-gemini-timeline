@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "सभी सेटिंग्स"
   },
+  "shareExtension": {
+    "message": "एक्सटेंशन साझा करें"
+  },
   "promptCommonSmartInputHint": {
     "message": "चैट बॉक्स में सेट करें कि Enter कुंजी नई पंक्ति और संदेश भेजने को कैसे नियंत्रित करे"
   },

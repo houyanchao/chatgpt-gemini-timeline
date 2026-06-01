@@ -77,6 +77,9 @@
   "promptAllSettingsTooltip": {
     "message": "All settings"
   },
+  "shareExtension": {
+    "message": "Share extension"
+  },
   "promptCommonSmartInputHint": {
     "message": "In the chat box, set how the Enter key controls new lines and sending messages"
   },

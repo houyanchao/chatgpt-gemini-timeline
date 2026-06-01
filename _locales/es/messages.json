@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Todos los ajustes"
   },
+  "shareExtension": {
+    "message": "Compartir extensión"
+  },
   "promptCommonSmartInputHint": {
     "message": "En el cuadro de chat, configura cómo la tecla Enter controla los saltos de línea y el envío de mensajes"
   },

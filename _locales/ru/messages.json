@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Все настройки"
   },
+  "shareExtension": {
+    "message": "Поделиться расширением"
+  },
   "promptCommonSmartInputHint": {
     "message": "В поле чата настройте, как клавиша Enter управляет переносом строк и отправкой сообщений"
   },

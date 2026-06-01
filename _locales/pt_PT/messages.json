@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Todas as definições"
   },
+  "shareExtension": {
+    "message": "Partilhar extensão"
+  },
   "promptCommonSmartInputHint": {
     "message": "Na caixa de conversa, defina como a tecla Enter controla novas linhas e o envio de mensagens"
   },

@@ -25,6 +25,7 @@ class PanelModal {
         this.content = null;
         this.tabsContainer = null;
         this.closeBtn = null;
+        this.shareBtn = null;
         
         this.tabs = new Map(); // tabId -> tab instance
         this.currentTabId = null;
@@ -132,8 +133,22 @@ class PanelModal {
         this.titleElement = document.createElement('h2');
         this.titleElement.className = 'ait-panel-modal-title';
         this.titleElement.textContent = 'Panel'; // 默认标题，会在切换 tab 时更新
+
+        this.shareBtn = document.createElement('button');
+        this.shareBtn.className = 'ait-panel-modal-share';
+        this.shareBtn.setAttribute('aria-label', chrome.i18n.getMessage('shareExtension') || '分享插件');
+        this.shareBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <path d="M8.59 13.51 15.42 17.49"/>
+                <path d="M15.41 6.51 8.59 10.49"/>
+            </svg>
+        `;
         
         header.appendChild(this.titleElement);
+        header.appendChild(this.shareBtn);
         
         // 内容区（可滚动）
         this.content = document.createElement('div');
@@ -164,6 +179,36 @@ class PanelModal {
             e.stopPropagation();
             this.hide();
         });
+
+        this.shareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.open(this._getStoreDetailUrl(), '_blank', 'noopener,noreferrer');
+        });
+
+        this.shareBtn.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show(
+                'panel-modal-share-extension',
+                'button',
+                this.shareBtn,
+                chrome.i18n.getMessage('shareExtension') || '分享插件',
+                { style: 'mini', placement: 'bottom' }
+            );
+        });
+
+        this.shareBtn.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
+    }
+
+    _getStoreDetailUrl() {
+        const ua = navigator.userAgent || '';
+        if (/Firefox/i.test(ua)) {
+            return 'https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai';
+        }
+        if (/Edg/i.test(ua)) {
+            return 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab';
+        }
+        return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
     }
     
     /**
@@ -411,6 +456,7 @@ class PanelModal {
         this.content = null;
         this.tabsContainer = null;
         this.closeBtn = null;
+        this.shareBtn = null;
         
         console.log('[PanelModal] Destroyed');
     }

@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Semua pengaturan"
   },
+  "shareExtension": {
+    "message": "Bagikan ekstensi"
+  },
   "promptCommonSmartInputHint": {
     "message": "Di kotak chat, atur cara tombol Enter mengontrol baris baru dan pengiriman pesan"
   },

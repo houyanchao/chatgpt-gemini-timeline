@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Tất cả cài đặt"
   },
+  "shareExtension": {
+    "message": "Chia sẻ tiện ích"
+  },
   "promptCommonSmartInputHint": {
     "message": "Trong hộp trò chuyện, thiết lập cách phím Enter điều khiển xuống dòng và gửi tin nhắn"
   },

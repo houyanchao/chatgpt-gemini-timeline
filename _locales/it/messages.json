@@ -83,6 +83,9 @@
   "promptAllSettingsTooltip": {
     "message": "Tutte le impostazioni"
   },
+  "shareExtension": {
+    "message": "Condividi estensione"
+  },
   "promptCommonSmartInputHint": {
     "message": "Nella casella di chat, imposta come il tasto Enter controlla le nuove righe e l'invio dei messaggi"
   },
