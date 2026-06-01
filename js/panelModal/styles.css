@@ -181,7 +181,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    margin: 0 12px 6px 12px;
+    margin: 0 12px;
     width: calc(100% - 24px);
     background: transparent;
     border: none;
