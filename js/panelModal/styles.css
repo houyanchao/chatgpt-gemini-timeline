@@ -114,6 +114,7 @@
 .ait-panel-modal-close {
     width: 32px;
     height: 32px;
+    margin-left: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,8 +138,8 @@
 }
 
 .ait-panel-modal-close svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     stroke-width: 2.5;
 }
 
@@ -146,10 +147,8 @@
 .ait-panel-modal-sidebar-title {
     font-size: 16px;
     font-weight: 700;
-    background: linear-gradient(135deg, #7450ff 0%, #9b7dff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #24324a;
+    margin-left: -2px;
     white-space: nowrap;
     letter-spacing: -0.3px;
 }
@@ -374,4 +373,3 @@
         transform: scale(1);
     }
 }
-

@@ -444,6 +444,36 @@
     stroke-width: 2.5 !important;
 }
 
+.prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn:hover {
+    background: rgba(124, 58, 237, 0.12);
+    color: #5b21b6;
+}
+
+.prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn:active {
+    transform: scale(0.96);
+}
+
+.prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 /* 顶部 Tab */
 .prompt-dropdown-tabs {
     flex-shrink: 0;
@@ -882,6 +912,15 @@ html[data-timeline-theme="dark"] .prompt-dropdown-tab.active .prompt-dropdown-ta
 }
 
 html[data-timeline-theme="dark"] .prompt-dropdown-tab-icon:hover {
+    background: rgba(139, 92, 246, 0.18);
+    color: #ddd6fe;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn {
+    color: #a3a3a3;
+}
+
+html[data-timeline-theme="dark"] .prompt-dropdown-tabs > .prompt-dropdown-store-detail-btn:hover {
     background: rgba(139, 92, 246, 0.18);
     color: #ddd6fe;
 }

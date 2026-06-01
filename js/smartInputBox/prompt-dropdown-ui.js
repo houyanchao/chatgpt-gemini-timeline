@@ -53,6 +53,15 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
+            <button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <path d="M8.59 13.51 15.42 17.49"/>
+                    <path d="M15.41 6.51 8.59 10.49"/>
+                </svg>
+            </button>
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = chrome.i18n.getMessage('byaskjndg') || '添加提示词';
@@ -91,6 +100,8 @@ function createPromptDropdownUI({
         settingsBtn.addEventListener('mouseleave', () => {
             window.globalTooltipManager?.hide();
         });
+
+        _promptDropdownBindStoreDetailButton(tabs.querySelector('.prompt-dropdown-store-detail-btn'));
         container.appendChild(tabs);
     } else {
         // ===== Header =====
@@ -103,16 +114,28 @@ function createPromptDropdownUI({
                 </svg>
                 <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
             </div>
-            <button class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
-                    <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </button>
+            <div class="prompt-dropdown-actions">
+                <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <path d="M8.59 13.51 15.42 17.49"/>
+                        <path d="M15.41 6.51 8.59 10.49"/>
+                    </svg>
+                </button>
+                <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
+                        <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
         `;
         header.querySelector('.prompt-dropdown-manage-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             if (onManageClick) onManageClick();
         });
+        _promptDropdownBindStoreDetailButton(header.querySelector('.prompt-dropdown-store-detail-btn'));
         container.appendChild(header);
     }
 
@@ -380,6 +403,38 @@ function _promptDropdownGetStoreReviewUrl() {
     return isEdge
         ? 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab'
         : 'https://chromewebstore.google.com/detail/timeline-chatgpt-gemini-c/fgebdnlceacaiaeikopldglhffljjlhh/reviews?utm_source=item-share-cb';
+}
+
+function _promptDropdownGetStoreDetailUrl() {
+    const ua = navigator.userAgent || '';
+    if (/Firefox/i.test(ua)) {
+        return 'https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai';
+    }
+    if (/Edg/i.test(ua)) {
+        return 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab';
+    }
+    return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
+}
+
+function _promptDropdownBindStoreDetailButton(button) {
+    if (!button) return;
+    const tooltip = chrome.i18n.getMessage('shareExtension') || '分享插件';
+    button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl());
+    });
+    button.addEventListener('mouseenter', () => {
+        window.globalTooltipManager?.show(
+            'prompt-dropdown-share-extension',
+            'button',
+            button,
+            tooltip,
+            { style: 'mini', placement: 'top' }
+        );
+    });
+    button.addEventListener('mouseleave', () => {
+        window.globalTooltipManager?.hide();
+    });
 }
 
 function _promptDropdownOpenExternalUrl(url) {
