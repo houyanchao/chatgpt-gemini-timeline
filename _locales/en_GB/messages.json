@@ -961,5 +961,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Set"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana watermark remover"
+  },
+  "geminiWatermarkHint": {
+    "message": "Show watermark-removal download options on Gemini-generated images so you can download the original image or an image with the bottom-right watermark removed."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Download watermark-free image"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Download original image"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Watermark removal failed"
   }
 }

@@ -937,5 +937,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Ustaw"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Usuwanie znaku wodnego Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Pokazuje opcje pobierania z usuwaniem znaku wodnego dla obrazów wygenerowanych przez Gemini, aby pobrać oryginalny obraz lub obraz bez znaku wodnego w prawym dolnym rogu."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Pobierz obraz bez znaku wodnego"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Pobierz oryginalny obraz"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Nie udało się usunąć znaku wodnego"
   }
 }

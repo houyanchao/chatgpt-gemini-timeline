@@ -156,6 +156,8 @@ Firefox 调试可使用 `about:debugging` 临时加载扩展。
 
 本项目基于 [chatgpt-conversation-timeline](https://github.com/Reborn14/chatgpt-conversation-timeline) 继续开发，感谢原作者的开源贡献。
 
+Gemini 图片去水印功能（`js/watermark/engine/`）移植自 [GargantuaX/gemini-watermark-remover](https://github.com/GargantuaX/gemini-watermark-remover)（MIT），其反向 Alpha 混合算法与校准蒙版源自 [allenk/GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool)（MIT，© 2024 AllenK / Kwyshell）。完整许可证见 [`js/watermark/engine/LICENSE`](./js/watermark/engine/LICENSE)。
+
 ## 许可证
 
 本项目基于 [GPL-3.0](./LICENSE) 许可证开源。

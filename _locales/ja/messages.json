@@ -988,5 +988,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "設定"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana 透かし削除"
+  },
+  "geminiWatermarkHint": {
+    "message": "Gemini で生成された画像に透かし削除のダウンロードオプションを表示し、元画像または右下の透かしを削除した画像をダウンロードできます。"
+  },
+  "geminiWatermarkDownload": {
+    "message": "透かしなし画像をダウンロード"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "元画像をダウンロード"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "透かしの削除に失敗しました"
   }
 }

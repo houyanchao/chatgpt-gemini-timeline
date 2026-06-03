@@ -937,5 +937,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Imposta"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Rimozione filigrana Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Mostra opzioni di download con rimozione della filigrana sulle immagini generate da Gemini, per scaricare l’immagine originale o quella senza filigrana in basso a destra."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Scarica immagine senza filigrana"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Scarica immagine originale"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Rimozione della filigrana non riuscita"
   }
 }

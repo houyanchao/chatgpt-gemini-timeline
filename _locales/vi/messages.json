@@ -937,5 +937,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Thiết lập"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Xóa hình mờ Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Hiển thị các tùy chọn tải xuống xóa hình mờ trên ảnh do Gemini tạo, để tải ảnh gốc hoặc ảnh đã xóa hình mờ ở góc dưới bên phải."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Tải ảnh đã xóa hình mờ"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Tải ảnh gốc"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Xóa hình mờ không thành công"
   }
 }

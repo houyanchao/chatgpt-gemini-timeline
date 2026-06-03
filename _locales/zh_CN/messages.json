@@ -1030,5 +1030,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "设置"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana 去水印"
+  },
+  "geminiWatermarkHint": {
+    "message": "在 Gemini 生成的图片上显示去水印下载选项，可下载原图或去除右下角水印后的图片。"
+  },
+  "geminiWatermarkDownload": {
+    "message": "下载去水印图片"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "下载原图"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "去水印失败"
   }
 }

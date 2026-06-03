@@ -937,5 +937,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "ตั้งค่า"
+  },
+  "geminiWatermarkTitle": {
+    "message": "ลบลายน้ำ Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "แสดงตัวเลือกดาวน์โหลดแบบลบลายน้ำบนรูปภาพที่สร้างโดย Gemini เพื่อดาวน์โหลดรูปภาพต้นฉบับหรือรูปภาพที่ลบลายน้ำมุมขวาล่างแล้ว"
+  },
+  "geminiWatermarkDownload": {
+    "message": "ดาวน์โหลดรูปภาพที่ไม่มีลายน้ำ"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "ดาวน์โหลดรูปภาพต้นฉบับ"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "ลบลายน้ำไม่สำเร็จ"
   }
 }

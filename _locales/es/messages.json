@@ -937,5 +937,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Configurar"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Eliminador de marca de agua Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Muestra opciones de descarga con eliminación de marca de agua en imágenes generadas por Gemini, para descargar la imagen original o una imagen sin la marca de agua inferior derecha."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Descargar imagen sin marca de agua"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Descargar imagen original"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "No se pudo quitar la marca de agua"
   }
 }

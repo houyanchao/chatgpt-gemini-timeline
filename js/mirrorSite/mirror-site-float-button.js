@@ -184,6 +184,7 @@ class MirrorSiteFloatButton {
         this._promptDropdown = createPromptDropdownUI({
             prompts: filteredPrompts,
             tooltipPlacement: 'left',
+            showStoreDetailButton: false,
             onItemClick: (prompt, itemEl) => {
                 this._copyPrompt(prompt, itemEl);
             },

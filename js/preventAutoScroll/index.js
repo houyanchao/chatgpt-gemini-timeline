@@ -16,7 +16,8 @@
  * 平台改变容器 scrollTop 通常绕过 scrollTop/scrollTo/scrollIntoView 等 JS API
  * （疑似缓存了原始引用），因此采用与机制无关的 rAF 拽回方案。
  *
- * 该模块完全独立，不依赖也不耦合 scrollToBottom / timeline 的逻辑。
+ * 时间轴等扩展内导航可通过 window.__aitPreventAutoScroll 声明可信滚动，
+ * 避免锚定逻辑把扩展主动跳转误判为平台自动滚动。
  */
 
 (function () {
@@ -58,6 +59,8 @@
             this._sawGenerating = false;
             this._lastGeneratingTs = 0;
             this._userScrollUntil = 0;
+            this._trustedNavigationUntil = 0;
+            this._trustedNavigationId = 0;
 
             this._onKeydown = this._onKeydown.bind(this);
             this._onClick = this._onClick.bind(this);
@@ -130,6 +133,38 @@
             }
         }
 
+        /**
+         * 扩展内主动导航（时间轴节点、问题列表等）可大幅改变 scrollTop，
+         * 不适用 USER_STEP_MAX 的用户手势阈值。
+         * @param {{ durationMs?: number }} [options]
+         * @returns {number|undefined} navigation id for settleUserNavigation()
+         */
+        notifyUserNavigation(options = {}) {
+            if (!this.pinning || !this.scrollContainer) return undefined;
+
+            const durationMs = Number(options.durationMs);
+            const followMs = Number.isFinite(durationMs) && durationMs > 0
+                ? durationMs
+                : USER_WINDOW;
+
+            this._trustedNavigationId += 1;
+            this._trustedNavigationUntil = performance.now() + followMs;
+            this.savedTop = this._readTop(this.scrollContainer);
+            return this._trustedNavigationId;
+        }
+
+        /**
+         * 扩展内导航落点后，将当前位置固化为新的阅读锚点。
+         * @param {{ id?: number }} [options]
+         */
+        settleUserNavigation(options = {}) {
+            if (!this.pinning || !this.scrollContainer) return;
+            if (options.id !== undefined && options.id !== this._trustedNavigationId) return;
+
+            this.savedTop = this._readTop(this.scrollContainer);
+            this._trustedNavigationUntil = 0;
+        }
+
         // ==================== 选择器/状态：全部复用现有 adapter ====================
 
         /** smartInputBox 的输入框 adapter（提供 getInputSelector / canSend / getSendButtonSelector） */
@@ -191,6 +226,8 @@
             this._sawGenerating = false;
             this._lastGeneratingTs = 0;
             this._userScrollUntil = 0;
+            this._trustedNavigationUntil = 0;
+            this._trustedNavigationId = 0;
 
             if (!this.pinning) {
                 this.pinning = true;
@@ -204,7 +241,10 @@
             const now = performance.now();
             const cur = this._readTop(this.scrollContainer);
 
-            if (now < this._userScrollUntil) {
+            if (now < this._trustedNavigationUntil) {
+                // 扩展主动导航：可信任大位移，持续跟随并更新锚点
+                this.savedTop = cur;
+            } else if (now < this._userScrollUntil) {
                 // 用户主动滚动窗口内：跟随用户更新 savedTop，但拒绝程序化大跳
                 if (Math.abs(cur - this.savedTop) <= USER_STEP_MAX) {
                     this.savedTop = cur; // 跟随
@@ -248,6 +288,8 @@
                 this.rafId = null;
             }
             this.scrollContainer = null;
+            this._trustedNavigationUntil = 0;
+            this._trustedNavigationId = 0;
         }
 
         // ==================== 滚动容器工具 ====================
@@ -342,12 +384,22 @@
         instance = new ScrollAnchor(platformId);
         instance.init();
         loadSetting();
+
+        window.__aitPreventAutoScroll = {
+            notifyUserNavigation: (options) => instance.notifyUserNavigation(options),
+            settleUserNavigation: (options) => instance.settleUserNavigation(options)
+        };
     }
 
     function cleanup() {
         if (instance) {
             instance.destroy();
             instance = null;
+        }
+        try {
+            delete window.__aitPreventAutoScroll;
+        } catch (e) {
+            window.__aitPreventAutoScroll = undefined;
         }
     }
 

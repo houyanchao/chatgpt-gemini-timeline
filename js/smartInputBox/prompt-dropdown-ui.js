@@ -13,6 +13,7 @@
  * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
  * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
+ * @param {boolean}  [options.showStoreDetailButton=true] - 是否显示右上角分享插件按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
  */
@@ -25,6 +26,7 @@ function createPromptDropdownUI({
     onSmartInputSettingsClick,
     onMirrorSiteClick,
     onSettingsClick,
+    showStoreDetailButton = true,
     tooltipPlacement = 'right'
 }) {
     const container = document.createElement('div');
@@ -33,6 +35,17 @@ function createPromptDropdownUI({
     if (showCommonSettings) {
         const tabs = document.createElement('div');
         tabs.className = 'prompt-dropdown-tabs';
+        const storeDetailButtonHtml = showStoreDetailButton ? `
+            <button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <path d="M8.59 13.51 15.42 17.49"/>
+                    <path d="M15.41 6.51 8.59 10.49"/>
+                </svg>
+            </button>
+        ` : '';
         tabs.innerHTML = `
             <div class="prompt-dropdown-tab-group">
                 <button type="button" class="prompt-dropdown-tab active" data-prompt-tab="prompts">
@@ -53,15 +66,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            <button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="18" cy="5" r="3"/>
-                    <circle cx="6" cy="12" r="3"/>
-                    <circle cx="18" cy="19" r="3"/>
-                    <path d="M8.59 13.51 15.42 17.49"/>
-                    <path d="M15.41 6.51 8.59 10.49"/>
-                </svg>
-            </button>
+            ${storeDetailButtonHtml}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = chrome.i18n.getMessage('byaskjndg') || '添加提示词';
@@ -107,14 +112,7 @@ function createPromptDropdownUI({
         // ===== Header =====
         const header = document.createElement('div');
         header.className = 'prompt-dropdown-header';
-        header.innerHTML = `
-            <div class="prompt-dropdown-title-wrapper">
-                <svg class="prompt-dropdown-title-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
-            </div>
-            <div class="prompt-dropdown-actions">
+        const storeDetailButtonHtml = showStoreDetailButton ? `
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="18" cy="5" r="3"/>
@@ -124,6 +122,16 @@ function createPromptDropdownUI({
                         <path d="M15.41 6.51 8.59 10.49"/>
                     </svg>
                 </button>
+        ` : '';
+        header.innerHTML = `
+            <div class="prompt-dropdown-title-wrapper">
+                <svg class="prompt-dropdown-title-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
+            </div>
+            <div class="prompt-dropdown-actions">
+                ${storeDetailButtonHtml}
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
                         <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -237,6 +245,20 @@ function _promptDropdownCreateCommonSettings({
         ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
         : `${currentScale}%`;
     const storeReviewUrl = _promptDropdownGetStoreReviewUrl();
+    const geminiWatermarkSetting = _promptDropdownIsGeminiPlatform() ? `
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('geminiWatermarkTitle') || 'Nano Banana 去水印'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('geminiWatermarkHint') || '在 Gemini 生成的图片上显示去水印下载选项，可下载原图或去除右下角水印后的图片。'}</div>
+                </div>
+                <label class="ait-toggle-switch">
+                    <input type="checkbox" class="prompt-common-gemini-watermark-toggle">
+                    <span class="ait-toggle-slider"></span>
+                </label>
+            </div>
+    ` : '';
 
     panel.innerHTML = `
         <div class="prompt-common-settings">
@@ -264,6 +286,7 @@ function _promptDropdownCreateCommonSettings({
                     <span class="ait-toggle-slider"></span>
                 </label>
             </div>
+            ${geminiWatermarkSetting}
             <div class="prompt-common-setting-item ${supported ? '' : 'disabled'}">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
@@ -371,6 +394,25 @@ function _promptDropdownCreateCommonSettings({
         });
     }
 
+    const geminiWatermarkToggle = panel.querySelector('.prompt-common-gemini-watermark-toggle');
+    if (geminiWatermarkToggle) {
+        chrome.storage.local.get('geminiWatermarkRemoverEnabled').then(result => {
+            geminiWatermarkToggle.checked = result.geminiWatermarkRemoverEnabled !== false;
+        }).catch(() => {
+            geminiWatermarkToggle.checked = true;
+        });
+        geminiWatermarkToggle.addEventListener('change', async (e) => {
+            try {
+                await chrome.storage.local.set({
+                    geminiWatermarkRemoverEnabled: e.target.checked
+                });
+            } catch (error) {
+                console.error('[PromptDropdown] Failed to save Gemini watermark remover setting:', error);
+                geminiWatermarkToggle.checked = !geminiWatermarkToggle.checked;
+            }
+        });
+    }
+
     const smartInputBtn = panel.querySelector('.prompt-common-smart-input-btn');
     smartInputBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -396,6 +438,12 @@ function _promptDropdownCreateCommonSettings({
     });
 
     return panel;
+}
+
+function _promptDropdownIsGeminiPlatform() {
+    return typeof matchesCurrentPlatform === 'function'
+        ? matchesCurrentPlatform('gemini')
+        : location.hostname.includes('gemini.google.com');
 }
 
 function _promptDropdownGetStoreReviewUrl() {

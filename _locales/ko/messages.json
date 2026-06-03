@@ -988,5 +988,20 @@
   },
   "timelineThemeColorManageButton": {
     "message": "설정"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana 워터마크 제거"
+  },
+  "geminiWatermarkHint": {
+    "message": "Gemini에서 생성된 이미지에 워터마크 제거 다운로드 옵션을 표시하여 원본 이미지 또는 오른쪽 아래 워터마크를 제거한 이미지를 다운로드할 수 있습니다."
+  },
+  "geminiWatermarkDownload": {
+    "message": "워터마크 제거 이미지 다운로드"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "원본 이미지 다운로드"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "워터마크 제거에 실패했습니다"
   }
 }

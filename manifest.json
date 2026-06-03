@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.6.12",
+  "version": "4.6.13",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -139,6 +139,7 @@
         "js/smartInputBox/smart-enter-manager.js",
         "js/smartInputBox/index.js",
         "js/scrollToBottom/scroll-to-bottom-manager.js",
+        "js/watermark/watermark-manager.js",
         "js/preventAutoScroll/index.js",
         "js/timeline/adapters/base.js",
         "js/timeline/adapters/chatgpt.js",
@@ -154,6 +155,7 @@
         "js/timeline/adapters/perplexity.js",
         "js/timeline/adapters/claude.js",
         "js/timeline/adapters/notebooklm.js",
+        "js/timeline/adapters/mirror-platform-detector.js",
         "js/timeline/adapters/custom-sites.js",
         "js/timeline/adapters/custom.js",
         "js/timeline/adapters/registry.js",
@@ -243,7 +245,9 @@
         "js/runner/languages/sql/sandbox.html",
         "js/runner/languages/sql/sandbox-script.js",
         "js/runner/languages/sql/libs/sql-wasm.js",
-        "js/runner/languages/sql/libs/sql-wasm.wasm"
+        "js/runner/languages/sql/libs/sql-wasm.wasm",
+        "js/watermark/engine/*",
+        "js/watermark/engine/core/*"
       ],
       "matches": [
         "<all_urls>"

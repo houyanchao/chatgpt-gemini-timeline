@@ -389,6 +389,16 @@ function getCurrentPlatform() {
 }
 
 /**
+ * 根据平台 ID 获取平台信息
+ * @param {string} platformId - 平台 ID
+ * @returns {Object|null} 平台信息
+ */
+function getPlatformById(platformId) {
+    if (!platformId) return null;
+    return SITE_INFO.find(platform => platform.id === platformId) || null;
+}
+
+/**
  * 获取支持某功能的平台列表
  * @param {string} feature - 功能名：'timeline' | 'promptButton'
  * @returns {Array} 支持该功能的平台列表

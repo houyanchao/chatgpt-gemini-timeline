@@ -56,11 +56,25 @@ class SiteAdapterRegistry {
      */
     detectAdapter() {
         const url = location.href;
-        for (const adapter of this.adapters) {
+        for (const adapter of this.builtInAdapters) {
+            if (adapter.matches(url)) {
+                adapter.isMirrorPlatform = false;
+                adapter.mirrorPlatformId = null;
+                return adapter;
+            }
+        }
+
+        const mirrorAdapter = window.MirrorPlatformDetector?.detectAdapter?.(url, this.builtInAdapters);
+        if (mirrorAdapter) {
+            return mirrorAdapter;
+        }
+
+        for (const adapter of this.customAdapters) {
             if (adapter.matches(url)) {
                 return adapter;
             }
         }
+
         return null;
     }
 
