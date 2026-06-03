@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Einstellen"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana Wasserzeichen entfernen"
+  },
+  "geminiWatermarkHint": {
+    "message": "Zeigt Download-Optionen zum Entfernen des Wasserzeichens für von Gemini erzeugte Bilder an, damit du das Originalbild oder ein Bild ohne Wasserzeichen unten rechts herunterladen kannst."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Bild ohne Wasserzeichen herunterladen"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Originalbild herunterladen"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Entfernen des Wasserzeichens fehlgeschlagen"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Kein Bild zum Verarbeiten gefunden"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Bild ist zu klein für die Entfernung des Wasserzeichens"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "Kein Gemini-Wasserzeichen erkannt"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Bildpixel können nicht gelesen werden (Browsersicherheit). Versuchen Sie den Original-Download"
   }
 }

@@ -994,5 +994,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "設定"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana 去水印"
+  },
+  "geminiWatermarkHint": {
+    "message": "在 Gemini 生成的圖片上顯示去水印下載選項，可下載原圖或去除右下角浮水印後的圖片。"
+  },
+  "geminiWatermarkDownload": {
+    "message": "下載去水印圖片"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "下載原圖"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "去水印失敗"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "找不到可處理的圖片"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "圖片尺寸過小，無法去浮水印"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "未偵測到 Gemini 浮水印"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "無法讀取圖片像素（可能被瀏覽器安全政策阻擋），請改為下載原圖"
   }
 }

@@ -961,5 +961,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Set"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana watermark remover"
+  },
+  "geminiWatermarkHint": {
+    "message": "Show watermark-removal download options on Gemini-generated images so you can download the original image or an image with the bottom-right watermark removed."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Download watermark-free image"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Download original image"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Watermark removal failed"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Could not find an image to process"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Image is too small to remove a watermark"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "No Gemini watermark detected on this image"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Cannot read image pixels (blocked by browser security). Try downloading the original instead."
   }
 }

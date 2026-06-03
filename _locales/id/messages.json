@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Atur"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Penghapus watermark Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Tampilkan opsi unduhan penghapus watermark pada gambar yang dibuat Gemini, sehingga Anda dapat mengunduh gambar asli atau gambar tanpa watermark di kanan bawah."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Unduh gambar tanpa watermark"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Unduh gambar asli"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Gagal menghapus watermark"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Could not find an image to process"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Image is too small to remove a watermark"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "No Gemini watermark detected on this image"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Cannot read image pixels (blocked by browser security). Try downloading the original instead."
   }
 }

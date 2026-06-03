@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Настроить"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Удаление водяного знака Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Показывает варианты скачивания с удалением водяного знака для изображений, созданных Gemini: можно скачать исходное изображение или изображение без водяного знака в правом нижнем углу."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Скачать изображение без водяного знака"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Скачать исходное изображение"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Не удалось удалить водяной знак"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Не найдено изображение для обработки"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Изображение слишком маленькое для удаления водяного знака"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "Водяной знак Gemini не обнаружен"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Не удалось прочитать пиксели (ограничения браузера). Попробуйте скачать оригинал"
   }
 }

@@ -39,7 +39,7 @@ Bridge = **单个 AI 平台基础能力的统一抽象层**，运行在内容脚
 | `ready(callback)` | `(bridge) => void` | 平台匹配且**关键 DOM 就绪**后回调；若已就绪，则**异步**立即回调。返回 `this`。 |
 | `error(callback)` | `(error) => void` | 平台不匹配 / 初始化失败 / 就绪超时时回调；若已失败，则异步立即回调。返回 `this`。 |
 | `isReady` | `getter => boolean` | 是否已就绪。 |
-| `platform` | `getter => { id, name, sites, features }` | 平台描述；优先取全局 `SITE_INFO`，缺失时降级到内置兜底。 |
+| `platform` | `getter => { id, name, sites, features }` | 平台描述；优先取全局 `getPlatformById`，缺失时降级到内置兜底。 |
 | `checkApi(apiName)` | `(string) => boolean` | 能力探测：当前 Bridge 是否提供该 API。 |
 | `init()` | `() => this` | 手动触发初始化（一般无需调用，`ready/error/事件订阅` 会自动触发）。 |
 
@@ -62,7 +62,7 @@ Bridge = **单个 AI 平台基础能力的统一抽象层**，运行在内容脚
 ## 5. 错误处理与降级（强制）
 
 - 所有 `getXxxSync()` 内部 try/catch，异常时返回空值（`null` / `false` / `[]`）。
-- 优先复用全局基础设施：`window.DOMObserverManager`、`window.urlChangeMonitor`、`SITE_INFO`、`matchesPlatform()`。
+- 优先复用全局基础设施：`window.DOMObserverManager`、`window.urlChangeMonitor`、`getSiteInfoList()`、`matchesPlatform()`。
 - 上述全局缺失时**自动降级**到原生 API（如原生 `MutationObserver`、`location.hostname` 匹配），保证 Bridge 可独立工作。
 
 ---

@@ -2142,7 +2142,10 @@ class TimelineManager {
     
     smoothScrollTo(targetElement, duration = 600) {
         if (!targetElement || !this.scrollContainer) return;
-        
+
+        const preventAutoScroll = window.__aitPreventAutoScroll;
+        const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + 150 });
+
         this._recalcMarkerPositions();
         
         const scrollOffset = this.adapter?.getScrollOffset?.() ?? 30;
@@ -2175,6 +2178,7 @@ class TimelineManager {
             } else {
                 // 动画结束后做最终修正
                 this.scrollContainer.scrollTop = getTargetPosition();
+                preventAutoScroll?.settleUserNavigation?.({ id: navigationId });
             }
         };
         requestAnimationFrame(animation);

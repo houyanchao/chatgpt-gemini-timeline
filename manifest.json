@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.6.12",
+  "version": "4.6.13",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -139,6 +139,7 @@
         "js/smartInputBox/smart-enter-manager.js",
         "js/smartInputBox/index.js",
         "js/scrollToBottom/scroll-to-bottom-manager.js",
+        "js/watermark/watermark-manager.js",
         "js/preventAutoScroll/index.js",
         "js/timeline/adapters/base.js",
         "js/timeline/adapters/chatgpt.js",
@@ -177,9 +178,9 @@
         "js/timeline/index.js",
         "js/sidebarStarred/sidebar-starred-manager.js",
         "js/sidebarStarred/index.js",
-        "js/mirrorSite/mirror-site-utils.js",
-        "js/mirrorSite/mirror-site-float-button.js",
-        "js/mirrorSite/index.js"
+        "js/customSite/custom-site-utils.js",
+        "js/customSite/custom-site-float-button.js",
+        "js/customSite/index.js"
       ],
       "css": [
         "styles/variables.css",
@@ -217,12 +218,13 @@
         "js/formula/formula.css",
         "js/smartInputBox/prompt-button.css",
         "js/scrollToBottom/styles.css",
+        "js/watermark/watermark.css",
         "js/quickAsk/styles.css",
         "js/highlight/styles.css",
         "js/panelModal/tabs/highlight/styles.css",
         "js/panelModal/tabs/chatWidth/styles.css",
         "js/mermaid/styles.css",
-        "js/mirrorSite/mirror-site.css"
+        "js/customSite/custom-site.css"
       ],
       "run_at": "document_idle"
     }
@@ -243,7 +245,9 @@
         "js/runner/languages/sql/sandbox.html",
         "js/runner/languages/sql/sandbox-script.js",
         "js/runner/languages/sql/libs/sql-wasm.js",
-        "js/runner/languages/sql/libs/sql-wasm.wasm"
+        "js/runner/languages/sql/libs/sql-wasm.wasm",
+        "js/watermark/engine/*",
+        "js/watermark/engine/core/*"
       ],
       "matches": [
         "<all_urls>"

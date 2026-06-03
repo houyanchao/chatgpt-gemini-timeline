@@ -138,8 +138,8 @@ class PromptTab extends BaseTab {
      * 根据 platformId 获取平台信息
      */
     _getPlatformInfo(platformId) {
-        if (!platformId || typeof SITE_INFO === 'undefined') return null;
-        return SITE_INFO.find(site => site.id === platformId) || null;
+        if (!platformId || typeof getPlatformById !== 'function') return null;
+        return getPlatformById(platformId);
     }
     
     /**
@@ -376,8 +376,8 @@ class PromptTab extends BaseTab {
     _getSmartInputPlatforms() {
         // id 为空表示全部平台
         const platforms = [{ id: '', name: chrome.i18n.getMessage('allptfm') }];
-        if (typeof SITE_INFO !== 'undefined') {
-            SITE_INFO.forEach(site => {
+        if (typeof getSiteInfoList === 'function') {
+            getSiteInfoList().forEach(site => {
                 if (site.features?.promptButton === true) {
                     platforms.push({ id: site.id, name: site.name });
                 }

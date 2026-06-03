@@ -1,12 +1,12 @@
 /**
- * Mirror Site Float Button
+ * Custom Site Float Button
  *
- * 镜像站浮窗按钮：可拖拽，点击弹出提示词列表（复制模式）。
+ * 自定义适配站点浮窗按钮：可拖拽，点击弹出提示词列表（复制模式）。
  * 提示词下拉菜单复用 prompt-dropdown-ui.js 共享渲染。
  * 点击提示词项时复制到剪贴板，不关闭弹窗。
  */
 
-class MirrorSiteFloatButton {
+class CustomSiteFloatButton {
     constructor() {
         this.buttonElement = null;
         this.prompts = [];
@@ -60,8 +60,8 @@ class MirrorSiteFloatButton {
         if (this.buttonElement) return;
 
         const btn = document.createElement('div');
-        btn.className = 'mirror-site-float-btn';
-        btn.innerHTML = `<img src="${chrome.runtime.getURL('images/logo.png')}" alt="Timeline" class="mirror-site-float-logo">`;
+        btn.className = 'custom-site-float-btn';
+        btn.innerHTML = `<img src="${chrome.runtime.getURL('images/logo.png')}" alt="Timeline" class="custom-site-float-logo">`;
         document.body.appendChild(btn);
         this.buttonElement = btn;
     }
@@ -137,15 +137,15 @@ class MirrorSiteFloatButton {
         const rect = this.buttonElement.getBoundingClientRect();
         try {
             await chrome.storage.local.set({
-                mirrorSiteFloatPos: { left: rect.left, top: rect.top }
+                customSiteFloatPos: { left: rect.left, top: rect.top }
             });
         } catch { /* ignore */ }
     }
 
     async _loadPosition() {
         try {
-            const result = await chrome.storage.local.get('mirrorSiteFloatPos');
-            const pos = result.mirrorSiteFloatPos;
+            const result = await chrome.storage.local.get(['customSiteFloatPos', 'mirrorSiteFloatPos']);
+            const pos = result.customSiteFloatPos || result.mirrorSiteFloatPos;
             if (pos && this.buttonElement) {
                 const btnW = this.buttonElement.offsetWidth || 44;
                 const btnH = this.buttonElement.offsetHeight || 44;
@@ -227,8 +227,8 @@ class MirrorSiteFloatButton {
 
         // 项目闪烁反馈
         if (itemEl) {
-            itemEl.classList.add('mirror-site-copy-flash');
-            setTimeout(() => itemEl.classList.remove('mirror-site-copy-flash'), 600);
+            itemEl.classList.add('custom-site-copy-flash');
+            setTimeout(() => itemEl.classList.remove('custom-site-copy-flash'), 600);
         }
 
         if (window.globalToastManager) {

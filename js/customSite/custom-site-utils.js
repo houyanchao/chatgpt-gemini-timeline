@@ -1,5 +1,5 @@
 /**
- * Mirror Site Utils
+ * Custom Site Utils
  *
  * 自定义站点检测工具：加载自定义时间轴适配配置，判断当前页面是否命中。
  */

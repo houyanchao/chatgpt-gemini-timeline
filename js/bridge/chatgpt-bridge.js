@@ -108,7 +108,7 @@ class ChatGPTBridge {
     }
 
     /**
-     * 平台描述信息（优先取全局 SITE_INFO，缺失时降级到内置兜底）
+     * 平台描述信息（优先取全局 getPlatformById，缺失时降级到内置兜底）
      * @returns {{ id: string, name: string, sites: string[], features: Object }}
      */
     get platform() {
@@ -119,8 +119,8 @@ class ChatGPTBridge {
             features: {},
         };
         try {
-            if (typeof SITE_INFO !== 'undefined' && Array.isArray(SITE_INFO)) {
-                const p = SITE_INFO.find(s => s.id === 'chatgpt');
+            if (typeof getPlatformById === 'function') {
+                const p = getPlatformById('chatgpt');
                 if (p) return { id: p.id, name: p.name, sites: p.sites, features: p.features || {} };
             }
         } catch { /* ignore */ }
@@ -277,7 +277,7 @@ class ChatGPTBridge {
     /** @private */
     _matchesPlatform() {
         try {
-            if (typeof matchesPlatform === 'function' && typeof SITE_INFO !== 'undefined') {
+            if (typeof matchesPlatform === 'function') {
                 return matchesPlatform(location.href, 'chatgpt');
             }
         } catch { /* ignore */ }

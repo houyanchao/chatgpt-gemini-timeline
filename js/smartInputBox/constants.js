@@ -33,7 +33,7 @@ const SMART_ENTER_CONFIG = {
 };
 
 // ==================== 工具函数（别名） ====================
-// ✅ 平台信息已迁移到 js/global/constants.js 中的 SITE_INFO
+// ✅ 平台信息已迁移到 js/global/constants.js，通过 getSiteInfoList() 读取
 // ✅ 使用 features.promptButton / features.smartEnter 控制智能输入子功能
 // ✅ 使用 matchesCurrentPlatform(platformId) 检查当前页面是否匹配平台
 // ✅ 使用 getCurrentPlatform() 获取当前页面的平台信息

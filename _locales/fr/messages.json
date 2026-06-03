@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Configurer"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Suppression du filigrane Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Affiche des options de téléchargement avec suppression du filigrane sur les images générées par Gemini, pour télécharger l’image originale ou l’image sans filigrane en bas à droite."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Télécharger l’image sans filigrane"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Télécharger l’image originale"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "La suppression du filigrane a échoué"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Aucune image à traiter trouvée"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Image trop petite pour supprimer le filigrane"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "Aucun filigrane Gemini détecté"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Impossible de lire les pixels (sécurité du navigateur). Essayez de télécharger l’original"
   }
 }

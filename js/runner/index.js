@@ -741,14 +741,15 @@
     }
 
     /**
-     * 检查当前网站是否为已知 AI 平台（SITE_INFO 白名单）
+     * 检查当前网站是否为已知 AI 平台（getSiteInfoList 白名单）
      * 只在 AI 平台上启用代码检测，其他网站直接跳过
      * @returns {boolean}
      */
     function isAiPlatform() {
         try {
             const hostname = location.hostname;
-            return SITE_INFO.some(platform =>
+            if (typeof getSiteInfoList !== 'function') return false;
+            return getSiteInfoList().some(platform =>
                 platform.sites.some(site => hostname.includes(site))
             );
         } catch {

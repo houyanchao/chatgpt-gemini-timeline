@@ -273,6 +273,15 @@ const SITE_INFO = [
 ];
 
 /**
+ * 读取内置 AI 平台配置。
+ * 后续如需支持镜像站、动态扩展或冻结配置，统一从这里收口。
+ * @returns {Array} 平台配置列表
+ */
+function getSiteInfoList() {
+    return SITE_INFO;
+}
+
+/**
  * 获取完整的 siteNameMap
  * 将数组结构的 SITE_INFO 转换为域名映射对象，并将 logoPath 转换为完整的 chrome.runtime URL
  * 
@@ -280,7 +289,7 @@ const SITE_INFO = [
  */
 function getSiteNameMap() {
     const map = {};
-    for (const platform of SITE_INFO) {
+    for (const platform of getSiteInfoList()) {
         const info = {
             id: platform.id,
             name: platform.name,
@@ -307,7 +316,7 @@ function getSiteInfoByUrl(url) {
         const hostname = urlObj.hostname;
         
         // 遍历所有平台，使用 includes 匹配
-        for (const platform of SITE_INFO) {
+        for (const platform of getSiteInfoList()) {
             for (const site of platform.sites) {
                 if (hostname.includes(site)) {
                     return {
@@ -333,7 +342,7 @@ function getSiteInfoByUrl(url) {
  * @returns {boolean}
  */
 function matchesPlatform(url, platformId) {
-    const platform = SITE_INFO.find(p => p.id === platformId);
+    const platform = getSiteInfoList().find(p => p.id === platformId);
     if (!platform) return false;
     
     return platform.sites.some(site => url.includes(site));
@@ -354,7 +363,7 @@ function matchesCurrentPlatform(platformId) {
  * @returns {Object|null} 平台信息 { id, sites, name, logoPath, features }
  */
 function getPlatformByUrl(url) {
-    for (const platform of SITE_INFO) {
+    for (const platform of getSiteInfoList()) {
         for (const site of platform.sites) {
             if (url.includes(site)) {
                 return platform;
@@ -389,12 +398,22 @@ function getCurrentPlatform() {
 }
 
 /**
+ * 根据平台 ID 获取平台信息
+ * @param {string} platformId - 平台 ID
+ * @returns {Object|null} 平台信息 { id, sites, name, logoPath, features }
+ */
+function getPlatformById(platformId) {
+    if (!platformId) return null;
+    return getSiteInfoList().find(platform => platform.id === platformId) || null;
+}
+
+/**
  * 获取支持某功能的平台列表
  * @param {string} feature - 功能名：'timeline' | 'promptButton'
  * @returns {Array} 支持该功能的平台列表
  */
 function getPlatformsByFeature(feature) {
-    return SITE_INFO.filter(platform => platform.features?.[feature] === true);
+    return getSiteInfoList().filter(platform => platform.features?.[feature] === true);
 }
 
 /**
@@ -404,7 +423,7 @@ function getPlatformsByFeature(feature) {
  * @returns {boolean}
  */
 function platformSupportsFeature(platformId, feature) {
-    const platform = SITE_INFO.find(p => p.id === platformId);
+    const platform = getSiteInfoList().find(p => p.id === platformId);
     return platform?.features?.[feature] === true;
 }
 

@@ -39,7 +39,7 @@ class SmartInputBoxTab extends BaseTab {
         container.className = 'smart-input-box-settings';
         
         // 平台列表（过滤掉 Claude，因其 Enter 键行为无法被拦截）
-        const smartInputPlatforms = SITE_INFO
+        const smartInputPlatforms = (typeof getSiteInfoList === 'function' ? getSiteInfoList() : [])
             .filter(p => p.features?.promptButton === true || p.features?.smartEnter === true)
             .filter(p => p.id !== 'claude');
         

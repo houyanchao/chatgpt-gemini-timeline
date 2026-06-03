@@ -97,7 +97,7 @@ class NotepadManager {
                     ${chrome.i18n.getMessage('notepadTitle') || '闪记'}
                 </span>
                 <div class="ait-notepad-header-right">
-                    <button class="ait-notepad-list-btn" title="${chrome.i18n.getMessage('notepadAllNotes') || '全部笔记'}">
+                    <button class="ait-notepad-list-btn" aria-label="${chrome.i18n.getMessage('notepadAllNotes') || '全部笔记'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             width="16" height="16">
@@ -109,7 +109,7 @@ class NotepadManager {
                             <line x1="3" y1="18" x2="3.01" y2="18"/>
                         </svg>
                     </button>
-                    <button class="ait-notepad-add-btn" title="${chrome.i18n.getMessage('notepadNewNote') || '新建笔记'}">
+                    <button class="ait-notepad-add-btn" aria-label="${chrome.i18n.getMessage('notepadNewNote') || '新建笔记'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                             width="16" height="16">
@@ -117,7 +117,7 @@ class NotepadManager {
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                     </button>
-                    <button class="ait-notepad-close-btn" title="${chrome.i18n.getMessage('notepadClose') || '关闭'}">
+                    <button class="ait-notepad-close-btn" aria-label="${chrome.i18n.getMessage('notepadClose') || '关闭'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             width="14" height="14">
@@ -178,6 +178,22 @@ class NotepadManager {
                 this.startResize(e, handle.dataset.direction);
             });
         });
+
+        this._bindHeaderButtonTooltip(
+            this.listBtn,
+            'notepad-list',
+            chrome.i18n.getMessage('notepadAllNotes') || '全部笔记'
+        );
+        this._bindHeaderButtonTooltip(
+            this.addBtn,
+            'notepad-add',
+            chrome.i18n.getMessage('notepadNewNote') || '新建笔记'
+        );
+        this._bindHeaderButtonTooltip(
+            this.panel.querySelector('.ait-notepad-close-btn'),
+            'notepad-close',
+            chrome.i18n.getMessage('notepadClose') || '关闭'
+        );
 
         this._onMouseMove = (e) => this.onMouseMove(e);
         this._onMouseUp = () => this.onMouseUp();
@@ -276,6 +292,23 @@ class NotepadManager {
             this.applyState();
         };
         window.addEventListener('resize', this._onWindowResize);
+    }
+
+    _bindHeaderButtonTooltip(button, id, text) {
+        if (!button) return;
+
+        button.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show(
+                id,
+                'button',
+                button,
+                text,
+                { style: 'mini', placement: 'top' }
+            );
+        });
+        button.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
     }
 
     // ─── 视图切换 / 列表渲染 ──────────────────────────────────────────────────

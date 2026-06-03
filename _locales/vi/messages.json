@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "Thiết lập"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Xóa hình mờ Nano Banana"
+  },
+  "geminiWatermarkHint": {
+    "message": "Hiển thị các tùy chọn tải xuống xóa hình mờ trên ảnh do Gemini tạo, để tải ảnh gốc hoặc ảnh đã xóa hình mờ ở góc dưới bên phải."
+  },
+  "geminiWatermarkDownload": {
+    "message": "Tải ảnh đã xóa hình mờ"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "Tải ảnh gốc"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "Xóa hình mờ không thành công"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Không tìm thấy hình ảnh để xử lý"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Hình ảnh quá nhỏ, không thể xóa watermark"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "Không phát hiện watermark Gemini"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Không đọc được pixel (bị chặn bởi bảo mật trình duyệt). Hãy thử tải bản gốc"
   }
 }

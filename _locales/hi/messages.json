@@ -937,5 +937,32 @@
   },
   "timelineThemeColorManageButton": {
     "message": "सेट करें"
+  },
+  "geminiWatermarkTitle": {
+    "message": "Nano Banana वॉटरमार्क रिमूवर"
+  },
+  "geminiWatermarkHint": {
+    "message": "Gemini से बनी छवियों पर वॉटरमार्क हटाने वाले डाउनलोड विकल्प दिखाएं, ताकि आप मूल छवि या नीचे दाईं ओर का वॉटरमार्क हटाई गई छवि डाउनलोड कर सकें।"
+  },
+  "geminiWatermarkDownload": {
+    "message": "वॉटरमार्क रहित छवि डाउनलोड करें"
+  },
+  "geminiWatermarkDownloadOriginal": {
+    "message": "मूल छवि डाउनलोड करें"
+  },
+  "geminiWatermarkErrorGeneric": {
+    "message": "वॉटरमार्क हटाने में विफल"
+  },
+  "geminiWatermarkErrorNoImage": {
+    "message": "Could not find an image to process"
+  },
+  "geminiWatermarkErrorTooSmall": {
+    "message": "Image is too small to remove a watermark"
+  },
+  "geminiWatermarkErrorNoWatermark": {
+    "message": "No Gemini watermark detected on this image"
+  },
+  "geminiWatermarkErrorUnreadable": {
+    "message": "Cannot read image pixels (blocked by browser security). Try downloading the original instead."
   }
 }

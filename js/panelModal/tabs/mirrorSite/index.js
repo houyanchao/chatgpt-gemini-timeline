@@ -138,11 +138,11 @@ class MirrorSiteTab extends BaseTab {
         return container;
     }
     _getNativeSupportedSites() {
-        if (typeof SITE_INFO === 'undefined' || !Array.isArray(SITE_INFO)) {
+        if (typeof getSiteInfoList !== 'function') {
             return [];
         }
 
-        return SITE_INFO
+        return getSiteInfoList()
             .filter(site => site?.features?.timeline !== false)
             .map(site => ({
                 id: site.id,
@@ -279,11 +279,11 @@ class MirrorSiteTab extends BaseTab {
     }
 
     _findNativeSupportForDomain(domain) {
-        if (typeof SITE_INFO === 'undefined' || !Array.isArray(SITE_INFO)) {
+        if (typeof getSiteInfoList !== 'function') {
             return null;
         }
 
-        return SITE_INFO.find(platform =>
+        return getSiteInfoList().find(platform =>
             Array.isArray(platform.sites) &&
             platform.sites.some(site => this._domainMatches(domain, site))
         ) || null;

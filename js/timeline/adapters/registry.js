@@ -42,8 +42,8 @@ class SiteAdapterRegistry {
     }
 
     _isBuiltInSite(site) {
-        if (!site || typeof SITE_INFO === 'undefined') return false;
-        return SITE_INFO.some(platform => platform.sites.some(builtInSite => (
+        if (!site || typeof getSiteInfoList !== 'function') return false;
+        return getSiteInfoList().some(platform => platform.sites.some(builtInSite => (
             site === builtInSite ||
             site.endsWith(`.${builtInSite}`) ||
             builtInSite.endsWith(`.${site}`)

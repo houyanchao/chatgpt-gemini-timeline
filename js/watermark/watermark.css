@@ -1,0 +1,29 @@
+/**
+ * Gemini watermark remover — processing state on hijacked download buttons
+ */
+
+button.ait-wm-processing {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+button.ait-wm-processing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: ait-wm-spin 0.7s linear infinite;
+    opacity: 0.85;
+}
+
+@keyframes ait-wm-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

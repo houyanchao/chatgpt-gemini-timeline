@@ -1,7 +1,7 @@
 /**
  * Prompt Dropdown UI - 共享的提示词下拉菜单渲染
  *
- * 供 PromptButtonManager（插入模式）和 MirrorSiteFloatButton（复制模式）共用，
+ * 供 PromptButtonManager（插入模式）和 CustomSiteFloatButton（复制模式）共用，
  * 统一渲染逻辑，调用方只需提供行为回调。
  *
  * @param {Object} options
@@ -237,6 +237,20 @@ function _promptDropdownCreateCommonSettings({
         ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
         : `${currentScale}%`;
     const storeReviewUrl = _promptDropdownGetStoreReviewUrl();
+    const geminiWatermarkSetting = _promptDropdownIsGeminiPlatform() ? `
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('geminiWatermarkTitle') || 'Nano Banana 去水印'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('geminiWatermarkHint') || '在 Gemini 生成的图片上显示去水印下载选项，可下载原图或去除右下角水印后的图片。'}</div>
+                </div>
+                <label class="ait-toggle-switch">
+                    <input type="checkbox" class="prompt-common-gemini-watermark-toggle">
+                    <span class="ait-toggle-slider"></span>
+                </label>
+            </div>
+    ` : '';
 
     panel.innerHTML = `
         <div class="prompt-common-settings">
@@ -264,6 +278,7 @@ function _promptDropdownCreateCommonSettings({
                     <span class="ait-toggle-slider"></span>
                 </label>
             </div>
+            ${geminiWatermarkSetting}
             <div class="prompt-common-setting-item ${supported ? '' : 'disabled'}">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
@@ -371,6 +386,25 @@ function _promptDropdownCreateCommonSettings({
         });
     }
 
+    const geminiWatermarkToggle = panel.querySelector('.prompt-common-gemini-watermark-toggle');
+    if (geminiWatermarkToggle) {
+        chrome.storage.local.get('geminiWatermarkRemoverEnabled').then(result => {
+            geminiWatermarkToggle.checked = result.geminiWatermarkRemoverEnabled !== false;
+        }).catch(() => {
+            geminiWatermarkToggle.checked = true;
+        });
+        geminiWatermarkToggle.addEventListener('change', async (e) => {
+            try {
+                await chrome.storage.local.set({
+                    geminiWatermarkRemoverEnabled: e.target.checked
+                });
+            } catch (error) {
+                console.error('[PromptDropdown] Failed to save Gemini watermark remover setting:', error);
+                geminiWatermarkToggle.checked = !geminiWatermarkToggle.checked;
+            }
+        });
+    }
+
     const smartInputBtn = panel.querySelector('.prompt-common-smart-input-btn');
     smartInputBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -396,6 +430,12 @@ function _promptDropdownCreateCommonSettings({
     });
 
     return panel;
+}
+
+function _promptDropdownIsGeminiPlatform() {
+    return typeof matchesCurrentPlatform === 'function'
+        ? matchesCurrentPlatform('gemini')
+        : location.hostname.includes('gemini.google.com');
 }
 
 function _promptDropdownGetStoreReviewUrl() {

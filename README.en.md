@@ -156,6 +156,8 @@ When reporting an issue, include the browser version, extension version, target 
 
 This project builds on [chatgpt-conversation-timeline](https://github.com/Reborn14/chatgpt-conversation-timeline). Thanks to the original author for the open source contribution.
 
+The Gemini image watermark removal engine (`js/watermark/engine/`) is ported from [GargantuaX/gemini-watermark-remover](https://github.com/GargantuaX/gemini-watermark-remover) (MIT), whose reverse alpha blending algorithm and calibrated masks originate from [allenk/GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool) (MIT, © 2024 AllenK / Kwyshell). See [`js/watermark/engine/LICENSE`](./js/watermark/engine/LICENSE) for the full license text.
+
 ## License
 
 This project is open source under the [GPL-3.0](./LICENSE) license.
