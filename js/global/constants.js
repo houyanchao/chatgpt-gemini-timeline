@@ -273,12 +273,43 @@ const SITE_INFO = [
 ];
 
 /**
- * 读取内置 AI 平台配置。
- * 后续如需支持镜像站、动态扩展或冻结配置，统一从这里收口。
- * @returns {Array} 平台配置列表
+ * 从 storage 读取镜像站域名。
+ * 结构：{ chatgpt: ['mirror.example.com'], gemini: [...] }
+ * @returns {Promise<Object>}
  */
-function getSiteInfoList() {
-    return SITE_INFO;
+async function getMirrorSiteSourceDomain() {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return {};
+    try {
+        const result = await chrome.storage.local.get('mirrorSiteSourceDomain');
+        const value = result?.['mirrorSiteSourceDomain'];
+        return value && typeof value === 'object' ? value : {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * 读取内置 AI 平台配置（含已检测到的镜像站域名）。
+ * @returns {Promise<Array>} 平台配置列表
+ */
+async function getSiteInfoList() {
+    const NEW_SITE_INFO = JSON.parse(JSON.stringify(SITE_INFO));
+    const mirrorSiteSourceDomain = await getMirrorSiteSourceDomain();
+
+    for (const platform of NEW_SITE_INFO) {
+        const domains = Array.isArray(mirrorSiteSourceDomain[platform.id])
+            ? mirrorSiteSourceDomain[platform.id]
+            : [];
+        for (const domain of domains) {
+            if (typeof domain !== 'string' || !domain.trim()) continue;
+            // 去重，防止域名重复推入
+            if (!platform.sites.includes(domain)) {
+                platform.sites.push(domain);
+            }
+        }
+    }
+
+    return NEW_SITE_INFO;
 }
 
 /**

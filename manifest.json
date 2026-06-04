@@ -156,6 +156,7 @@
         "js/timeline/adapters/claude.js",
         "js/timeline/adapters/notebooklm.js",
         "js/timeline/adapters/custom-sites.js",
+        "js/mirrorSiteDetector/mirror-site-detector.js",
         "js/timeline/adapters/custom.js",
         "js/timeline/adapters/registry.js",
         "js/mermaid/lib/mermaid.min.js",

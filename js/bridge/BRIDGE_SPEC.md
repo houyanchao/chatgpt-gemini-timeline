@@ -1,6 +1,6 @@
 # Bridge 接口规范
 
-> 本文档定义所有平台 Bridge（`chatgpt-bridge.js`、`gemini-bridge.js` …）必须遵循的统一接口规范。
+> 本文档定义平台 Bridge（如 `xxx-bridge.js`）必须遵循的统一接口规范。
 > **后续所有 Bridge API 都按本规范编写。**
 
 ## 1. 设计理念
@@ -80,7 +80,7 @@ if (typeof window !== 'undefined') {
 }
 ```
 
-- 类名：`XxxBridge`（大驼峰，如 `ChatGPTBridge`）。
+- 类名：`XxxBridge`（大驼峰）。
 - 单例：`XxxBridge.getInstance()`，并挂到 `window.xxxBridge`（小驼峰）。
 
 ---
@@ -118,45 +118,32 @@ class XxxBridge {
 
 ## 8. 已实现 API 清单
 
-### chatgpt-bridge.js
+当前没有启用中的 Bridge 实现。
 
-| API | 类别 | 签名 | 说明 |
-|---|---|---|---|
-| `getAIGeneratingSync()` | 同步读 | `() => boolean` | AI 当前是否正在生成回复（发送按钮 `data-testid === 'stop-button'`） |
-| `onAIGenerateStart(cb)` | 事件 | `({ generating: true }) => void` | AI 开始生成回复 |
-| `offAIGenerateStart(cb)` | 事件 | — | 取消订阅「开始生成」 |
-| `onAIGenerateEnd(cb)` | 事件 | `({ generating: false }) => void` | AI 结束生成回复 |
-| `offAIGenerateEnd(cb)` | 事件 | — | 取消订阅「结束生成」 |
-| `getInputElementSync()` | 同步读 | `() => HTMLElement\|null` | 获取对话输入框元素（`#prompt-textarea`） |
-
-> 后续新增 API 时，请在本表追加对应行。
+> 后续新增 Bridge 时，请在本节追加对应 API 清单。
 
 ---
 
 ## 9. 使用示例
 
 ```js
-const bridge = window.chatGPTBridge; // 或 ChatGPTBridge.getInstance()
+const bridge = window.xxxBridge; // 或 XxxBridge.getInstance()
 
 bridge
     .ready((b) => {
         console.log('当前平台：', b.platform.name);
-        console.log('AI 是否正在生成：', b.getAIGeneratingSync());
-        console.log('输入框元素：', b.getInputElementSync());
+        console.log('同步读取结果：', b.getXxxSync());
     })
     .error((err) => {
         console.warn('Bridge 初始化失败：', err.message);
     });
 
 // 能力探测
-if (bridge.checkApi('onAIGenerateStart')) {
-    const onStart = () => console.log('AI 开始生成');
-    const onEnd = () => console.log('AI 结束生成');
-    bridge.onAIGenerateStart(onStart);
-    bridge.onAIGenerateEnd(onEnd);
+if (bridge.checkApi('onXxx')) {
+    const onEvent = (detail) => console.log('Bridge event:', detail);
+    bridge.onXxx(onEvent);
 
     // 不再需要时注销（最后一个监听器移除后会自动停止底层监控）
-    // bridge.offAIGenerateStart(onStart);
-    // bridge.offAIGenerateEnd(onEnd);
+    // bridge.offXxx(onEvent);
 }
 ```
