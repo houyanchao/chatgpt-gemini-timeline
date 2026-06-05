@@ -12,7 +12,7 @@
  */
 
 class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'chatgpt');
     }
 

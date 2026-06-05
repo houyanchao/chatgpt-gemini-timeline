@@ -41,7 +41,7 @@ class GeminiWatermarkRemover {
     async init() {
         this._setRuntimeState('loading');
         // 仅在 Gemini 平台运行
-        if (!this._isGeminiPlatform()) {
+        if (!(await this._isGeminiPlatform())) {
             this._setRuntimeState('not-gemini');
             return;
         }
@@ -56,14 +56,22 @@ class GeminiWatermarkRemover {
         }
     }
 
-    _isGeminiPlatform() {
+    async _isGeminiPlatform() {
         try {
             return typeof matchesCurrentPlatform === 'function'
-                ? matchesCurrentPlatform('gemini')
-                : location.hostname.includes('gemini.google.com');
+                ? await matchesCurrentPlatform('gemini')
+                : this._hostnameMatches(location.hostname, 'gemini.google.com');
         } catch (e) {
             return false;
         }
+    }
+
+    _hostnameMatches(hostname, domain) {
+        const normalizedHostname = String(hostname || '').trim().toLowerCase();
+        const normalizedDomain = String(domain || '').trim().toLowerCase();
+        if (!normalizedHostname || !normalizedDomain) return false;
+        return normalizedHostname === normalizedDomain ||
+            normalizedHostname.endsWith(`.${normalizedDomain}`);
     }
 
     async _loadSettings() {

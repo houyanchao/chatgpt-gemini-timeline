@@ -41,12 +41,16 @@ class PromptButtonManager {
             gap: 8,  // 按钮与输入框的间距
             updateBtnGap: 6  // Logo 按钮与提示词按钮的间距
         };
+        this._currentPlatform = null;
     }
     
     /**
      * 初始化
      */
     async init() {
+        // ✅ 预加载平台信息（平台配置现在异步获取，缓存供同步方法使用）
+        this._currentPlatform = await getCurrentPlatform();
+
         // 1. 加载平台设置
         await this._loadPlatformSettings();
         
@@ -136,7 +140,7 @@ class PromptButtonManager {
      */
     _isPlatformEnabled() {
         try {
-            const platform = getCurrentPlatform();
+            const platform = this._currentPlatform;
             if (!platform) return false;
             if (platform.features?.promptButton !== true) return false;
             return this.platformSettings[platform.id] !== false;
@@ -206,7 +210,7 @@ class PromptButtonManager {
         document.body.appendChild(button);
         this.buttonElement = button;
 
-        const platform = typeof getCurrentPlatform === 'function' ? getCurrentPlatform() : null;
+        const platform = this._currentPlatform;
         if (window.inputBoxAnimationManager && platform?.features?.inputAnimation === true) {
             window.inputBoxAnimationManager.init();
         }
@@ -542,7 +546,7 @@ class PromptButtonManager {
         this._promptOverlay.addEventListener('click', () => this._hidePromptDropdown());
         document.body.appendChild(this._promptOverlay);
         
-        const currentPlatform = typeof getCurrentPlatform === 'function' ? getCurrentPlatform() : null;
+        const currentPlatform = this._currentPlatform;
         const currentPlatformId = currentPlatform?.id || '';
         const filteredPrompts = this.prompts.filter(p => !p.platformId || p.platformId === currentPlatformId);
         

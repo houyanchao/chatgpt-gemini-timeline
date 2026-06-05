@@ -298,7 +298,7 @@ class PanelModal {
         
         // 点击切换 tab
         tabButton.addEventListener('click', () => {
-            this.switchTab(tab.id);
+            void this.switchTab(tab.id);
         });
         
         // 添加到 tab 栏
@@ -309,64 +309,80 @@ class PanelModal {
      * 显示面板
      * @param {string} tabId - 要显示的 tab ID（可选）
      */
-    show(tabId = null) {
-        // ✅ 确保所有可用的 tabs 已注册（按固定顺序）
-        if (typeof registerAllTabs === 'function') {
-            registerAllTabs();
+    async show(tabId = null) {
+        try {
+            // ✅ 确保所有可用的 tabs 已注册（按固定顺序）
+            if (typeof registerAllTabs === 'function') {
+                await registerAllTabs();
+            }
+
+            // 确定要显示的 tab（带 fallback）
+            let targetTabId = tabId;
+
+            // 如果指定的 tab 不存在，fallback 到当前 tab 或第一个可用的 tab
+            if (targetTabId && !this.tabs.has(targetTabId)) {
+                console.warn(`[PanelModal] Tab "${targetTabId}" not available, falling back`);
+                targetTabId = null;
+            }
+
+            if (!targetTabId) {
+                targetTabId = this.currentTabId && this.tabs.has(this.currentTabId)
+                    ? this.currentTabId
+                    : this.tabs.keys().next().value;
+            }
+
+            if (!targetTabId) {
+                console.warn('[PanelModal] No tabs registered');
+                return;
+            }
+
+            // 先显示面板外壳：tab 的同步渲染会立即出现，异步 mounted 之后再填充，
+            // 避免等待 mounted 完成导致面板延迟显示。
+            this.container.classList.add('visible');
+            this.isVisible = true;
+
+            // 禁用 body 滚动
+            document.body.style.overflow = 'hidden';
+
+            // 切换到指定 tab（等待其 mounted 完成）。
+            // 若切换失败（unmounted()/render() 抛错或返回 false），回滚可见状态，
+            // 避免面板卡在空内容、且 body 滚动被锁死的状态。
+            const switched = await this.switchTab(targetTabId);
+            if (!switched) {
+                this.hide();
+            }
+        } catch (error) {
+            console.error('[PanelModal] Failed to show panel:', error);
+            this.hide();
         }
-        
-        // 确定要显示的 tab（带 fallback）
-        let targetTabId = tabId;
-        
-        // 如果指定的 tab 不存在，fallback 到当前 tab 或第一个可用的 tab
-        if (targetTabId && !this.tabs.has(targetTabId)) {
-            console.warn(`[PanelModal] Tab "${targetTabId}" not available, falling back`);
-            targetTabId = null;
-        }
-        
-        if (!targetTabId) {
-            targetTabId = this.currentTabId && this.tabs.has(this.currentTabId) 
-                ? this.currentTabId 
-                : this.tabs.keys().next().value;
-        }
-        
-        if (!targetTabId) {
-            console.warn('[PanelModal] No tabs registered');
-            return;
-        }
-        
-        // 切换到指定 tab
-        this.switchTab(targetTabId);
-        
-        // 显示面板
-        this.container.classList.add('visible');
-        this.isVisible = true;
-        
-        // 禁用 body 滚动
-        document.body.style.overflow = 'hidden';
     }
     
     /**
      * 切换 tab
      * @param {string} tabId - tab ID
      */
-    switchTab(tabId) {
+    async switchTab(tabId) {
         const tab = this.tabs.get(tabId);
         if (!tab) {
             console.error(`[PanelModal] Tab "${tabId}" not found`);
-            return;
+            return false;
         }
         
         // 如果已经是当前 tab，不重复切换
         if (this.currentTabId === tabId) {
-            return;
+            return true;
         }
         
-        // 卸载当前 tab
+        // 卸载当前 tab。unmounted() 是清理钩子，抛错不应阻断切换流程，
+        // 否则异常会冒泡到 show() 的 catch 并触发对同一旧 tab 的二次卸载。
         if (this.currentTabId) {
             const currentTab = this.tabs.get(this.currentTabId);
             if (currentTab && currentTab.unmounted) {
-                currentTab.unmounted();
+                try {
+                    currentTab.unmounted();
+                } catch (error) {
+                    console.error(`[PanelModal] Failed to unmount tab "${this.currentTabId}":`, error);
+                }
             }
             
             // 移除当前 tab 按钮的 active 状态
@@ -375,7 +391,11 @@ class PanelModal {
                 currentButton.classList.remove('active');
             }
         }
-        
+
+        // 旧 tab 已卸载、新 tab 尚未挂载：先置空，避免后续 render() 抛错时
+        // 回滚的 hide() 对同一个旧 tab 重复调用 unmounted()。
+        this.currentTabId = null;
+
         // 渲染新 tab 内容
         this.content.innerHTML = '';
         const tabContent = tab.render();
@@ -395,10 +415,16 @@ class PanelModal {
             newButton.classList.add('active');
         }
         
-        // 调用 tab 的 mounted 钩子
+        // 调用 tab 的 mounted 钩子（可能为异步）
         if (tab.mounted) {
-            tab.mounted();
+            try {
+                await tab.mounted();
+            } catch (error) {
+                console.error(`[PanelModal] Failed to mount tab "${tabId}":`, error);
+            }
         }
+
+        return true;
     }
     
     /**
@@ -416,11 +442,16 @@ class PanelModal {
             window.globalTooltipManager.forceHideAll();
         }
         
-        // 卸载当前 tab
+        // 卸载当前 tab。unmounted() 抛错不应阻断后续的内容清空与状态复位，
+        // 因此独立隔离；overflow 已在上方先行恢复。
         if (this.currentTabId) {
             const tab = this.tabs.get(this.currentTabId);
             if (tab && tab.unmounted) {
-                tab.unmounted();
+                try {
+                    tab.unmounted();
+                } catch (error) {
+                    console.error(`[PanelModal] Failed to unmount tab "${this.currentTabId}":`, error);
+                }
             }
             
             // 移除 tab 按钮的 active 状态
@@ -473,7 +504,7 @@ if (typeof window !== 'undefined') {
     // 监听来自 background 的消息（点击扩展图标时触发）
     chrome.runtime.onMessage.addListener((request) => {
         if (request.type === 'OPEN_PANEL_MODAL' && window.panelModal) {
-            window.panelModal.show();
+            void window.panelModal.show();
         }
     });
 }

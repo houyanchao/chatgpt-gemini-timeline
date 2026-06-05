@@ -271,16 +271,35 @@
     background: rgba(0, 0, 0, 0.06);
 }
 
-.timeline-starred-item.active {
+/* 页面级收藏：激活时整行背景高亮（保持原样） */
+.timeline-starred-item.active:not(.ait-star-node) {
     background: #D3E3FD;
 }
 
-.timeline-starred-item.active .timeline-starred-item-name {
+.timeline-starred-item.active:not(.ait-star-node) .timeline-starred-item-name {
     color: #0842A0;
 }
 
-.timeline-starred-item.active:hover {
+.timeline-starred-item.active:not(.ait-star-node):hover {
     background: #C4D7F8;
+}
+
+/* 提问节点收藏：激活时不整行高亮，仅在文字前显示一个三角角标 */
+.timeline-starred-item-active-marker {
+    flex-shrink: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #0842A0;
+    margin-right: -4px;
+}
+
+.timeline-starred-item-active-marker svg {
+    display: block;
+}
+
+.timeline-starred-item.ait-star-node.active .timeline-starred-item-active-marker {
+    display: flex;
 }
 
 /* Logo 容器 */

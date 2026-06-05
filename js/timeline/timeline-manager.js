@@ -136,13 +136,22 @@ class TimelineManager {
         this.pinnedIndexes = new Set();
         
         // ✅ URL 到网站信息的映射字典（包含名称和 logo）
-        // 使用 constants.js 中的函数生成 siteNameMap
-        this.siteNameMap = getSiteNameMap();
+        // 使用 constants.js 中的函数生成 siteNameMap（在 init() 中异步填充）
+        this.siteNameMap = {};
+        this._currentPlatform = null;
         
         // ✅ 文件夹管理器（用于收藏功能）
         this.folderManager = null;
+        this._destroyed = false;
+        this._folderManagerInitTimer = null;
+        this._initialRenderTimer = null;
+        this._initialSecondRenderTimer = null;
+        this._initialStarredBtnRaf1 = null;
+        this._initialStarredBtnRaf2 = null;
         // 延迟初始化，确保 FolderManager 类已加载
-        setTimeout(() => {
+        this._folderManagerInitTimer = setTimeout(() => {
+            this._folderManagerInitTimer = null;
+            if (this._destroyed) return;
             if (typeof FolderManager !== 'undefined') {
                 this.folderManager = new FolderManager(StorageAdapter);
             }
@@ -156,12 +165,17 @@ class TimelineManager {
     }
 
     getTimelineFeatures() {
-        return this.adapter.getFeatures?.() || getCurrentPlatform()?.features || {};
+        return this.adapter.getFeatures?.() || this._currentPlatform?.features || {};
     }
 
     async init() {
+        this._currentPlatform = await getCurrentPlatform();
+        if (this._destroyed) return false;
+        this.siteNameMap = await getSiteNameMap();
+        if (this._destroyed) return false;
+
         const elementsFound = await this.findCriticalElements();
-        if (!elementsFound) return;
+        if (this._destroyed || !elementsFound) return false;
         
         // ✅ 同步深色模式状态到 html 元素
         this.syncDarkModeClass();
@@ -173,40 +187,59 @@ class TimelineManager {
         // Load persisted star markers for current conversation
         this.conversationId = this.adapter.extractConversationId(location.pathname);
         await this.loadStars();
+        if (this._destroyed) return false;
         // ✅ 加载标记数据
         await this.loadPins();
+        if (this._destroyed) return false;
         // ✅ 加载键盘导航功能状态
         await this.loadArrowKeysNavigationState();
+        if (this._destroyed) return false;
         // ✅ 加载 AI 回复完成提醒状态
         await this.loadAICompleteToastState();
+        if (this._destroyed) return false;
         // ✅ 加载平台设置
         await this.loadPlatformSettings();
+        if (this._destroyed) return false;
         // ✅ 加载激活节点颜色设置
         await this.loadTimelineActiveColorSettings();
+        if (this._destroyed) return false;
         this.applyTimelineActiveColor();
         
         // Trigger initial rendering after a short delay to ensure DOM is stable
         // This fixes the bug where nodes don't appear until scroll
-        setTimeout(async () => {
+        this._initialRenderTimer = setTimeout(async () => {
+            this._initialRenderTimer = null;
+            if (this._destroyed) return;
             this.recalculateAndRenderMarkers();
             // 初始化后手动触发一次滚动同步，确保激活状态正确
             this.scheduleScrollSync();
             
             // ✅ 延迟二次计算：页面初始化后某些元素可能还没展开
-            setTimeout(() => this.recalculateAndRenderMarkers(), 500);
+            this._initialSecondRenderTimer = setTimeout(() => {
+                this._initialSecondRenderTimer = null;
+                if (!this._destroyed) {
+                    this.recalculateAndRenderMarkers();
+                }
+            }, 500);
             
             // ✅ 等待时间轴渲染完成后，再显示收藏按钮
             // 使用双重 requestAnimationFrame 确保浏览器完成绘制
-            requestAnimationFrame(() => {
-                requestAnimationFrame(async () => {
+            this._initialStarredBtnRaf1 = requestAnimationFrame(() => {
+                this._initialStarredBtnRaf1 = null;
+                if (this._destroyed) return;
+                this._initialStarredBtnRaf2 = requestAnimationFrame(async () => {
+                    this._initialStarredBtnRaf2 = null;
+                    if (this._destroyed) return;
                     // 此时浏览器已经完成时间轴的渲染
                     await this.updateStarredBtnVisibility();
                 });
             });
             
             // ✅ 启动健康检查
-            this.startHealthCheck();
+            if (!this._destroyed) this.startHealthCheck();
         }, TIMELINE_CONFIG.INITIAL_RENDER_DELAY);
+
+        return true;
     }
     
     async findCriticalElements() {
@@ -2021,7 +2054,9 @@ class TimelineManager {
         // ✅ 注册依赖 Timeline 的 Panel Modal tabs
         // PanelModal 已在脚本加载时自动初始化，这里只注册需要 timeline 的 tabs
         if (typeof registerTimelineTabs === 'function') {
-            registerTimelineTabs(this);
+            Promise.resolve(registerTimelineTabs(this)).catch(error => {
+                console.error('[TimelineManager] Failed to register panel tabs:', error);
+            });
         }
         
         // ✅ 挂载到 window 以便其他模块访问
@@ -3020,7 +3055,7 @@ class TimelineManager {
         const activeIndex = activeId ? this.markers.findIndex(m => m.id === activeId) : -1;
         if (activeIndex < 0 || activeIndex >= this.markers.length - 1) return;
 
-        const platformName = getCurrentPlatform()?.name || 'AI';
+        const platformName = this._currentPlatform?.name || 'AI';
         const message = chrome.i18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
             `${platformName} 回复已完成`;
         const anchor = this.getAICompleteToastAnchor();
@@ -3366,6 +3401,13 @@ class TimelineManager {
     }
 
     destroy() {
+        this._destroyed = true;
+        this._folderManagerInitTimer = TimelineUtils.clearTimerSafe(this._folderManagerInitTimer);
+        this._initialRenderTimer = TimelineUtils.clearTimerSafe(this._initialRenderTimer);
+        this._initialSecondRenderTimer = TimelineUtils.clearTimerSafe(this._initialSecondRenderTimer);
+        this._initialStarredBtnRaf1 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf1);
+        this._initialStarredBtnRaf2 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf2);
+
         // Disconnect observers
         TimelineUtils.disconnectObserverSafe(this.mutationObserver);
         TimelineUtils.disconnectObserverSafe(this.resizeObserver);
@@ -3617,7 +3659,7 @@ class TimelineManager {
     applyTimelineActiveColor() {
         if (!this.ui.timelineBar) return;
 
-        const platformId = getCurrentPlatform()?.id || 'default';
+        const platformId = this._currentPlatform?.id || 'default';
         const color = resolveTimelineActiveColor(platformId, this.timelineActiveColorByPlatform);
         this.ui.timelineBar.style.setProperty('--ait-timeline-dot-active-color', color);
     }
@@ -3637,7 +3679,7 @@ class TimelineManager {
     isPlatformEnabled() {
         try {
             // 获取当前平台信息
-            const platform = getCurrentPlatform();
+            const platform = this._currentPlatform;
             if (!platform) return true; // 未知平台，默认启用
             
             // ✅ 首先检查平台是否支持时间轴功能
@@ -3779,7 +3821,7 @@ class TimelineManager {
         
         // ✅ 检查是否是 useStableNodeId 平台但还没有真正的 ID
         // 临时 ID 格式：平台名-小数字（如 doubao-0），真实 ID 的数字部分远大于 1000
-        const features = getCurrentPlatform()?.features;
+        const features = this._currentPlatform?.features;
         if (features?.useStableNodeId === true) {
             const tempMatch = id.match(/-(\d+)$/);
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
@@ -4126,7 +4168,7 @@ class TimelineManager {
         
         // ✅ 检查是否是 useStableNodeId 平台但还没有真正的 ID
         // 临时 ID 格式：平台名-小数字（如 doubao-0），真实 ID 的数字部分远大于 1000
-        const features = getCurrentPlatform()?.features;
+        const features = this._currentPlatform?.features;
         if (features?.useStableNodeId === true) {
             const tempMatch = id.match(/-(\d+)$/);
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;

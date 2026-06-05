@@ -10,7 +10,7 @@ class YuanbaoAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'yuanbao');
     }
 
@@ -86,4 +86,3 @@ class YuanbaoAdapter extends SiteAdapter {
     }
     
 }
-

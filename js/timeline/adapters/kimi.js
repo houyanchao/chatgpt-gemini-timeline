@@ -10,7 +10,7 @@ class KimiAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'kimi');
     }
 
@@ -106,4 +106,3 @@ class KimiAdapter extends SiteAdapter {
         return !!(sendButtonContainer && sendButtonContainer.classList.contains('stop'));
     }
 }
-

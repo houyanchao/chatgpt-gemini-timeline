@@ -10,7 +10,7 @@ class YiyanAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'yiyan');
     }
 
@@ -99,4 +99,3 @@ class YiyanAdapter extends SiteAdapter {
         return !!stopBtn;
     }
 }
-

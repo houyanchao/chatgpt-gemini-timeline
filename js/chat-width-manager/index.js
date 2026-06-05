@@ -28,13 +28,14 @@ class ChatWidthManager {
         this._floatingEl = null;
         this._floatingStyleEl = null;
         this._originalWidths = null;
+        this._listenersAttached = false;
     }
 
     /**
      * 初始化：从平台配置读取宽度参数并应用已保存的宽度
      */
     async init() {
-        const platform = getCurrentPlatform();
+        const platform = await getCurrentPlatform();
         if (!platform) return;
 
         const cfg = platform.features?.chatWidth;
@@ -46,8 +47,11 @@ class ChatWidthManager {
         this._scale = saved;
         this._tryApply();
 
-        this._listenStorageChanges();
-        this._listenUrlChanges();
+        if (!this._listenersAttached) {
+            this._listenersAttached = true;
+            this._listenStorageChanges();
+            this._listenUrlChanges();
+        }
     }
 
     _tryApply() {
@@ -407,9 +411,19 @@ window.ChatWidthManager = ChatWidthManager;
 
 // 自初始化
 (function () {
+    let initInFlight = false;
+
     async function initialize() {
-        if (!getCurrentPlatform()) return;
-        await ChatWidthManager.getInstance().init();
+        if (initInFlight) return;
+        initInFlight = true;
+        try {
+            if (!(await getCurrentPlatform())) return;
+            await ChatWidthManager.getInstance().init();
+        } catch (error) {
+            console.error('[ChatWidthManager] init failed:', error);
+        } finally {
+            initInFlight = false;
+        }
     }
 
     if (document.readyState === 'loading') {

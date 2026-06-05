@@ -8,7 +8,7 @@ class GrokSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 Grok 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('grok');
     }
     
@@ -36,4 +36,3 @@ class GrokSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 12, left: -2 };
     }
 }
-

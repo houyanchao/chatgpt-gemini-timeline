@@ -8,7 +8,7 @@ class GeminiSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 Gemini 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('gemini');
     }
     
@@ -60,5 +60,4 @@ class GeminiSmartEnterAdapter extends BaseSmartEnterAdapter {
         return window;
     }
 }
-
 

@@ -8,7 +8,7 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 ChatGPT 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('chatgpt');
     }
     
@@ -50,4 +50,3 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: -3, right: 8 };
     }
 }
-

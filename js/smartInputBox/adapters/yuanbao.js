@@ -8,7 +8,7 @@ class YuanbaoSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为元宝页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('yuanbao');
     }
     
@@ -44,5 +44,4 @@ class YuanbaoSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 10, left: -2 };
     }
 }
-
 

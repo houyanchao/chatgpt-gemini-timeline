@@ -11,7 +11,7 @@ class DeepSeekAdapter extends SiteAdapter {
         this._userMessageParentClass = null; // 动态检测的用户消息父容器 class
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'deepseek');
     }
 
@@ -141,4 +141,3 @@ class DeepSeekAdapter extends SiteAdapter {
     }
     
 }
-

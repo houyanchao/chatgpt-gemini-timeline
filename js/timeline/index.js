@@ -19,12 +19,19 @@ let routeListenersAttached = false;
 let settingsListenerAttached = false;
 let adapterRegistry = new SiteAdapterRegistry();
 let currentAdapter = null;
+let timelineInitInFlight = null;
+let timelineInitInFlightVersion = null;
 
 // Check if current route is a conversation page (uses adapter)
-function isConversationRoute(pathname = location.pathname) {
+async function resolveCurrentAdapter() {
     if (!currentAdapter) {
-        currentAdapter = adapterRegistry.detectAdapter();
+        currentAdapter = await adapterRegistry.detectAdapter();
     }
+    return currentAdapter;
+}
+
+async function isConversationRoute(pathname = location.pathname) {
+    const currentAdapter = await resolveCurrentAdapter();
     return currentAdapter ? currentAdapter.isConversationRoute(pathname) : false;
 }
 
@@ -36,7 +43,7 @@ function sleep(ms) {
 // Helper function: check if current platform is enabled
 async function isPlatformEnabled() {
     try {
-        const platform = getCurrentPlatform();
+        const platform = await getCurrentPlatform();
         if (!platform) return true; // 未知平台，默认启用
         
         // ✅ 首先检查平台是否支持时间轴功能
@@ -56,13 +63,11 @@ async function isPlatformEnabled() {
 }
 
 // Helper function: lightweight check if timeline can be initialized
-function canInitialize() {
-    if (!currentAdapter) {
-        currentAdapter = adapterRegistry.detectAdapter();
-    }
-    if (!currentAdapter) return false;
+async function canInitialize() {
+    const adapter = await resolveCurrentAdapter();
+    if (!adapter) return false;
     
-    const selector = currentAdapter.getUserMessageSelector();
+    const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
     return document.querySelector(selector) !== null;
 }
@@ -83,7 +88,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     }
     
     // Double-check we're still on a conversation route
-    if (!isConversationRoute()) {
+    if (!(await isConversationRoute())) {
         return;
     }
     
@@ -94,9 +99,9 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     }
     
     // Lightweight check: can we initialize?
-    if (canInitialize()) {
+    if (await canInitialize()) {
         // Yes! Initialize the timeline
-        initializeTimeline();
+        await initializeTimeline(version);
         return;
     }
     
@@ -142,26 +147,57 @@ function destroyTimelineInstance() {
     cleanupGlobalObservers();
 }
 
-function initializeTimeline() {
-    // Detect current site adapter
-    currentAdapter = adapterRegistry.detectAdapter();
-    if (!currentAdapter) {
-        return;
+async function initializeTimeline(version = initVersion) {
+    if (timelineInitInFlight) {
+        if (timelineInitInFlightVersion === version) {
+            return timelineInitInFlight;
+        }
     }
-    
 
-    destroyTimelineInstance();
+    timelineInitInFlightVersion = version;
+    timelineInitInFlight = (async () => {
+        // Detect current site adapter
+        const adapter = await resolveCurrentAdapter();
+        if (!adapter || version !== initVersion) {
+            return false;
+        }
 
-    try {
-        timelineManagerInstance = new TimelineManager(currentAdapter);
-        timelineManagerInstance.init().catch(err => {});
-    } catch (err) {
-    }
-    
-    // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
-    if (window.AIStateMonitor && currentAdapter) {
-        window.AIStateMonitor.getInstance().start(currentAdapter);
-    }
+        destroyTimelineInstance();
+
+        const manager = new TimelineManager(adapter);
+        timelineManagerInstance = manager;
+
+        try {
+            const initialized = await manager.init();
+            if (!initialized || version !== initVersion || timelineManagerInstance !== manager) {
+                try { manager.destroy(); } catch {}
+                if (timelineManagerInstance === manager) {
+                    timelineManagerInstance = null;
+                }
+                return false;
+            }
+        } catch (err) {
+            console.error('[Timeline] Failed to initialize timeline:', err);
+            if (timelineManagerInstance === manager) {
+                timelineManagerInstance = null;
+            }
+            try { manager.destroy(); } catch {}
+            return false;
+        }
+
+        // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
+        if (window.AIStateMonitor) {
+            window.AIStateMonitor.getInstance().start(adapter);
+        }
+        return true;
+    })().finally(() => {
+        if (timelineInitInFlightVersion === version) {
+            timelineInitInFlight = null;
+            timelineInitInFlightVersion = null;
+        }
+    });
+
+    return timelineInitInFlight;
 }
 
 async function handleUrlChange() {
@@ -175,15 +211,17 @@ async function handleUrlChange() {
 
     currentUrl = location.href;
     initVersion++;
-    currentAdapter = adapterRegistry.detectAdapter();
+    currentAdapter = null;
+    currentAdapter = await adapterRegistry.detectAdapter();
 
     // URL 变化了，先清理旧时间轴实例（内部会销毁 ChatTimeRecorder）
     destroyTimelineInstance();
 
     // 如果当前是对话 URL，重新初始化
-    if (isConversationRoute()) {
+    if (await isConversationRoute()) {
         const currentVersion = initVersion;
-        initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS);
+        void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
+            .catch(e => console.error('[Timeline] Failed to init after URL change:', e));
     }
     // 如果不是对话 URL，只清理（上面已经做了）
 }
@@ -198,58 +236,63 @@ function setupPlatformSettingsListener() {
 
         // 监听平台设置变化
         if (changes.timelinePlatformSettings) {
-            const platform = getCurrentPlatform();
-            if (!platform) return;
-            
-            // ✅ 检查平台是否支持时间轴功能
-            if (platform.features?.timeline !== true) {
-                return; // 平台不支持该功能，忽略
-            }
-            
-            const oldSettings = changes.timelinePlatformSettings.oldValue || {};
-            const newSettings = changes.timelinePlatformSettings.newValue || {};
-            
-            const wasEnabled = oldSettings[platform.id] !== false;
-            const isEnabled = newSettings[platform.id] !== false;
-            
-            // 状态发生变化
-            if (wasEnabled !== isEnabled) {
-                if (isEnabled) {
-                    // 从禁用到启用：重新初始化时间轴
-                    if (!timelineManagerInstance && isConversationRoute()) {
-                        initVersion++;
-                        const currentVersion = initVersion;
-                        initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS);
-                    }
-                } else {
-                    // 从启用到禁用：销毁时间轴
-                    destroyTimelineInstance();
+            void (async () => {
+                const platform = await getCurrentPlatform();
+                if (!platform) return;
+
+                // ✅ 检查平台是否支持时间轴功能
+                if (platform.features?.timeline !== true) {
+                    return; // 平台不支持该功能，忽略
                 }
-            }
+
+                const oldSettings = changes.timelinePlatformSettings.oldValue || {};
+                const newSettings = changes.timelinePlatformSettings.newValue || {};
+
+                const wasEnabled = oldSettings[platform.id] !== false;
+                const isEnabled = newSettings[platform.id] !== false;
+
+                // 状态发生变化
+                if (wasEnabled !== isEnabled) {
+                    if (isEnabled) {
+                        // 从禁用到启用：重新初始化时间轴
+                        if (!timelineManagerInstance && await isConversationRoute()) {
+                            initVersion++;
+                            const currentVersion = initVersion;
+                            void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
+                                .catch(e => console.error('[Timeline] Failed to init after settings change:', e));
+                        }
+                    } else {
+                        // 从启用到禁用：销毁时间轴
+                        destroyTimelineInstance();
+                    }
+                }
+            })().catch(e => console.error('[Timeline] Failed to handle platform settings change:', e));
         }
     });
 }
 
 async function bootstrapTimeline() {
-    adapterRegistry.loadCustomAdapters();
+    await adapterRegistry.loadCustomAdapters();
 
     // Check if current site is supported before initializing
-    if (!adapterRegistry.isSupportedSite()) {
+    if (!(await adapterRegistry.isSupportedSite())) {
         return;
     }
 
     setupPlatformSettingsListener();
-    currentAdapter = adapterRegistry.detectAdapter();
+    currentAdapter = await adapterRegistry.detectAdapter();
     
     // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
-    const checkAndInit = () => {
-        const selector = currentAdapter ? currentAdapter.getUserMessageSelector() : null;
+    const checkAndInit = async () => {
+        const adapter = await resolveCurrentAdapter();
+        const selector = adapter ? adapter.getUserMessageSelector() : null;
         if (selector && document.querySelector(selector)) {
-            if (isConversationRoute()) {
+            if (await isConversationRoute()) {
                 // Use retry mechanism for initial load as well
                 initVersion++;
                 const currentVersion = initVersion;
-                initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS);
+                void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
+                    .catch(e => console.error('[Timeline] Failed to init during bootstrap:', e));
             }
             
             attachRouteListenersOnce();
@@ -261,33 +304,33 @@ async function bootstrapTimeline() {
     
     // ✅ 修复：立即检查一次（处理SPA路由切换到对话页的情况）
     // ✅ 异步检查平台是否启用
-    (async () => {
-        const platformEnabled = await isPlatformEnabled();
-        if (!platformEnabled) {
-            return; // 当前平台未启用，不初始化
-        }
-        
-        if (checkAndInit()) {
-            // 已经初始化成功，不需要observer
-        } else {
-            // 还没有用户消息，使用 DOMObserverManager 等待
-            let unsubscribeInitial = null;
-            if (window.DOMObserverManager) {
-                unsubscribeInitial = window.DOMObserverManager.getInstance().subscribeBody('timeline-initial', {
-                    callback: () => {
-                        if (checkAndInit()) {
+    const platformEnabled = await isPlatformEnabled();
+    if (!platformEnabled) {
+        return; // 当前平台未启用，不初始化
+    }
+
+    if (await checkAndInit()) {
+        // 已经初始化成功，不需要observer
+    } else {
+        // 还没有用户消息，使用 DOMObserverManager 等待
+        let unsubscribeInitial = null;
+        if (window.DOMObserverManager) {
+            unsubscribeInitial = window.DOMObserverManager.getInstance().subscribeBody('timeline-initial', {
+                callback: () => {
+                    void (async () => {
+                        if (await checkAndInit()) {
                             // 初始化成功，取消订阅
                             if (unsubscribeInitial) {
                                 unsubscribeInitial();
                                 unsubscribeInitial = null;
                             }
                         }
-                    },
-                    debounce: 150  // 150ms 防抖
-                });
-            }
+                    })().catch(e => console.error('[Timeline] Failed to init from DOM observer:', e));
+                },
+                debounce: 150  // 150ms 防抖
+            });
         }
-    })();
+    }
 }
 
-bootstrapTimeline();
+bootstrapTimeline().catch(e => console.error('[Timeline] Failed to bootstrap:', e));

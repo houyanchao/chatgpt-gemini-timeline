@@ -5,7 +5,7 @@
  */
 
 class QwenSmartEnterAdapter extends BaseSmartEnterAdapter {
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('qwen');
     }
 

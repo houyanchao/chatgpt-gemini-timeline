@@ -10,7 +10,7 @@ class TongyiAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'tongyi');
     }
 
@@ -142,4 +142,3 @@ class TongyiAdapter extends SiteAdapter {
     }
     
 }
-

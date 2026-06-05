@@ -20,6 +20,7 @@ class ChatTimeRecorder {
         // _renderTimeLabels 并发控制：避免短时间多次调用造成重复 storage 读
         this._renderInFlight = false;
         this._renderQueued = false;
+        this._platformFeatures = {};
         
         // 事件处理函数（绑定 this）
         this._boundOnAIStateChange = this._onAIStateChange.bind(this);
@@ -55,13 +56,16 @@ class ChatTimeRecorder {
      * @returns {Object}
      */
     _getPlatformFeatures() {
-        return getCurrentPlatform()?.features || {};
+        return this._platformFeatures || {};
     }
 
     /**
      * 初始化，设置事件监听
      */
     async init() {
+        // 预取并缓存当前平台 features（getCurrentPlatform 现为异步）
+        this._platformFeatures = (await getCurrentPlatform())?.features || {};
+
         // 检查当前平台是否启用 chatTimes 功能
         const features = this._getPlatformFeatures();
         this.enabled = features?.chatTimes === true;

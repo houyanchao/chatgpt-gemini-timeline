@@ -13,7 +13,7 @@ class GeminiAdapter extends SiteAdapter {
         super();
     }
     
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'gemini');
     }
 
@@ -193,37 +193,9 @@ class GeminiAdapter extends SiteAdapter {
     }
     
     getDefaultChatTheme() {
-        // Gemini 从特定 DOM 结构中提取对话标题
-        try {
-            // 1. 找到 data-test-id="conversation" 且 class 中包含 selected 的元素
-            const conversations = document.querySelectorAll('[data-test-id="conversation"]');
-            let selectedConversation = null;
-            
-            for (const conv of conversations) {
-                if (conv.className.includes('selected')) {
-                    selectedConversation = conv;
-                    break;
-                }
-            }
-            
-            if (!selectedConversation) return '';
-            
-            // 2. 找到 conversation-title 元素
-            const titleElement = selectedConversation.querySelector('.conversation-title');
-            if (!titleElement) return '';
-            
-            // 3. 提取直接文本节点（排除其他元素节点）
-            let textContent = '';
-            for (const node of titleElement.childNodes) {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    textContent += node.textContent || '';
-                }
-            }
-            
-            return textContent.trim();
-        } catch {
-            return '';
-        }
+        // Gemini 使用页面标题作为默认主题（与 ChatGPT 保持一致）
+        // 剔除尾部的 " - Google Gemini" 后缀
+        return (document.title || '').replace(/\s*-\s*Google Gemini\s*$/, '').trim();
     }
     
     /**

@@ -48,8 +48,9 @@
     let settingEnabled = true;
 
     class ScrollAnchor {
-        constructor(platformId) {
+        constructor(platformId, inputAdapter = null) {
             this.platformId = platformId;
+            this.inputAdapter = inputAdapter;
             this.enabled = false;
             this.pinning = false;
             this.scrollContainer = null;
@@ -169,7 +170,7 @@
 
         /** smartInputBox 的输入框 adapter（提供 getInputSelector / canSend / getSendButtonSelector） */
         _inputAdapter() {
-            return window.smartEnterAdapterRegistry?.getAdapter?.() || null;
+            return this.inputAdapter || null;
         }
 
         _inputSelector() {
@@ -349,10 +350,11 @@
     // ==================== 初始化入口 ====================
 
     let instance = null;
+    let initInFlight = false;
 
-    function getSupportedPlatformId() {
+    async function getSupportedPlatformId() {
         try {
-            const platform = typeof getCurrentPlatform === 'function' ? getCurrentPlatform() : null;
+            const platform = typeof getCurrentPlatform === 'function' ? await getCurrentPlatform() : null;
             if (!platform || !SUPPORTED_PLATFORMS.has(platform.id)) return null;
             return platform.id;
         } catch (e) {
@@ -377,18 +379,30 @@
         }
     }
 
-    function init() {
-        if (instance) return;
-        const platformId = getSupportedPlatformId();
-        if (!platformId) return;
-        instance = new ScrollAnchor(platformId);
-        instance.init();
-        loadSetting();
+    async function init() {
+        if (instance || initInFlight) return;
+        initInFlight = true;
+        try {
+            const platformId = await getSupportedPlatformId();
+            if (!platformId) return;
 
-        window.__aitPreventAutoScroll = {
-            notifyUserNavigation: (options) => instance.notifyUserNavigation(options),
-            settleUserNavigation: (options) => instance.settleUserNavigation(options)
-        };
+            const inputAdapter = (await window.smartEnterAdapterRegistry?.getAdapter?.()) || null;
+            if (!inputAdapter) return;
+
+            instance = new ScrollAnchor(platformId, inputAdapter);
+            instance.init();
+            loadSetting();
+
+            window.__aitPreventAutoScroll = {
+                notifyUserNavigation: (options) => instance.notifyUserNavigation(options),
+                settleUserNavigation: (options) => instance.settleUserNavigation(options)
+            };
+        } catch (error) {
+            console.error('[PreventAutoScroll] init failed:', error);
+            cleanup();
+        } finally {
+            initInFlight = false;
+        }
     }
 
     function cleanup() {

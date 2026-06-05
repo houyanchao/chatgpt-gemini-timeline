@@ -38,11 +38,6 @@ class SmartInputBoxTab extends BaseTab {
         const container = document.createElement('div');
         container.className = 'smart-input-box-settings';
         
-        // 平台列表（过滤掉 Claude，因其 Enter 键行为无法被拦截）
-        const smartInputPlatforms = (typeof getSiteInfoList === 'function' ? getSiteInfoList() : [])
-            .filter(p => p.features?.promptButton === true || p.features?.smartEnter === true)
-            .filter(p => p.id !== 'claude');
-        
         // ==================== 追问功能模块 ====================
         const quickAskSection = `
             <div class="setting-section">
@@ -91,19 +86,7 @@ class SmartInputBoxTab extends BaseTab {
                 <div class="platform-list-title">${chrome.i18n.getMessage('kvzmxp')}</div>
                 <div class="platform-list-hint">${hintHtml}</div>
                 
-                <div class="platform-list-container">
-                    ${smartInputPlatforms.map(platform => `
-                        <div class="platform-item">
-                            <div class="platform-info-left">
-                                <span class="platform-name">${platform.name}</span>
-                            </div>
-                            <label class="ait-toggle-switch">
-                                <input type="checkbox" class="platform-toggle" data-platform-id="${platform.id}">
-                                <span class="ait-toggle-slider"></span>
-                            </label>
-                        </div>
-                    `).join('')}
-                </div>
+                <div class="platform-list-container"></div>
             </div>
         `;
         
@@ -121,7 +104,40 @@ class SmartInputBoxTab extends BaseTab {
         await this.loadQuickAskSettings();
         await this.loadScrollToBottomSettings();
         await this.loadEnterModeSettings();
+        await this.renderPlatformList();
         await this.loadPlatformSettings();
+    }
+
+    /**
+     * 异步渲染平台列表
+     */
+    async renderPlatformList() {
+        try {
+            const siteInfoList = typeof getSiteInfoList === 'function'
+                ? await getSiteInfoList()
+                : [];
+            // 平台列表（过滤掉 Claude，因其 Enter 键行为无法被拦截）
+            const smartInputPlatforms = siteInfoList
+                .filter(p => p.features?.promptButton === true || p.features?.smartEnter === true)
+                .filter(p => p.id !== 'claude');
+
+            const listContainer = document.querySelector('.smart-input-box-settings .platform-list-container');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = smartInputPlatforms.map(platform => `
+                <div class="platform-item">
+                    <div class="platform-info-left">
+                        <span class="platform-name">${platform.name}</span>
+                    </div>
+                    <label class="ait-toggle-switch">
+                        <input type="checkbox" class="platform-toggle" data-platform-id="${platform.id}">
+                        <span class="ait-toggle-slider"></span>
+                    </label>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error('[SmartInputBoxTab] Failed to render platform list:', e);
+        }
     }
     
     /**
@@ -145,7 +161,7 @@ class SmartInputBoxTab extends BaseTab {
                 
                 if (window.AIChatTimelineQuickAsk) {
                     if (enabled) {
-                        window.AIChatTimelineQuickAsk.enable();
+                        await window.AIChatTimelineQuickAsk.enable();
                     } else {
                         window.AIChatTimelineQuickAsk.disable();
                     }

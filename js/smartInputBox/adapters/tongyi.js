@@ -8,7 +8,7 @@ class TongyiSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为通义千问页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('tongyi');
     }
     
@@ -72,4 +72,3 @@ class TongyiSmartEnterAdapter extends BaseSmartEnterAdapter {
         }, 50);
     }
 }
-

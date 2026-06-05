@@ -11,7 +11,7 @@ class ClaudeAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'claude');
     }
 
@@ -105,4 +105,3 @@ class ClaudeAdapter extends SiteAdapter {
         return !!stopPath;
     }
 }
-

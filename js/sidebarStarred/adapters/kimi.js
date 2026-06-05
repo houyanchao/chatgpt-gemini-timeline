@@ -8,7 +8,7 @@
  */
 
 class KimiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'kimi');
     }
 

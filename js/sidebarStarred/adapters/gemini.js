@@ -18,7 +18,7 @@
 class GeminiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     static CHATS_SECTION_SELECTOR = '[data-test-id="chats-expandable-section"]';
 
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'gemini');
     }
 

@@ -39,12 +39,12 @@ class SidebarStarredAdapterRegistry {
 
     /**
      * 获取匹配当前页面的适配器
-     * @returns {BaseSidebarStarredAdapter|null}
+     * @returns {Promise<BaseSidebarStarredAdapter|null>}
      */
-    getAdapter() {
+    async getAdapter() {
         for (const adapter of this.adapters) {
             try {
-                if (adapter.matches()) return adapter;
+                if (await adapter.matches()) return adapter;
             } catch (e) {
                 console.error('[SidebarStarredRegistry] Adapter check failed:', e);
             }

@@ -70,7 +70,10 @@ class StarredTab extends BaseTab {
             );
         });
         this.addEventListener(addFolderBtn, 'mouseleave', () => { window.globalTooltipManager.hide(); });
-        this.addEventListener(addFolderBtn, 'click', () => this.treeRenderer.handleCreateFolder());
+        this.addEventListener(addFolderBtn, 'click', () => {
+            void this.treeRenderer.handleCreateFolder()
+                .catch(e => console.error('[StarredTab] Failed to create folder:', e));
+        });
         toolbar.appendChild(addFolderBtn);
 
         const searchInput = document.createElement('input');
@@ -82,14 +85,16 @@ class StarredTab extends BaseTab {
 
         this.addEventListener(searchInput, 'input', (e) => {
             this.setState('searchQuery', e.target.value.trim().toLowerCase());
-            this.updateList();
+            void this.updateList()
+                .catch(err => console.error('[StarredTab] Failed to update list:', err));
         });
         this.addEventListener(searchInput, 'keydown', (e) => {
             if (e.key === 'Escape') {
                 const input = this.getDomRef('searchInput');
                 if (input) input.value = '';
                 this.setState('searchQuery', '');
-                this.updateList();
+                void this.updateList()
+                    .catch(err => console.error('[StarredTab] Failed to update list:', err));
             }
         });
         this.setDomRef('searchInput', searchInput);
@@ -102,11 +107,27 @@ class StarredTab extends BaseTab {
         this.setDomRef('listContainer', listContainer);
         container.appendChild(listContainer);
 
-        const sidebarPlatforms = typeof getPlatformsByFeature === 'function' ? getPlatformsByFeature('sidebarStarred') : [];
+        const sidebarSettingsContainer = document.createElement('div');
+        sidebarSettingsContainer.className = 'starred-sidebar-settings-container';
+        this.setDomRef('sidebarSettingsContainer', sidebarSettingsContainer);
+        container.appendChild(sidebarSettingsContainer);
+
+        return container;
+    }
+
+    async renderSidebarSettings() {
+        const sidebarSettingsContainer = this.getDomRef('sidebarSettingsContainer');
+        if (!sidebarSettingsContainer) return;
+
+        const sidebarPlatforms = typeof getPlatformsByFeature === 'function'
+            ? await getPlatformsByFeature('sidebarStarred')
+            : [];
+        sidebarSettingsContainer.innerHTML = '';
+
         if (sidebarPlatforms.length > 0) {
             const divider = document.createElement('div');
             divider.className = 'starred-sidebar-divider';
-            container.appendChild(divider);
+            sidebarSettingsContainer.appendChild(divider);
 
             const hideToggleSection = document.createElement('div');
             hideToggleSection.className = 'starred-hide-toggle-section';
@@ -122,12 +143,12 @@ class StarredTab extends BaseTab {
                     </label>
                 </div>
             `;
-            container.appendChild(hideToggleSection);
+            sidebarSettingsContainer.appendChild(hideToggleSection);
 
             const hideToggle = hideToggleSection.querySelector('#hide-starred-from-list-toggle');
             StorageAdapter.get('hideStarredFromNativeList').then(val => {
                 hideToggle.checked = !!val;
-            });
+            }).catch(e => console.error('[StarredTab] Failed to load hide starred setting:', e));
             this.addEventListener(hideToggle, 'change', async () => {
                 await StorageAdapter.set('hideStarredFromNativeList', hideToggle.checked);
             });
@@ -143,21 +164,21 @@ class StarredTab extends BaseTab {
                     <button class="starred-manage-btn">${chrome.i18n.getMessage('promptBtnSwitch') || '开关'}</button>
                 </div>
             `;
-            container.appendChild(manageSection);
+            sidebarSettingsContainer.appendChild(manageSection);
 
             const manageBtn = manageSection.querySelector('.starred-manage-btn');
             this.addEventListener(manageBtn, 'click', () => {
-                this._showPlatformManageModal(sidebarPlatforms);
+                void this._showPlatformManageModal(sidebarPlatforms)
+                    .catch(e => console.error('[StarredTab] Failed to show platform modal:', e));
             });
         }
-
-        return container;
     }
 
     // ==================== 生命周期 ====================
 
     async mounted() {
         super.mounted();
+        await this.renderSidebarSettings();
         await this.updateList();
         this.addStorageListener(async () => {
             if (window.panelModal && window.panelModal.currentTabId === 'starred') {
@@ -174,7 +195,7 @@ class StarredTab extends BaseTab {
 
     async updateList() {
         const tree = await this.folderManager.getStarredByFolder();
-        this.treeRenderer.renderTree(tree);
+        await this.treeRenderer.renderTree(tree);
     }
 
     // ==================== 平台管理弹窗 ====================

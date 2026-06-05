@@ -13,9 +13,12 @@
 
     const STORAGE_KEY = 'mirrorSiteSourceDomain';
     const DETECT_TIMEOUT_MS = 10000;
+    const DETECT_DEBOUNCE_MS = 300;
 
-    function getSiteInfo() {
-        if (typeof getSiteInfoList === 'function') return getSiteInfoList();
+    let _detectInFlight = false;
+
+    async function getSiteInfo() {
+        if (typeof getSiteInfoList === 'function') return await getSiteInfoList();
         if (typeof SITE_INFO !== 'undefined' && Array.isArray(SITE_INFO)) return SITE_INFO;
         return [];
     }
@@ -28,11 +31,12 @@
         return normalizeDomain(location.hostname);
     }
 
-    function isBuiltInSite(domain) {
+    async function isBuiltInSite(domain) {
         const hostname = normalizeDomain(domain);
         if (!hostname) return false;
 
-        return getSiteInfo().some(platform =>
+        const siteInfo = await getSiteInfo();
+        return siteInfo.some(platform =>
             Array.isArray(platform.sites) &&
             platform.sites.some(site => {
                 const builtInDomain = normalizeDomain(site);
@@ -41,30 +45,51 @@
         );
     }
 
-    function getSmartInputAdapters() {
-        try {
-            if (window.smartEnterAdapterRegistry?.getAllAdapters) {
-                return window.smartEnterAdapterRegistry.getAllAdapters();
-            }
-        } catch {
-            // Ignore unavailable registry.
-        }
-        return [];
-    }
-
-    function findSourcePlatformByInput() {
-        for (const adapter of getSmartInputAdapters()) {
+    /**
+     * 从全局站点适配器注册表取「平台 id → 提问节点选择器」。
+     * 平台清单的唯一真源是 SiteAdapterRegistry，这里只消费，不再单独维护。
+     * 自定义站点适配器没有 platformId，会被自动过滤。
+     */
+    function getQuestionNodeSelectors() {
+        const adapters = window.siteAdapterRegistry?.getAllAdapters?.() || [];
+        const selectors = [];
+        for (const adapter of adapters) {
             try {
-                const selector = adapter.getInputSelector?.();
-                const platformId = adapter.platformId;
-                if (selector && platformId && document.querySelector(selector)) {
-                    return platformId;
+                const platformId = adapter?.platformId;
+                const selector = adapter?.getUserMessageSelector?.();
+                if (platformId && selector) {
+                    selectors.push({ platformId, selector });
                 }
             } catch {
-                // Ignore invalid or unsupported selectors.
+                // 忽略无法提供提问节点选择器的适配器。
             }
         }
-        return null;
+        return selectors;
+    }
+
+    function hasQuestionNode(selector) {
+        if (!selector) return false;
+
+        try {
+            const nodes = document.querySelectorAll(selector);
+            return Array.from(nodes).some(node => {
+                if (!node?.isConnected) return false;
+                const rect = node.getBoundingClientRect?.();
+                if (rect && rect.width > 0 && rect.height > 0) return true;
+                return !!(node.textContent || '').trim() || node.childElementCount > 0;
+            });
+        } catch {
+            return false;
+        }
+    }
+
+    function findSourcePlatformByQuestionNode() {
+        const matched = getQuestionNodeSelectors()
+            .filter(entry => hasQuestionNode(entry.selector))
+            .map(entry => entry.platformId);
+
+        // 仅当唯一一家命中时才可信；多家命中（选择器撞车）无法判定来源，返回 null。
+        return matched.length === 1 ? matched[0] : null;
     }
 
     async function getMirrorSiteMap() {
@@ -102,41 +127,73 @@
         if (!domain) return false;
 
         // 第一重判断：是否已存在于 getSiteInfoList（内置域名 + 已合并的镜像域名）
-        if (isBuiltInSite(domain)) return true;
+        if (await isBuiltInSite(domain)) return true;
 
         // 第二重判断：是否已保存在 storage 的 mirrorSiteSourceDomain 中
         const map = await getMirrorSiteMap();
         if (isSavedMirrorDomain(map, domain)) return true;
 
-        // 以上都判定为未知域名，才探测输入框以确定来源平台
-        const platformId = findSourcePlatformByInput();
+        // 以上都判定为未知域名，才探测页面提问节点以确定来源平台
+        const platformId = findSourcePlatformByQuestionNode();
         if (!platformId) return false;
 
         await saveMirrorSiteDomain(platformId, domain, map);
         return true;
     }
 
+    /**
+     * 带 in-flight 守卫的检测：并发触发时跳过，避免重叠的 storage 读写。
+     * @returns {Promise<boolean>}
+     */
+    async function detectAndSaveMirrorSiteGuarded() {
+        if (_detectInFlight) return false;
+        _detectInFlight = true;
+        try {
+            return await detectAndSaveMirrorSite();
+        } finally {
+            _detectInFlight = false;
+        }
+    }
+
     function initMirrorSiteDetector() {
         if (!document.body) return;
 
-        detectAndSaveMirrorSite().then((matched) => {
+        detectAndSaveMirrorSiteGuarded().then((matched) => {
             if (matched) return;
 
             const startedAt = Date.now();
+            let debounceTimer = null;
+            let stopped = false;
+
             const observer = new MutationObserver(() => {
+                if (stopped) return;
                 if (Date.now() - startedAt > DETECT_TIMEOUT_MS) {
-                    observer.disconnect();
+                    stop();
                     return;
                 }
 
-                detectAndSaveMirrorSite().then((found) => {
-                    if (found) observer.disconnect();
-                });
+                // 防抖：DOM 高频变动时合并为一次检测
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    debounceTimer = null;
+                    detectAndSaveMirrorSiteGuarded()
+                        .then((found) => {
+                            if (found) stop();
+                        })
+                        .catch(error => console.error('[MirrorSiteDetector] Failed to detect mirror site:', error));
+                }, DETECT_DEBOUNCE_MS);
             });
 
+            function stop() {
+                if (stopped) return;
+                stopped = true;
+                if (debounceTimer) clearTimeout(debounceTimer);
+                observer.disconnect();
+            }
+
             observer.observe(document.body, { childList: true, subtree: true });
-            setTimeout(() => observer.disconnect(), DETECT_TIMEOUT_MS);
-        });
+            setTimeout(stop, DETECT_TIMEOUT_MS);
+        }).catch(error => console.error('[MirrorSiteDetector] Failed to initialize detection:', error));
     }
 
     window.MirrorSiteDetector = {

@@ -24,15 +24,18 @@ class QuickAskManager {
         this._boundHandlers = null;
         this._position = 'topLeft'; // 默认位置
         this._adapterRegistry = null; // 独立查找对话容器用，延迟初始化
+        this._cachedAdapter = null;
+        this._inputAdapter = null;
     }
     
     /**
      * 初始化
      */
-    init() {
+    async init() {
         if (this.isEnabled) return;
         
-        this._loadPosition();
+        await this._loadPosition();
+        await this._ensureAdapter();
         this._createButton();
         this._bindEvents();
         this.isEnabled = true;
@@ -42,10 +45,11 @@ class QuickAskManager {
     /**
      * 启用功能
      */
-    enable() {
+    async enable() {
         if (this.isEnabled) return;
         
-        this._loadPosition();
+        await this._loadPosition();
+        await this._ensureAdapter();
         this._createButton();
         this._bindEvents();
         this.isEnabled = true;
@@ -55,10 +59,35 @@ class QuickAskManager {
     /**
      * 加载平台配置的按钮位置
      */
-    _loadPosition() {
+    async _ensureAdapter() {
+        if (!this._cachedAdapter) {
+            try {
+                if (typeof SiteAdapterRegistry !== 'undefined') {
+                    if (!this._adapterRegistry) {
+                        this._adapterRegistry = new SiteAdapterRegistry();
+                    }
+                    this._cachedAdapter = await this._adapterRegistry.detectAdapter();
+                }
+            } catch (e) {
+                this._cachedAdapter = null;
+            }
+        }
+
+        if (!this._inputAdapter) {
+            try {
+                this._inputAdapter = (await window.smartEnterAdapterRegistry?.getAdapter?.()) || null;
+            } catch (e) {
+                this._inputAdapter = null;
+            }
+        }
+
+        return this._cachedAdapter;
+    }
+
+    async _loadPosition() {
         try {
             if (typeof getCurrentPlatform === 'function') {
-                const platform = getCurrentPlatform();
+                const platform = await getCurrentPlatform();
                 if (platform?.features?.quickAskPosition) {
                     this._position = platform.features.quickAskPosition;
                 }
@@ -306,11 +335,7 @@ class QuickAskManager {
         if (tlContainer && tlContainer.isConnected) return tlContainer;
 
         try {
-            if (!this._adapterRegistry) {
-                if (typeof SiteAdapterRegistry === 'undefined') return null;
-                this._adapterRegistry = new SiteAdapterRegistry();
-            }
-            const adapter = this._adapterRegistry.detectAdapter();
+            const adapter = this._cachedAdapter;
             if (!adapter) return null;
 
             const selector = adapter.getUserMessageSelector();
@@ -770,7 +795,7 @@ class QuickAskManager {
      */
     _findInputElement() {
         try {
-            const adapter = window.smartEnterAdapterRegistry?.getAdapter?.();
+            const adapter = this._inputAdapter;
             const selector = adapter?.getInputSelector?.();
             if (!selector) return null;
             const elements = document.querySelectorAll(selector);
@@ -809,6 +834,8 @@ class QuickAskManager {
             this.buttonElement = null;
         }
         this._adapterRegistry = null;
+        this._cachedAdapter = null;
+        this._inputAdapter = null;
         this._savedRange = null;
     }
 }

@@ -83,12 +83,12 @@ class SmartEnterAdapterRegistry {
     
     /**
      * 获取当前页面匹配的适配器
-     * @returns {BaseSmartEnterAdapter|null}
+     * @returns {Promise<BaseSmartEnterAdapter|null>}
      */
-    getAdapter() {
+    async getAdapter() {
         for (const adapter of this.adapters) {
             try {
-                if (adapter.matches()) {
+                if (await adapter.matches()) {
                     return adapter;
                 }
             } catch (e) {

@@ -18,7 +18,7 @@
  */
 
 class TongyiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'tongyi');
     }
 

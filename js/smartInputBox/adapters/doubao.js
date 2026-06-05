@@ -8,7 +8,7 @@ class DoubaoSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为豆包页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('doubao');
     }
     
@@ -36,5 +36,4 @@ class DoubaoSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 10, left: -2 };
     }
 }
-
 

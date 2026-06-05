@@ -12,7 +12,7 @@ class PerplexityAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'perplexity');
     }
 
@@ -89,5 +89,4 @@ class PerplexityAdapter extends SiteAdapter {
         return !!stopBtn;
     }
 }
-
 

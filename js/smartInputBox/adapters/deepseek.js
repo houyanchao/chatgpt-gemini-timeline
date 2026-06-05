@@ -8,7 +8,7 @@ class DeepSeekSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 DeepSeek 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('deepseek');
     }
     
@@ -36,5 +36,4 @@ class DeepSeekSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 10, left: -2 };
     }
 }
-
 

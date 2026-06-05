@@ -76,6 +76,8 @@
     
     let runnerManagerInstance = null;
     let unsubscribeObserver = null;  // DOMObserverManager 取消订阅函数
+    let initialized = false;
+    let initInFlight = false;
 
     // ===== 工具函数 =====
 
@@ -743,15 +745,11 @@
     /**
      * 检查当前网站是否为已知 AI 平台（getSiteInfoList 白名单）
      * 只在 AI 平台上启用代码检测，其他网站直接跳过
-     * @returns {boolean}
+     * @returns {Promise<boolean>}
      */
-    function isAiPlatform() {
+    async function isAiPlatform() {
         try {
-            const hostname = location.hostname;
-            if (typeof getSiteInfoList !== 'function') return false;
-            return getSiteInfoList().some(platform =>
-                platform.sites.some(site => hostname.includes(site))
-            );
+            return typeof getCurrentPlatform === 'function' && !!(await getCurrentPlatform());
         } catch {
             return false;
         }
@@ -761,48 +759,58 @@
      * 初始化 Runner 模块
      */
     async function initialize() {
-        // 只在已知 AI 平台上运行
-        if (!isAiPlatform()) {
-            return;
-        }
+        if (initialized || initInFlight) return;
+        initInFlight = true;
+        try {
+            // 只在已知 AI 平台上运行
+            if (!(await isAiPlatform())) {
+                return;
+            }
 
-        // 检查是否有任何语言启用
-        const [jsEnabled, tsEnabled, sqlEnabled, htmlEnabled, jsonEnabled, mdEnabled, mermaidEnabled] = await Promise.all([
-            isJavaScriptRunnerEnabled(),
-            isTypeScriptRunnerEnabled(),
-            isSQLRunnerEnabled(),
-            isHtmlRunnerEnabled(),
-            isJsonRunnerEnabled(),
-            isMarkdownRunnerEnabled(),
-            isMermaidRendererEnabled()
-        ]);
-        
-        if (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled) {
-            console.log('[Runner] All runners are disabled, skipping initialization');
-            return;
-        }
-        
-        // Mermaid 图表点击全屏（事件委托，只注册一次）
-        if (window.MermaidRenderer) {
-            document.addEventListener('click', (e) => {
-                const preview = e.target.closest('.runner-mermaid-preview');
-                if (preview) {
-                    const svg = preview.innerHTML;
-                    if (svg) window.MermaidRenderer.openFullscreen(svg);
-                }
+            // 检查是否有任何语言启用
+            const [jsEnabled, tsEnabled, sqlEnabled, htmlEnabled, jsonEnabled, mdEnabled, mermaidEnabled] = await Promise.all([
+                isJavaScriptRunnerEnabled(),
+                isTypeScriptRunnerEnabled(),
+                isSQLRunnerEnabled(),
+                isHtmlRunnerEnabled(),
+                isJsonRunnerEnabled(),
+                isMarkdownRunnerEnabled(),
+                isMermaidRendererEnabled()
+            ]);
+
+            if (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled) {
+                console.log('[Runner] All runners are disabled, skipping initialization');
+                return;
+            }
+
+            // Mermaid 图表点击全屏（事件委托，只注册一次）
+            if (window.MermaidRenderer && !document.documentElement.dataset.runnerMermaidFullscreenBound) {
+                document.documentElement.dataset.runnerMermaidFullscreenBound = 'true';
+                document.addEventListener('click', (e) => {
+                    const preview = e.target.closest('.runner-mermaid-preview');
+                    if (preview) {
+                        const svg = preview.innerHTML;
+                        if (svg) window.MermaidRenderer.openFullscreen(svg);
+                    }
+                });
+            }
+
+            // 初始扫描
+            await scanCodeBlocks();
+
+            // 使用 DOMObserverManager 监听 DOM 变化
+            // 防抖 500ms：等代码块输出完整后再添加 Run 按钮
+            unsubscribeObserver = window.DOMObserverManager.getInstance().subscribeBody('runner', {
+                callback: () => scanCodeBlocks(),
+                filter: { hasAddedNodes: true },
+                debounce: CONFIG.stableDelay  // 500ms 防抖
             });
+            initialized = true;
+        } catch (error) {
+            console.error('[Runner] Initialization failed:', error);
+        } finally {
+            initInFlight = false;
         }
-
-        // 初始扫描
-        await scanCodeBlocks();
-        
-        // 使用 DOMObserverManager 监听 DOM 变化
-        // 防抖 500ms：等代码块输出完整后再添加 Run 按钮
-        unsubscribeObserver = window.DOMObserverManager.getInstance().subscribeBody('runner', {
-            callback: () => scanCodeBlocks(),
-            filter: { hasAddedNodes: true },
-            debounce: CONFIG.stableDelay  // 500ms 防抖
-        });
     }
 
     /**
@@ -818,6 +826,7 @@
             runnerManagerInstance.cleanup();
             runnerManagerInstance = null;
         }
+        initialized = false;
     }
 
     // ===== 暴露接口 =====

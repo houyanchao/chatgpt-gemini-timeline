@@ -10,7 +10,7 @@ class DoubaoAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'doubao');
     }
 
@@ -187,4 +187,3 @@ class DoubaoAdapter extends SiteAdapter {
     }
     
 }
-

@@ -8,7 +8,7 @@
 class BaseSmartEnterAdapter {
     /**
      * 检测是否匹配当前页面
-     * @returns {boolean}
+     * @returns {boolean|Promise<boolean>}
      */
     matches() {
         throw new Error('BaseSmartEnterAdapter.matches() must be implemented');
@@ -69,4 +69,3 @@ class BaseSmartEnterAdapter {
         return { top: 0, left: 0 };
     }
 }
-

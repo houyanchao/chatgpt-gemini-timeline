@@ -14,10 +14,12 @@
 (function() {
     'use strict';
 
+    let initInFlight = false;
+
     // ✅ 检查当前平台是否支持智能输入功能
-    function isPlatformSupported() {
+    async function isPlatformSupported() {
         try {
-            const platform = getCurrentPlatform();
+            const platform = await getCurrentPlatform();
             if (!platform) return false;
 
             // 检查平台是否支持智能输入功能（提示词按钮或智能回车之一）
@@ -29,6 +31,8 @@
     
     // 等待 DOM 和依赖加载完成
     const initSmartInputBox = async () => {
+        if (window.smartEnterManager || initInFlight) return;
+        initInFlight = true;
         try {
             // 检查依赖是否加载
             if (typeof SmartEnterAdapterRegistry === 'undefined') {
@@ -48,7 +52,7 @@
                 return;
             }
             
-            const adapter = registry.getAdapter();
+            const adapter = await registry.getAdapter();
             
             if (!adapter) {
                 // 当前页面不匹配任何适配器，不启用功能
@@ -56,7 +60,7 @@
             }
             
             // ✅ 检查当前平台是否支持智能输入功能
-            if (!isPlatformSupported()) {
+            if (!(await isPlatformSupported())) {
                 return;
             }
             
@@ -74,6 +78,8 @@
             
         } catch (error) {
             console.error('[SmartInputBox] Initialization failed:', error);
+        } finally {
+            initInFlight = false;
         }
     };
     
@@ -86,4 +92,3 @@
     }
     
 })();
-

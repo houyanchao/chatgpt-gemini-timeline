@@ -41,13 +41,12 @@ const SMART_ENTER_CONFIG = {
 /**
  * 检查当前页面是否匹配某个平台（别名函数，保持向后兼容）
  * @param {string} platformId - 平台 ID
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
 const matchesSmartInputPlatform = matchesCurrentPlatform;
 
 /**
  * 获取当前页面匹配的平台（别名函数，保持向后兼容）
- * @returns {Object|null} 平台信息
+ * @returns {Promise<Object|null>} 平台信息
  */
 const getCurrentSmartInputPlatform = getCurrentPlatform;
-

@@ -51,12 +51,16 @@ class SmartEnterManager {
         
         // ✅ 提示词按钮管理器
         this.promptButtonManager = null;
+        this._currentPlatform = null;
     }
     
     /**
      * 初始化
      */
     async init() {
+        // ✅ 预加载平台信息（平台配置现在异步获取，缓存供同步方法使用）
+        this._currentPlatform = await getCurrentPlatform();
+
         // 1. 加载平台设置
         await this._loadPlatformSettings();
         
@@ -116,7 +120,7 @@ class SmartEnterManager {
      */
     _isPlatformEnabled() {
         try {
-            const platform = getCurrentPlatform();
+            const platform = this._currentPlatform;
             if (!platform) return true; // 未知平台，默认启用
             
             // ✅ 首先检查平台是否支持智能回车功能
@@ -749,4 +753,3 @@ class SmartEnterManager {
         this._resetState();
     }
 }
-

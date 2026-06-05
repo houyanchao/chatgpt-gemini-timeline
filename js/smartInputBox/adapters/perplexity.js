@@ -8,7 +8,7 @@ class PerplexitySmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 Perplexity 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('perplexity');
     }
     
@@ -36,4 +36,3 @@ class PerplexitySmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 8, left: -2 };
     }
 }
-

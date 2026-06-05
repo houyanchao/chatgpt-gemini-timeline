@@ -19,12 +19,15 @@
     let adapterRegistry = null;
     let currentAdapter = null;
     let currentUrl = location.href;
+    let initInFlight = false;
+    let urlListenerAttached = false;
+    let settingsListenerAttached = false;
     
     // 检查当前平台是否支持引用回复功能
-    function isQuickAskSupported() {
+    async function isQuickAskSupported() {
         try {
             if (typeof getCurrentPlatform === 'undefined') return false;
-            const platform = getCurrentPlatform();
+            const platform = await getCurrentPlatform();
             if (!platform) return false;
             
             return platform.features?.quickAsk === true;
@@ -34,7 +37,7 @@
     }
     
     // 检查是否在对话页面
-    function isConversationPage() {
+    async function isConversationPage() {
         try {
             if (!adapterRegistry) {
                 if (typeof SiteAdapterRegistry === 'undefined') return false;
@@ -42,7 +45,7 @@
             }
             
             if (!currentAdapter) {
-                currentAdapter = adapterRegistry.detectAdapter();
+                currentAdapter = await adapterRegistry.detectAdapter();
             }
             
             if (!currentAdapter) return false;
@@ -68,11 +71,11 @@
         if (!manager || !isSupported) return;
         
         const enabled = await isQuickAskEnabled();
-        const onConversationPage = isConversationPage();
+        const onConversationPage = await isConversationPage();
         
         if (enabled && onConversationPage) {
             if (!manager.isEnabled) {
-                manager.enable();
+                await manager.enable();
             }
         } else {
             if (manager.isEnabled) {
@@ -86,20 +89,30 @@
         // 检测 URL 是否真的变化了
         if (location.href === currentUrl) return;
         currentUrl = location.href;
-        updateQuickAskState();
+        void updateQuickAskState()
+            .catch(error => console.error('[QuickAsk] Failed to update state after URL change:', error));
     }
     
     // 监听 URL 变化（SPA 路由切换，由 UrlChangeMonitor 统一管理）
     function setupUrlChangeListener() {
+        if (urlListenerAttached) return;
+        urlListenerAttached = true;
         window.addEventListener('url:change', handleUrlChange);
     }
     
     // 初始化
     const initQuickAsk = async () => {
+        if (initInFlight) return;
+        initInFlight = true;
         try {
             // 检查平台是否支持
-            isSupported = isQuickAskSupported();
+            isSupported = await isQuickAskSupported();
             if (!isSupported) {
+                return;
+            }
+
+            if (manager) {
+                await updateQuickAskState();
                 return;
             }
             
@@ -122,17 +135,21 @@
             window.quickAskManager = manager;
             
             // 监听设置变化
-            chrome.storage.onChanged.addListener((changes, areaName) => {
-                if (areaName === 'local' && changes.quickAskEnabled !== undefined) {
-                    updateQuickAskState();
-                }
-            });
+            if (!settingsListenerAttached) {
+                settingsListenerAttached = true;
+                chrome.storage.onChanged.addListener((changes, areaName) => {
+                    if (areaName === 'local' && changes.quickAskEnabled !== undefined) {
+                        void updateQuickAskState()
+                            .catch(error => console.error('[QuickAsk] Failed to update state after settings change:', error));
+                    }
+                });
+            }
             
             // 暴露控制接口
             window.AIChatTimelineQuickAsk = {
-                enable: () => {
-                    if (manager && isSupported && isConversationPage()) {
-                        manager.enable();
+                enable: async () => {
+                    if (manager && isSupported && await isConversationPage()) {
+                        await manager.enable();
                     }
                 },
                 disable: () => {
@@ -146,6 +163,8 @@
             
         } catch (error) {
             console.error('[QuickAsk] Initialization failed:', error);
+        } finally {
+            initInFlight = false;
         }
     };
     

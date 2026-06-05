@@ -8,7 +8,7 @@ class ClaudeSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 Claude 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('claude');
     }
     
@@ -36,5 +36,4 @@ class ClaudeSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 10, left: -2 };
     }
 }
-
 

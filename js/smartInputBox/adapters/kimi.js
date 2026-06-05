@@ -8,7 +8,7 @@ class KimiSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 Kimi 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('kimi');
     }
     
@@ -44,4 +44,3 @@ class KimiSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 5, left: -2 };
     }
 }
-

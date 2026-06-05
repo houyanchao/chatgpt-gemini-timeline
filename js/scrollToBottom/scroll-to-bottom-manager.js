@@ -25,6 +25,7 @@ class ScrollToBottomManager {
         this.platformSettings = {};
         this.storageListener = null;
         this._unsubscribeObserver = null;
+        this._currentPlatform = null;
         
         // 事件处理器引用
         this._onResize = null;
@@ -42,6 +43,9 @@ class ScrollToBottomManager {
      * 初始化
      */
     async init() {
+        // ✅ 预加载平台信息（平台配置现在异步获取，缓存供同步方法使用）
+        this._currentPlatform = await getCurrentPlatform();
+
         // 1. 加载平台设置
         await this._loadPlatformSettings();
         
@@ -117,7 +121,7 @@ class ScrollToBottomManager {
             // 先检查全局开关
             if (!this.globalEnabled) return false;
             
-            const platform = getCurrentPlatform();
+            const platform = this._currentPlatform;
             if (!platform) return false;
             if (platform.features?.scrollToBottom !== true) return false;
             return this.platformSettings[platform.id] !== false;
@@ -457,31 +461,37 @@ class ScrollToBottomManager {
     'use strict';
     
     let scrollToBottomManager = null;
+    let initInFlight = false;
     
-    function isPlatformSupported() {
-        const platform = typeof getCurrentPlatform === 'function' ? getCurrentPlatform() : null;
+    async function isPlatformSupported() {
+        const platform = typeof getCurrentPlatform === 'function' ? await getCurrentPlatform() : null;
         return platform?.features?.scrollToBottom === true;
     }
     
-    function getAdapter() {
+    async function getAdapter() {
         // 使用全局已有的 registry 实例
         if (window.smartEnterAdapterRegistry) {
-            return window.smartEnterAdapterRegistry.getAdapter();
+            return await window.smartEnterAdapterRegistry.getAdapter();
         }
         return null;
     }
     
     async function init() {
-        if (!isPlatformSupported()) return;
-        
-        const adapter = getAdapter();
-        if (!adapter) return;
-        
+        if (scrollToBottomManager || initInFlight) return;
+        initInFlight = true;
         try {
+            if (!(await isPlatformSupported())) return;
+
+            const adapter = await getAdapter();
+            if (!adapter) return;
+
             scrollToBottomManager = new ScrollToBottomManager(adapter);
             await scrollToBottomManager.init();
         } catch (e) {
             console.error('[ScrollToBottom] Failed to initialize:', e);
+            scrollToBottomManager = null;
+        } finally {
+            initInFlight = false;
         }
     }
     

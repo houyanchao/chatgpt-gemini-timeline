@@ -123,10 +123,9 @@ class MirrorSiteTab extends BaseTab {
     render() {
         const container = document.createElement('div');
         container.className = 'mirror-site-settings';
-        const nativeSites = this._getNativeSupportedSites();
         const title = _mirrorSiteMsg('mirrorSiteAdapterHeroTitle');
         container.innerHTML = `
-            ${this._renderNativeSupportedSites(nativeSites)}
+            <div id="mirror-site-native-supported-sites"></div>
             <div class="mirror-site-tab-hero">
                 <div class="mirror-site-tab-hero-text">
                     <div class="mirror-site-tab-hero-title">${this._esc(title)}</div>
@@ -137,12 +136,12 @@ class MirrorSiteTab extends BaseTab {
         `;
         return container;
     }
-    _getNativeSupportedSites() {
+    async _getNativeSupportedSites() {
         if (typeof getSiteInfoList !== 'function') {
             return [];
         }
 
-        return getSiteInfoList()
+        return (await getSiteInfoList())
             .filter(site => site?.features?.timeline !== false)
             .map(site => ({
                 id: site.id,
@@ -177,7 +176,21 @@ class MirrorSiteTab extends BaseTab {
 
     async mounted() {
         super.mounted();
+        await this._renderNativeSupportedSitesIntoContainer();
         this._bindEvents();
+    }
+
+    async _renderNativeSupportedSitesIntoContainer() {
+        const container = document.getElementById('mirror-site-native-supported-sites');
+        if (!container) return;
+
+        try {
+            const nativeSites = await this._getNativeSupportedSites();
+            container.innerHTML = this._renderNativeSupportedSites(nativeSites);
+        } catch (e) {
+            console.error('[MirrorSiteTab] Failed to render native supported sites:', e);
+            container.innerHTML = '';
+        }
     }
 
     _bindEvents() {
@@ -219,7 +232,10 @@ class MirrorSiteTab extends BaseTab {
         _makeWizardModalDraggable(shell);
         shell.querySelector('.mirror-site-wizard-close')?.addEventListener('click', () => this._closeWizard());
         shell.querySelector('[data-action="close"]')?.addEventListener('click', () => this._closeWizard());
-        shell.querySelector('[data-action="go"]')?.addEventListener('click', () => this._handleUrlGo());
+        shell.querySelector('[data-action="go"]')?.addEventListener('click', () => {
+            void this._handleUrlGo()
+                .catch(e => console.error('[MirrorSiteTab] Failed to handle URL:', e));
+        });
         if (window.panelModal?.isVisible) {
             this._keepWizardOnUnmount = true;
             window.panelModal.hide();
@@ -265,7 +281,7 @@ class MirrorSiteTab extends BaseTab {
     }
 
     async _getExistingSupportForDomain(domain) {
-        const nativeSupport = this._findNativeSupportForDomain(domain);
+        const nativeSupport = await this._findNativeSupportForDomain(domain);
         if (nativeSupport) {
             return { type: 'native', name: nativeSupport.name, domain };
         }
@@ -278,12 +294,12 @@ class MirrorSiteTab extends BaseTab {
         return null;
     }
 
-    _findNativeSupportForDomain(domain) {
+    async _findNativeSupportForDomain(domain) {
         if (typeof getSiteInfoList !== 'function') {
             return null;
         }
 
-        return getSiteInfoList().find(platform =>
+        return (await getSiteInfoList()).find(platform =>
             Array.isArray(platform.sites) &&
             platform.sites.some(site => this._domainMatches(domain, site))
         ) || null;

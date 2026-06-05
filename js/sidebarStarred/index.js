@@ -11,25 +11,38 @@
  *   4. SPA 路由变化时由 Manager 内部的 reinjectTimer 自动处理
  */
 
-(function () {
+(async function () {
     const RETRY_DELAYS = [800, 1000, 1500, 2000, 2000, 3000];
 
     let manager = null;
+    let platform = null;
+    let adapter = null;
+    let initInFlight = false;
+    let bootstrapInFlight = false;
+    let settingsListenerAttached = false;
 
-    // ==================== Feature gate ====================
+    async function resolveSupport() {
+        platform = await getCurrentPlatform();
+        if (!platform || platform.features?.sidebarStarred !== true) {
+            platform = null;
+            adapter = null;
+            return false;
+        }
 
-    const platform = getCurrentPlatform();
-    if (!platform || platform.features?.sidebarStarred !== true) return;
+        const registry = window.sidebarStarredAdapterRegistry;
+        if (!registry) {
+            adapter = null;
+            return false;
+        }
 
-    const registry = window.sidebarStarredAdapterRegistry;
-    if (!registry) return;
-
-    const adapter = registry.getAdapter();
-    if (!adapter) return;
+        adapter = await registry.getAdapter();
+        return !!adapter;
+    }
 
     // ==================== Init with retry ====================
 
     function canInject() {
+        if (!adapter) return false;
         const info = adapter.findInsertionPoint();
         if (!info) return false;
         const { parent } = info;
@@ -38,17 +51,28 @@
     }
 
     async function initialize(retryIndex) {
-        if (manager) return;
-
-        manager = new SidebarStarredManager(adapter);
-        const ok = await manager.init();
-
-        if (!ok) {
-            manager.destroy();
-            manager = null;
-            if (retryIndex !== undefined) {
-                initWithRetry(retryIndex + 1);
+        if (manager || initInFlight) return;
+        initInFlight = true;
+        try {
+            if (!adapter) {
+                if (!await resolveSupport()) return;
             }
+
+            manager = new SidebarStarredManager(adapter);
+            const ok = await manager.init();
+
+            if (!ok) {
+                manager.destroy();
+                manager = null;
+                if (retryIndex !== undefined) {
+                    initWithRetry(retryIndex + 1);
+                }
+            }
+        } catch (error) {
+            console.error('[SidebarStarred] Initialize failed:', error);
+            destroyManager();
+        } finally {
+            initInFlight = false;
         }
     }
 
@@ -62,38 +86,63 @@
     function initWithRetry(retryIndex = 0) {
         if (retryIndex >= RETRY_DELAYS.length) return;
 
-        setTimeout(() => {
-            if (canInject()) {
-                initialize(retryIndex);
-            } else {
-                initWithRetry(retryIndex + 1);
+        setTimeout(async () => {
+            try {
+                if (!await resolveSupport()) return;
+                if (canInject()) {
+                    await initialize(retryIndex);
+                } else {
+                    initWithRetry(retryIndex + 1);
+                }
+            } catch (error) {
+                console.error('[SidebarStarred] Retry failed:', error);
             }
         }, RETRY_DELAYS[retryIndex]);
     }
 
     // ==================== 监听开关变化 ====================
 
-    StorageAdapter.addChangeListener((changes, areaName) => {
-        if (areaName !== 'local' || !changes.sidebarStarredPlatformSettings) return;
-        const settings = changes.sidebarStarredPlatformSettings.newValue || {};
-        const enabled = settings[platform.id] !== false;
-        if (enabled && !manager) {
-            if (canInject()) { initialize(0); } else { initWithRetry(); }
-        } else if (!enabled && manager) {
-            destroyManager();
-        }
-    });
+    function attachSettingsListener() {
+        if (settingsListenerAttached) return;
+        settingsListenerAttached = true;
+        StorageAdapter.addChangeListener((changes, areaName) => {
+            if (areaName !== 'local' || !changes.sidebarStarredPlatformSettings) return;
+            if (!platform) return;
+            const settings = changes.sidebarStarredPlatformSettings.newValue || {};
+            const enabled = settings[platform.id] !== false;
+            if (enabled && !manager) {
+                if (canInject()) {
+                    initialize(0);
+                } else {
+                    initWithRetry();
+                }
+            } else if (!enabled && manager) {
+                destroyManager();
+            }
+        });
+    }
 
     // ==================== Bootstrap ====================
 
     async function bootstrap() {
-        const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
-        if (settings && settings[platform.id] === false) return;
+        if (manager || bootstrapInFlight) return;
+        bootstrapInFlight = true;
+        try {
+            if (!await resolveSupport()) return;
+            attachSettingsListener();
 
-        if (canInject()) {
-            initialize(0);
-        } else {
-            initWithRetry();
+            const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
+            if (settings && settings[platform.id] === false) return;
+
+            if (canInject()) {
+                await initialize(0);
+            } else {
+                initWithRetry();
+            }
+        } catch (error) {
+            console.error('[SidebarStarred] Bootstrap failed:', error);
+        } finally {
+            bootstrapInFlight = false;
         }
     }
 

@@ -433,9 +433,25 @@ function _promptDropdownCreateCommonSettings({
 }
 
 function _promptDropdownIsGeminiPlatform() {
-    return typeof matchesCurrentPlatform === 'function'
-        ? matchesCurrentPlatform('gemini')
-        : location.hostname.includes('gemini.google.com');
+    // 优先用含镜像域名的同步判断（依赖 constants.js 的内存缓存），
+    // 这样 Gemini 镜像站也能显示「去水印」开关，与 watermark-manager 的判断保持一致。
+    if (typeof matchesCurrentPlatformSync === 'function') {
+        return matchesCurrentPlatformSync('gemini');
+    }
+
+    // 退化：constants.js 未加载时仅按内置域名判断。
+    const hostname = location.hostname;
+    const geminiPlatform = typeof SITE_INFO !== 'undefined' && Array.isArray(SITE_INFO)
+        ? SITE_INFO.find(site => site.id === 'gemini')
+        : null;
+    const geminiSites = Array.isArray(geminiPlatform?.sites)
+        ? geminiPlatform.sites
+        : ['gemini.google.com'];
+
+    return geminiSites.some(site => (
+        hostname === site ||
+        hostname.endsWith(`.${site}`)
+    ));
 }
 
 function _promptDropdownGetStoreReviewUrl() {

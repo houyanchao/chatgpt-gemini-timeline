@@ -139,11 +139,13 @@ class TimelineSettingsTab extends BaseTab {
         container.appendChild(bottomSection);
 
         this.addEventListener(bottomSection.querySelector('.starred-manage-btn'), 'click', () => {
-            this._showPlatformManageModal();
+            void this._showPlatformManageModal()
+                .catch(e => console.error('[TimelineSettingsTab] Failed to show platform modal:', e));
         });
 
         this.addEventListener(scrollArea.querySelector('.timeline-theme-color-manage-btn'), 'click', () => {
-            this._showThemeColorModal();
+            void this._showThemeColorModal()
+                .catch(e => console.error('[TimelineSettingsTab] Failed to show theme color modal:', e));
         });
 
         return container;
@@ -329,7 +331,7 @@ class TimelineSettingsTab extends BaseTab {
     }
 
     async _showPlatformManageModal() {
-        const platforms = getPlatformsByFeature('timeline');
+        const platforms = await getPlatformsByFeature('timeline');
         const result = await chrome.storage.local.get('timelinePlatformSettings');
         const settings = result.timelinePlatformSettings || {};
 
@@ -385,7 +387,7 @@ class TimelineSettingsTab extends BaseTab {
     }
 
     async _showThemeColorModal() {
-        const platforms = getPlatformsByFeature('timeline');
+        const platforms = await getPlatformsByFeature('timeline');
         const result = await chrome.storage.local.get('timelineActiveColorByPlatform');
         const activeColorByPlatform = result.timelineActiveColorByPlatform || {};
         const activeColorOptions = getTimelineActiveColorOptions();

@@ -12,7 +12,7 @@
  */
 
 class DeepSeekSidebarStarredAdapter extends BaseSidebarStarredAdapter {
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'deepseek');
     }
 

@@ -8,7 +8,7 @@ class NotebookLMSmartEnterAdapter extends BaseSmartEnterAdapter {
     /**
      * 检测是否为 NotebookLM 页面
      */
-    matches() {
+    async matches() {
         return matchesSmartInputPlatform('notebooklm');
     }
     
@@ -36,4 +36,3 @@ class NotebookLMSmartEnterAdapter extends BaseSmartEnterAdapter {
         return { top: 10, left: -15 };
     }
 }
-

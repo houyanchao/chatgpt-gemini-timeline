@@ -20,7 +20,7 @@
  */
 
 class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
-    matches() {
+    async matches() {
         return matchesPlatform(location.href, 'claude');
     }
 

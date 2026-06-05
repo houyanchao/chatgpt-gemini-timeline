@@ -202,7 +202,8 @@ class SidebarStarredManager {
     async _refreshContent() {
         if (this.isDestroyed || !this.container) return;
         const tree = await this.folderManager.getStarredByFolder();
-        this.treeRenderer.renderTree(tree);
+        if (this.isDestroyed || !this.container) return;
+        await this.treeRenderer.renderTree(tree);
         
         const hasContent = tree.folders.length > 0 || tree.uncategorized.length > 0;
         if (this.searchBtn) {
@@ -218,7 +219,7 @@ class SidebarStarredManager {
             if (changes.chatTimelineStars || changes.folders || changes.hideStarredFromNativeList) {
                 if (this._refreshDebounceTimer) clearTimeout(this._refreshDebounceTimer);
                 this._refreshDebounceTimer = setTimeout(() => {
-                    this._refreshContent();
+                    this._refreshContent().catch(error => console.error('[SidebarStarred] Refresh failed:', error));
                     this.adapter.refreshStarredIcons?.();
                 }, SidebarStarredManager.STORAGE_DEBOUNCE);
             }
@@ -245,12 +246,12 @@ class SidebarStarredManager {
                 this.container = null;
             }
             if (!this.container) {
-                if (this._injectIntoSidebar()) this._refreshContent();
+                if (this._injectIntoSidebar()) this._refreshContent().catch(error => console.error('[SidebarStarred] Refresh failed:', error));
                 this._startParentObserver();
             } else if (info.position === 'before' && info.reference && this.container.nextElementSibling !== info.reference) {
                 this.container.parentNode.removeChild(this.container);
                 this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent();
+                if (this._injectIntoSidebar()) this._refreshContent().catch(error => console.error('[SidebarStarred] Refresh failed:', error));
                 this._startParentObserver();
             }
         });
@@ -263,7 +264,7 @@ class SidebarStarredManager {
             const existing = document.querySelector(`.${SidebarStarredManager.CONTAINER_CLASS}`);
             if (!existing) {
                 this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent();
+                if (this._injectIntoSidebar()) this._refreshContent().catch(error => console.error('[SidebarStarred] Refresh failed:', error));
                 return;
             }
             const info = this.adapter.findInsertionPoint();
@@ -278,7 +279,7 @@ class SidebarStarredManager {
             if (needsReinject) {
                 if (existing.parentNode) existing.parentNode.removeChild(existing);
                 this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent();
+                if (this._injectIntoSidebar()) this._refreshContent().catch(error => console.error('[SidebarStarred] Refresh failed:', error));
             }
             this.adapter.refreshStarredIcons?.();
         }, SidebarStarredManager.REINJECT_INTERVAL);

@@ -15,8 +15,11 @@ class ChatWidthTab extends BaseTab {
         </svg>`;
     }
 
-    shouldShow() {
-        return !!getCurrentPlatform()?.features?.chatWidth;
+    async shouldShow() {
+        const platform = typeof getCurrentPlatform === 'function'
+            ? await getCurrentPlatform()
+            : null;
+        return !!platform?.features?.chatWidth;
     }
 
     render() {

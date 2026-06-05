@@ -17,7 +17,7 @@ class QwenAdapter extends SiteAdapter {
         super();
     }
 
-    matches(url) {
+    async matches(url) {
         return matchesPlatform(url, 'qwen');
     }
 

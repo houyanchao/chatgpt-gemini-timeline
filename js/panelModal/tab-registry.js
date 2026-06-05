@@ -48,7 +48,7 @@ const TAB_CONFIG = [
 /**
  * 注册所有可用的 tabs（按配置数组顺序）
  */
-function registerAllTabs() {
+async function registerAllTabs() {
     if (!window.panelModal) {
         console.error('[TabRegistry] PanelModal not initialized');
         return;
@@ -70,23 +70,26 @@ function registerAllTabs() {
         }
         
         const tabInstance = new TabClass();
-        if (typeof tabInstance.shouldShow === 'function' && !tabInstance.shouldShow()) {
+        const shouldShow = typeof tabInstance.shouldShow === 'function'
+            ? await tabInstance.shouldShow()
+            : true;
+        if (!shouldShow) {
             continue;
         }
         pm.registerTab(tabInstance);
-        }
+    }
 }
 
 /**
  * TimelineManager 初始化时调用（保持兼容）
  */
 function registerTimelineTabs() {
-    registerAllTabs();
+    return registerAllTabs();
 }
 
 /**
  * @deprecated 使用 registerTimelineTabs 代替
  */
 function initializePanelModalTabs() {
-    registerAllTabs();
+    return registerAllTabs();
 }

@@ -14,6 +14,9 @@ class PromptTab extends BaseTab {
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
         </svg>`;
+        this._platformInfoById = new Map();
+        this._smartInputPlatforms = [];
+        this._platformInfoLoaded = false;
     }
     
     /**
@@ -75,7 +78,8 @@ class PromptTab extends BaseTab {
         container.appendChild(bottomSection);
 
         this.addEventListener(bottomSection.querySelector('.starred-manage-btn'), 'click', () => {
-            this._showPlatformManageModal();
+            void this._showPlatformManageModal()
+                .catch(e => console.error('[PromptTab] Failed to show platform modal:', e));
         });
 
         return container;
@@ -89,6 +93,10 @@ class PromptTab extends BaseTab {
         
         // 加载提示词列表
         await this.loadPrompts();
+
+        // 加载平台信息缓存，列表渲染时同步读取
+        this._platformInfoLoaded = false;
+        await this._ensurePlatformInfoCache();
         
         // 渲染提示词列表
         this.renderPromptList();
@@ -138,8 +146,33 @@ class PromptTab extends BaseTab {
      * 根据 platformId 获取平台信息
      */
     _getPlatformInfo(platformId) {
-        if (!platformId || typeof getPlatformById !== 'function') return null;
-        return getPlatformById(platformId);
+        if (!platformId) return null;
+        return this._platformInfoById.get(platformId) || null;
+    }
+
+    async _ensurePlatformInfoCache() {
+        if (this._platformInfoLoaded) return;
+
+        const allPlatformOption = { id: '', name: chrome.i18n.getMessage('allptfm') };
+        try {
+            const siteInfoList = typeof getSiteInfoList === 'function'
+                ? await getSiteInfoList()
+                : [];
+
+            this._platformInfoById = new Map(siteInfoList.map(site => [site.id, site]));
+            this._smartInputPlatforms = [
+                allPlatformOption,
+                ...siteInfoList
+                    .filter(site => site.features?.promptButton === true)
+                    .map(site => ({ id: site.id, name: site.name }))
+            ];
+        } catch (e) {
+            console.error('[PromptTab] Failed to load platform info:', e);
+            this._platformInfoById = new Map();
+            this._smartInputPlatforms = [allPlatformOption];
+        } finally {
+            this._platformInfoLoaded = true;
+        }
     }
     
     /**
@@ -178,7 +211,7 @@ class PromptTab extends BaseTab {
         container.innerHTML = sortedPrompts.map((prompt) => {
             // 获取平台 logo
             const platform = this._getPlatformInfo(prompt.platformId);
-            const platformLogo = platform ? `<img class="prompt-platform-logo" src="${chrome.runtime.getURL(platform.logoPath)}" alt="${platform.name}" title="${platform.name}">` : '';
+            const platformLogo = platform?.logoPath ? `<img class="prompt-platform-logo" src="${chrome.runtime.getURL(platform.logoPath)}" alt="${platform.name}" title="${platform.name}">` : '';
             const promptName = this._escapeHtml(prompt.name || '');
             
             return `
@@ -234,7 +267,8 @@ class PromptTab extends BaseTab {
         const addBtn = document.getElementById('prompt-add-btn');
         if (addBtn) {
             this.addEventListener(addBtn, 'click', () => {
-                this.showPromptModal();
+                void this.showPromptModal()
+                    .catch(e => console.error('[PromptTab] Failed to show prompt modal:', e));
             });
         }
     }
@@ -248,7 +282,8 @@ class PromptTab extends BaseTab {
         pinBtns.forEach(btn => {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
-                this.togglePin(id);
+                void this.togglePin(id)
+                    .catch(err => console.error('[PromptTab] Failed to toggle pin:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-pin', 'button', btn, chrome.i18n.getMessage('pntotp') || '置顶');
@@ -263,7 +298,8 @@ class PromptTab extends BaseTab {
         editBtns.forEach(btn => {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
-                this.hsksuywm(id);
+                void this.hsksuywm(id)
+                    .catch(err => console.error('[PromptTab] Failed to edit prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-edit', 'button', btn, chrome.i18n.getMessage('vkpxzm') || '编辑');
@@ -278,7 +314,8 @@ class PromptTab extends BaseTab {
         deleteBtns.forEach(btn => {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
-                this.deletePrompt(id);
+                void this.deletePrompt(id)
+                    .catch(err => console.error('[PromptTab] Failed to delete prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-delete', 'button', btn, chrome.i18n.getMessage('mzxvkp') || '删除');
@@ -293,7 +330,8 @@ class PromptTab extends BaseTab {
         moveUpBtns.forEach(btn => {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
-                this.movePrompt(id, 'up');
+                void this.movePrompt(id, 'up')
+                    .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-move-up', 'button', btn, chrome.i18n.getMessage('mvupkt') || '上移');
@@ -308,7 +346,8 @@ class PromptTab extends BaseTab {
         moveDownBtns.forEach(btn => {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
-                this.movePrompt(id, 'down');
+                void this.movePrompt(id, 'down')
+                    .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-move-down', 'button', btn, chrome.i18n.getMessage('mvdnkt') || '下移');
@@ -374,28 +413,22 @@ class PromptTab extends BaseTab {
      * 获取支持智能输入的平台列表
      */
     _getSmartInputPlatforms() {
-        // id 为空表示全部平台
-        const platforms = [{ id: '', name: chrome.i18n.getMessage('allptfm') }];
-        if (typeof getSiteInfoList === 'function') {
-            getSiteInfoList().forEach(site => {
-                if (site.features?.promptButton === true) {
-                    platforms.push({ id: site.id, name: site.name });
-                }
-            });
-        }
-        return platforms;
+        return this._smartInputPlatforms.length > 0
+            ? [...this._smartInputPlatforms]
+            : [{ id: '', name: chrome.i18n.getMessage('allptfm') }];
     }
     
     /**
      * 显示提示词编辑弹窗
      */
-    showPromptModal(prompt = null) {
+    async showPromptModal(prompt = null) {
         const isEdit = !!prompt;
         const title = isEdit 
             ? (chrome.i18n.getMessage('hsksuywm'))
             : (chrome.i18n.getMessage('byaskjndg'));
         
         // 获取平台列表
+        await this._ensurePlatformInfoCache();
         const platforms = this._getSmartInputPlatforms();
         const currentPlatformId = prompt?.platformId || '';
         const currentPlatform = platforms.find(p => p.id === currentPlatformId) || platforms[0];
@@ -551,7 +584,10 @@ class PromptTab extends BaseTab {
         // 事件绑定
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
-        confirmBtn.addEventListener('click', savePrompt);
+        confirmBtn.addEventListener('click', () => {
+            void savePrompt()
+                .catch(e => console.error('[PromptTab] Failed to save prompt:', e));
+        });
     }
     
     /**
@@ -582,11 +618,11 @@ class PromptTab extends BaseTab {
     /**
      * 编辑提示词
      */
-    hsksuywm(id) {
+    async hsksuywm(id) {
         const prompts = this.getState('prompts') || [];
         const prompt = prompts.find(p => p.id === id);
         if (prompt) {
-            this.showPromptModal(prompt);
+            await this.showPromptModal(prompt);
         }
     }
     
@@ -648,7 +684,7 @@ class PromptTab extends BaseTab {
     }
     
     async _showPlatformManageModal() {
-        const platforms = getPlatformsByFeature('promptButton');
+        const platforms = await getPlatformsByFeature('promptButton');
         const result = await chrome.storage.local.get('promptButtonPlatformSettings');
         const settings = result.promptButtonPlatformSettings || {};
 
