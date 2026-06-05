@@ -837,7 +837,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Non trovi il sito di chat AI che usi? Che si tratti di un sito mirror AI, di una chat AI interna aziendale o di un sito AI di nicchia, puoi richiedere l'adattamento. Una volta completato, potrai sbloccare funzioni come Timeline, prompt e note rapide."
+    "message": "Il sito di chat AI che usi non è supportato? Che si tratti di una chat AI interna aziendale o di un sito AI di nicchia, puoi richiedere l'adattamento. Una volta completato, potrai sbloccare funzioni come Timeline, prompt e note rapide."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

@@ -837,7 +837,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Nie widzisz używanej przez siebie strony czatu AI? Niezależnie czy to lustrzana strona AI, wewnętrzny czat AI firmy, czy niszowa strona AI — możesz poprosić o adaptację. Po jej dodaniu odblokujesz funkcje takie jak oś czasu, prompty i szybkie notatki."
+    "message": "Używana przez Ciebie strona czatu AI nie jest obsługiwana? Niezależnie czy to wewnętrzny czat AI firmy, czy niszowa strona AI — możesz poprosić o adaptację. Po jej dodaniu odblokujesz funkcje takie jak oś czasu, prompty i szybkie notatki."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

@@ -837,7 +837,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "¿No encuentras el sitio de chat de IA que usas? Ya sea un sitio espejo de IA, un chat de IA interno de tu empresa o un sitio de IA poco común, puedes solicitar una adaptación. Una vez adaptado, podrás desbloquear funciones como «Cronología», «prompts» y «notas rápidas»."
+    "message": "¿El sitio de chat de IA que usas no es compatible? Ya sea un chat de IA interno de tu empresa o un sitio de IA poco común, puedes solicitar una adaptación. Una vez adaptado, podrás desbloquear funciones como «Cronología», «prompts» y «notas rápidas»."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

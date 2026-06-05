@@ -861,7 +861,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Can't find the AI chat site you use? Whether it's an AI mirror site, an internal company AI chat, or a niche AI site, you can request support. Once it's adapted, you'll unlock features like Timeline, prompts, and flash notes."
+    "message": "The AI chat site you use isn't supported? Whether it's an internal company AI chat or a niche AI site, you can request support. Once it's adapted, you'll unlock features like Timeline, prompts, and flash notes."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

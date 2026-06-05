@@ -19,6 +19,10 @@ const CHANGELOG_DATA = {
 
     features: [
         {
+            zh: '适配所有 ChatGPT、Gemini 镜像网站：无需手动配置，在常见镜像站上也能直接使用时间轴、闪记等全部功能',
+            en: 'Support all ChatGPT and Gemini mirror sites: timeline, quick notes and every other feature now work out of the box on common mirror sites—no setup needed'
+        },
+        {
             zh: '阻止发送后自动跳到底部：向上翻看历史时发消息，页面不再被强制拉到底部，始终停留在当前阅读位置，AI 生成过程中也不会打断你',
             en: 'Stay where you’re reading: send a message while scrolled up in the history and the page no longer jumps to the bottom—your reading position is kept, even while the AI is generating'
         },

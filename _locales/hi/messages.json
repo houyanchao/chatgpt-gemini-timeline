@@ -837,7 +837,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "आप जिस AI चैट साइट का उपयोग करते हैं वह नहीं मिल रही? चाहे वह AI मिरर साइट हो, कंपनी की आंतरिक AI चैट हो, या कोई कम-ज्ञात AI साइट हो — आप अनुकूलन का अनुरोध कर सकते हैं। अनुकूलन के बाद आप “Timeline”, prompts और flash notes जैसी सुविधाएँ अनलॉक कर सकेंगे।"
+    "message": "आप जिस AI चैट साइट का उपयोग करते हैं वह समर्थित नहीं है? चाहे वह कंपनी की आंतरिक AI चैट हो, या कोई कम-ज्ञात AI साइट हो — आप अनुकूलन का अनुरोध कर सकते हैं। अनुकूलन के बाद आप “Timeline”, prompts और flash notes जैसी सुविधाएँ अनलॉक कर सकेंगे।"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

@@ -837,7 +837,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Không thấy trang chat AI bạn đang dùng? Dù là trang chat AI mirror, trang chat AI nội bộ công ty hay trang AI ít phổ biến, bạn đều có thể yêu cầu hỗ trợ. Sau khi được điều chỉnh, bạn có thể mở khóa các tính năng như Dòng thời gian, prompt và ghi chú nhanh."
+    "message": "Trang chat AI bạn đang dùng chưa được hỗ trợ? Dù là trang chat AI nội bộ công ty hay trang AI ít phổ biến, bạn đều có thể yêu cầu hỗ trợ. Sau khi được điều chỉnh, bạn có thể mở khóa các tính năng như Dòng thời gian, prompt và ghi chú nhanh."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

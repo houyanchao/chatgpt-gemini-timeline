@@ -861,7 +861,7 @@
     "message": "適配新的 AI 平台"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "未找到你在用的 AI 對話網站？比如 AI 鏡像站、公司內部 AI 對話網站、小眾 AI 對話網站，都可申請適配，適配後可解鎖「時間軸、提示詞、閃記」等功能。"
+    "message": "不適配你在用的 AI 對話網站？比如公司內部 AI 對話網站、小眾 AI 對話網站，都可申請適配，適配後可解鎖「時間軸、提示詞、閃記」等功能。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "開始配置"

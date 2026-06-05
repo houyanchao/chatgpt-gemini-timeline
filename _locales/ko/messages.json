@@ -888,7 +888,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "사용 중인 AI 대화 사이트가 없나요? AI 미러 사이트, 사내 AI 대화 사이트, 잘 알려지지 않은 AI 사이트 모두 지원을 요청할 수 있습니다. 적용 후에는 ‘타임라인’, ‘프롬프트’, ‘플래시 노트’ 같은 기능을 사용할 수 있습니다."
+    "message": "사용 중인 AI 대화 사이트가 지원되지 않나요? 사내 AI 대화 사이트, 잘 알려지지 않은 AI 사이트 모두 지원을 요청할 수 있습니다. 적용 후에는 ‘타임라인’, ‘프롬프트’, ‘플래시 노트’ 같은 기능을 사용할 수 있습니다."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"
