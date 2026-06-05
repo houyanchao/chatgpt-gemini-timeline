@@ -4,7 +4,7 @@
  * Supports: 
  *   - chatgpt.com/c/xxx (普通对话)
  *   - chatgpt.com/g/xxx/c/xxx (GPT 对话)
- *   - chatgpt.com/share/e/xxx (分享页面)
+ *   - chatgpt.com/share/xxx 或 chatgpt.com/share/e/xxx (分享页面)
  *   - chat.openai.com (旧域名)
  */
 
@@ -170,10 +170,12 @@ class ChatGPTAdapter extends SiteAdapter {
             }
         }
         
-        // 检查分享页面路径: /share/e/{id}
+        // 检查分享页面路径: /share/{id} 或 /share/e/{id}
         const shareIndex = segs.indexOf('share');
-        if (shareIndex !== -1 && segs[shareIndex + 1] === 'e') {
-            const shareId = segs[shareIndex + 2];
+        if (shareIndex !== -1) {
+            const shareId = segs[shareIndex + 1] === 'e'
+                ? segs[shareIndex + 2]
+                : segs[shareIndex + 1];
             if (typeof shareId === 'string' && shareId.length > 0 && /^[A-Za-z0-9_-]+$/.test(shareId)) {
                 return true;
             }
@@ -200,10 +202,12 @@ class ChatGPTAdapter extends SiteAdapter {
                 if (slug && /^[A-Za-z0-9_-]+$/.test(slug)) return slug;
             }
             
-            // 尝试提取分享页面 ID: /share/e/{id}
+            // 尝试提取分享页面 ID: /share/{id} 或 /share/e/{id}
             const shareIndex = segs.indexOf('share');
-            if (shareIndex !== -1 && segs[shareIndex + 1] === 'e') {
-                const shareId = segs[shareIndex + 2];
+            if (shareIndex !== -1) {
+                const shareId = segs[shareIndex + 1] === 'e'
+                    ? segs[shareIndex + 2]
+                    : segs[shareIndex + 1];
                 if (shareId && /^[A-Za-z0-9_-]+$/.test(shareId)) return shareId;
             }
             

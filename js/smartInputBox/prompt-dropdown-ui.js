@@ -25,6 +25,7 @@ function createPromptDropdownUI({
     onSmartInputSettingsClick,
     onMirrorSiteClick,
     onSettingsClick,
+    showStoreDetailButton = true,
     tooltipPlacement = 'right'
 }) {
     const container = document.createElement('div');
@@ -53,7 +54,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            <button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+            ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="18" cy="5" r="3"/>
                     <circle cx="6" cy="12" r="3"/>
@@ -61,7 +62,7 @@ function createPromptDropdownUI({
                     <path d="M8.59 13.51 15.42 17.49"/>
                     <path d="M15.41 6.51 8.59 10.49"/>
                 </svg>
-            </button>
+            </button>` : ''}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = chrome.i18n.getMessage('byaskjndg') || '添加提示词';
@@ -115,7 +116,7 @@ function createPromptDropdownUI({
                 <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
             </div>
             <div class="prompt-dropdown-actions">
-                <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+                ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="18" cy="5" r="3"/>
                         <circle cx="6" cy="12" r="3"/>
@@ -123,7 +124,7 @@ function createPromptDropdownUI({
                         <path d="M8.59 13.51 15.42 17.49"/>
                         <path d="M15.41 6.51 8.59 10.49"/>
                     </svg>
-                </button>
+                </button>` : ''}
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
                         <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
