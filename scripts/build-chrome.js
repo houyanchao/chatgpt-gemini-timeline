@@ -5,7 +5,7 @@
  *
  * 直接打包 Chrome 版扩展（manifest.json 已是 Chrome MV3 版本）。
  *
- * 排除：开发文件（.git / .DS_Store / .gitignore / scripts / *.md / *.zip / .cursor 等）
+ * 排除：开发文件（.git / .DS_Store / .gitignore / scripts / web / *.md / *.zip / .cursor 等）
  *
  * 用法：
  *   node scripts/build-chrome.js
@@ -39,6 +39,7 @@ function build() {
         `-x "*.zip" ` +
         `-x "__MACOSX/*" ` +
         `-x "scripts/*" ` +
+        `-x "web/*" ` +
         `-x "manifest.firefox.json" ` +
         `-x "READMEIMAGE/*"`,
         { cwd: ROOT, stdio: 'pipe' }

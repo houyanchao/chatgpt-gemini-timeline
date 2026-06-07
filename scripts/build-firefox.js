@@ -104,6 +104,7 @@ function build() {
             `-x "*.zip" ` +
             `-x "__MACOSX/*" ` +
             `-x "scripts/*" ` +
+            `-x "web/*" ` +
             `-x "manifest.firefox.json"`,
             { cwd: ROOT, stdio: 'pipe' }
         );
