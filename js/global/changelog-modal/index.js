@@ -157,7 +157,7 @@ class ChangelogModal {
 
         const subtitle = document.createElement('div');
         subtitle.className = 'changelog-modal-subtitle';
-        const userCount = '34,000+';
+        const userCount = '37,000+';
         subtitle.textContent = chrome.i18n.getMessage('changelogSubtitle', [userCount]) || `${userCount} 用户在用，新版本体验再升级。`;
 
         headerContent.appendChild(title);
