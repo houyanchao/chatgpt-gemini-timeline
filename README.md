@@ -1,8 +1,8 @@
 <div align="center">
   <img src="./icons/icon128.png" alt="Timeline Logo" width="88" height="88">
   <h1>Timeline</h1>
-  <p><strong>面向 AI 对话页面的浏览器增强扩展</strong></p>
-  <p>为 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、通义千问、Grok、Perplexity、NotebookLM 等平台提供对话导航、收藏整理、输入增强、公式复制、代码运行与数据备份能力。</p>
+  <p><strong>A browser extension for AI chat pages</strong></p>
+  <p>Timeline adds conversation navigation, bookmark management, input enhancements, formula copy, code running, and data backup to ChatGPT, Gemini, Claude, DeepSeek, Kimi, Doubao, Qwen, Grok, Perplexity, NotebookLM, and other AI chat platforms.</p>
 
   <p>
     <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><img src="https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
@@ -16,9 +16,9 @@
     <a href="https://github.com/houyanchao/chatgpt-gemini-timeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
   </p>
 
-  <p><strong>简体中文</strong> | <a href="./README.en.md">English</a></p>
+  <p><strong>English (default, `en`)</strong></p>
 
-  <h2>立即安装</h2>
+  <h2>Install Now</h2>
   <p>
     <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><strong>Chrome Web Store</strong></a>
     &nbsp;|&nbsp;
@@ -27,143 +27,143 @@
     <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai"><strong>Firefox Add-ons</strong></a>
   </p>
 
-  <img src="./READMEIMAGE/index.png" alt="Timeline 功能预览" width="840">
+  <img src="./READMEIMAGE/index.png" alt="Timeline preview" width="840">
 </div>
 
-## 简介
+## Overview
 
-Timeline 是一个运行在浏览器端的 AI 对话增强扩展。它保留各 AI 平台原有界面，在页面内补充更适合长对话使用的导航、整理、记录、复制和输入辅助能力。
+Timeline is a browser extension for AI chat pages. It keeps each platform's native interface intact while adding tools for long conversation navigation, organization, note taking, copying, and input workflows.
 
-它主要解决这些问题：
+It is designed for these common needs:
 
-- 长对话中难以快速回到某次提问。
-- 高价值回答分散在不同会话中，后续检索和复用成本高。
-- 公式、代码块、Mermaid 图表等内容需要额外处理。
-- 不同 AI 平台的输入习惯不一致，常用提示词和追问流程重复。
-- 浏览器扩展数据需要在本地备份或跨浏览器迁移。
+- Quickly return to a specific question in a long conversation.
+- Save valuable answers from different chats for later review and reuse.
+- Work with formulas, code blocks, and Mermaid diagrams more efficiently.
+- Standardize input behavior, reusable prompts, and follow-up workflows across AI platforms.
+- Back up or migrate extension data across browsers and devices.
 
-## 安装
+## Installation
 
-推荐通过浏览器官方商店安装：
+Install from the official browser extension stores:
 
-| 浏览器 | 安装入口 |
+| Browser | Install |
 | --- | --- |
-| Chrome | **[安装 Chrome 版](https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh)** |
-| Microsoft Edge | **[安装 Edge 版](https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab)** |
-| Firefox | **[安装 Firefox 版](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai)** |
+| Chrome | **[Install for Chrome](https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh)** |
+| Microsoft Edge | **[Install for Edge](https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab)** |
+| Firefox | **[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai)** |
 
-安装后打开受支持的 AI 对话页面即可使用。大多数功能默认开启，也可以在扩展设置面板中按平台或功能关闭。
+After installation, open a supported AI chat page. Most features are enabled by default and can be adjusted per platform or per feature in the settings panel.
 
-## 功能
+## Features
 
-| 分类 | 说明 |
+| Category | Description |
 | --- | --- |
-| 对话导航 | 在页面右侧生成时间轴，每个节点对应一次用户提问，支持点击跳转、键盘导航、回到底部和提问时间标签。 |
-| 问题列表 | 将当前会话中的问题集中展示，支持跳转、收藏和标记重点，适合按问题维度回顾长对话。 |
-| 收藏与归档 | 支持收藏单条问答或整页会话，并使用文件夹、备注和搜索进行管理。部分平台支持在原生侧边栏中展示收藏入口。 |
-| 输入增强 | 支持提示词库、快捷追问、智能 Enter 行为、输入框动画和常用设置入口。 |
-| 阅读与复制 | 支持文本高亮、LaTeX / MathML 公式复制、Mermaid 图表预览和代码块辅助操作。 |
-| 代码运行 | 支持 JavaScript、TypeScript、SQL、HTML、JSON、Markdown 等常见代码块的运行或预览。 |
-| 数据管理 | 支持 JSON 导入导出、Google Drive 备份与恢复，用于数据迁移和多设备同步。 |
-| 个性化设置 | 支持时间轴主题色、对话宽度调整、多语言界面和细粒度功能开关。 |
+| Conversation navigation | Adds a timeline on the right side of the page. Each node maps to a user question and supports click-to-jump, keyboard navigation, scroll-to-bottom, and question time labels. |
+| Question list | Displays all questions in the current conversation with jump, bookmark, and pin support. |
+| Bookmarks and archives | Saves individual Q&A entries or entire conversations, with folders, notes, search, and optional native-sidebar access on supported platforms. |
+| Input enhancements | Provides a prompt library, quick follow-up actions, Smart Enter behavior, input animations, and common settings. |
+| Reading and copying | Supports text highlighting, LaTeX / MathML formula copy, Mermaid diagram preview, and code block helpers. |
+| Code running | Runs or previews common code blocks including JavaScript, TypeScript, SQL, HTML, JSON, and Markdown. |
+| Data management | Supports JSON import/export and Google Drive backup/restore for migration and multi-device use. |
+| Personalization | Supports timeline theme colors, chat width adjustment, multi-language UI, and fine-grained feature switches. |
 
-## 支持平台
+## Supported Platforms
 
-| 平台 | 时间轴 | 高亮 | 智能输入 | 输入动画 | 快捷追问 | 提问时间 | 侧边栏收藏 | 回到底部 |
+| Platform | Timeline | Highlight | Smart Input | Animations | Quick Quote | Question Time | Sidebar Bookmarks | Scroll to Bottom |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| ChatGPT | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| Gemini | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 |
-| DeepSeek | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| Claude | 支持 | 支持 | 支持 | - | 支持 | - | 支持 | - |
-| Kimi | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| 豆包 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| 通义千问 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| Qwen 国际版 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | 支持 | - |
-| Grok | 支持 | 支持 | 支持 | 支持 | 支持 | - | - | - |
-| Perplexity | 支持 | 支持 | 支持 | - | 支持 | - | - | - |
-| 腾讯元宝 | 支持 | 支持 | 支持 | 支持 | 支持 | - | - | - |
-| 文心一言 | 支持 | 支持 | - | - | 支持 | - | - | - |
-| NotebookLM | - | 支持 | 支持 | - | 支持 | - | - | - |
+| ChatGPT | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Gemini | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
+| DeepSeek | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Claude | Supported | Supported | Supported | - | Supported | - | Supported | - |
+| Kimi | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Doubao | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Tongyi Qianwen | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Qwen International | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
+| Grok | Supported | Supported | Supported | Supported | Supported | - | - | - |
+| Perplexity | Supported | Supported | Supported | - | Supported | - | - | - |
+| Tencent Yuanbao | Supported | Supported | Supported | Supported | Supported | - | - | - |
+| Wenxin Yiyan | Supported | Supported | - | - | Supported | - | - | - |
+| NotebookLM | - | Supported | Supported | - | Supported | - | - | - |
 
-公式复制、代码运行和 Mermaid 图表能力不依赖特定 AI 平台。只要页面中存在可识别内容，扩展会尽量提供对应操作。
+Formula copy, code running, and Mermaid diagram features are not tied to a specific AI platform. When matching content is detected on a page, Timeline attempts to provide the corresponding action.
 
-## 数据与隐私
+## Data and Privacy
 
-Timeline 的核心数据默认保存在浏览器本地，包括收藏、文件夹、提示词、设置项、时间标签和笔记内容。
+Timeline stores core data locally in the browser by default, including bookmarks, folders, prompts, settings, time labels, and notes.
 
-可选的 Google Drive 同步只会在用户主动授权后使用，并用于备份和恢复扩展数据。扩展不会收集、上传或分享用户的对话内容和个人信息。
+Optional Google Drive sync is used only after the user grants authorization, and only for backing up and restoring extension data. The extension does not collect, upload, or share conversation content or personal information.
 
-本项目已开源，所有数据处理逻辑都可以在仓库中审查。
+This project is open source, and the data handling logic can be reviewed in the repository.
 
-## 权限说明
+## Permissions
 
-| 权限 | 用途 |
+| Permission | Purpose |
 | --- | --- |
-| `storage` | 保存收藏、文件夹、提示词、功能设置和本地数据。 |
-| `unlimitedStorage` | 避免长对话收藏、笔记和备份数据受浏览器默认配额影响。 |
-| `identity` | 用于 Google Drive 授权备份和恢复。 |
-| `activeTab` | 在用户当前打开的 AI 页面中启用扩展功能。 |
+| `storage` | Stores bookmarks, folders, prompts, feature settings, and local data. |
+| `unlimitedStorage` | Prevents long conversations, notes, and backup data from hitting default browser storage limits. |
+| `identity` | Enables Google Drive authorization for backup and restore. |
+| `activeTab` | Enables extension functionality on the user's active AI chat page. |
 
-## 多语言
+## Languages
 
-当前内置 19 个语言包：
+Timeline currently includes 19 language packs:
 
-| 语言 | 代码 |
+| Language | Code |
 | --- | --- |
 | English | `en` |
 | English (US) | `en_US` |
 | English (GB) | `en_GB` |
-| 简体中文 | `zh_CN` |
-| 繁體中文 | `zh_TW` |
-| 繁體中文（香港） | `zh_HK` |
-| 日本語 | `ja` |
-| 한국어 | `ko` |
-| Deutsch | `de` |
-| Français | `fr` |
-| Español | `es` |
-| Italiano | `it` |
-| Português | `pt_PT` |
-| Русский | `ru` |
-| Polski | `pl` |
-| हिन्दी | `hi` |
-| ไทย | `th` |
-| Tiếng Việt | `vi` |
+| Simplified Chinese | `zh_CN` |
+| Traditional Chinese | `zh_TW` |
+| Traditional Chinese (Hong Kong) | `zh_HK` |
+| Japanese | `ja` |
+| Korean | `ko` |
+| German | `de` |
+| French | `fr` |
+| Spanish | `es` |
+| Italian | `it` |
+| Portuguese | `pt_PT` |
+| Russian | `ru` |
+| Polish | `pl` |
+| Hindi | `hi` |
+| Thai | `th` |
+| Vietnamese | `vi` |
 | Bahasa Indonesia | `id` |
 
-## 本地开发
+## Local Development
 
-本仓库是浏览器扩展项目，没有前端构建步骤。开发时可以直接加载源码目录：
+This repository is a browser extension project and does not require a frontend build step. Load the source directory directly during development:
 
-1. 打开 Chrome 或 Edge 的扩展管理页面。
-2. 启用开发者模式。
-3. 选择“加载已解压的扩展程序”。
-4. 选择本仓库根目录。
-5. 修改代码后，在扩展管理页面点击重新加载，并刷新目标 AI 平台页面。
+1. Open the Chrome or Edge extensions page.
+2. Enable Developer Mode.
+3. Choose "Load unpacked".
+4. Select the repository root directory.
+5. After changing code, reload the extension and refresh the target AI platform page.
 
-Firefox 调试可使用 `about:debugging` 临时加载扩展。
+For Firefox, use `about:debugging` to temporarily load the extension.
 
-## 反馈
+## Feedback
 
-欢迎通过以下方式反馈问题或提出需求：
+Feedback and feature requests are welcome:
 
 - [GitHub Issues](https://github.com/houyanchao/chatgpt-gemini-timeline/issues)
-- 邮件：houyanchao@outlook.com
-- Chrome / Edge / Firefox 插件商店评价区
+- Email: houyanchao@outlook.com
+- Chrome / Edge / Firefox extension store reviews
 
-提交问题时建议包含浏览器版本、扩展版本、目标 AI 平台、复现步骤、预期行为、实际行为和截图。
+When reporting an issue, include the browser version, extension version, target AI platform, reproduction steps, expected behavior, actual behavior, and screenshots if possible.
 
-## 致谢
+## Credits
 
-本项目基于 [chatgpt-conversation-timeline](https://github.com/Reborn14/chatgpt-conversation-timeline) 继续开发，感谢原作者的开源贡献。
+This project builds on [chatgpt-conversation-timeline](https://github.com/Reborn14/chatgpt-conversation-timeline). Thanks to the original author for the open source contribution.
 
-Gemini 图片去水印功能（`js/watermark/engine/`）移植自 [GargantuaX/gemini-watermark-remover](https://github.com/GargantuaX/gemini-watermark-remover)（MIT），其反向 Alpha 混合算法与校准蒙版源自 [allenk/GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool)（MIT，© 2024 AllenK / Kwyshell）。完整许可证见 [`js/watermark/engine/LICENSE`](./js/watermark/engine/LICENSE)。
+The Gemini image watermark removal engine (`js/watermark/engine/`) is ported from [GargantuaX/gemini-watermark-remover](https://github.com/GargantuaX/gemini-watermark-remover) (MIT), whose reverse alpha blending algorithm and calibrated masks originate from [allenk/GeminiWatermarkTool](https://github.com/allenk/GeminiWatermarkTool) (MIT, © 2024 AllenK / Kwyshell). See [`js/watermark/engine/LICENSE`](./js/watermark/engine/LICENSE) for the full license text.
 
-## 许可证
+## License
 
-本项目基于 [GPL-3.0](./LICENSE) 许可证开源。
+This project is open source under the [GPL-3.0](./LICENSE) license.
 
 ---
 
 <div align="center">
-  <p>如果 Timeline 对你有帮助，欢迎给一个 Star。</p>
+  <p>If Timeline is useful to you, please consider giving it a Star.</p>
 </div>

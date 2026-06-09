@@ -16,7 +16,7 @@
     <a href="https://github.com/houyanchao/chatgpt-gemini-timeline"><img src="https://img.shields.io/badge/GitHub-AITimeline-24292F?style=flat-square&logo=github" alt="GitHub"></a>
   </p>
 
-  <p><a href="./README.md">简体中文</a> | <strong>English</strong></p>
+  <p><strong>English (default, `en`)</strong></p>
 
   <h2>Install Now</h2>
   <p>
