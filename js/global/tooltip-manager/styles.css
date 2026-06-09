@@ -161,6 +161,12 @@
     border-right: 7px solid var(--timeline-tooltip-bg);
 }
 
+/* 无箭头 tooltip */
+.timeline-tooltip-no-arrow::before,
+.timeline-tooltip-no-arrow::after {
+    display: none !important;
+}
+
 /* ============================================
    二级悬浮 Tooltip（showOverlay）
    ============================================ */

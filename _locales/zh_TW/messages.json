@@ -105,7 +105,7 @@
     "message": "如果 Timeline 對你有幫助，歡迎在 GitHub 點 Star 支持。"
   },
   "promptCommonMirrorSiteHint": {
-    "message": "添加新的 AI 對話網站，解鎖時間軸、提示詞等功能。"
+    "message": "適配其他 AI 對話網站，解鎖時間軸、提示詞、閃記等功能。"
   },
   "promptCommonGithubStarButton": {
     "message": "去 GitHub"

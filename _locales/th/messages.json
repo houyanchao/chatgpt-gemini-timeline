@@ -105,7 +105,7 @@
     "message": "หาก Timeline มีประโยชน์กับคุณ โปรดสนับสนุนด้วย Star บน GitHub"
   },
   "promptCommonMirrorSiteHint": {
-    "message": "เพิ่มเว็บแชต AI ใหม่เพื่อปลดล็อกฟีเจอร์อย่างไทม์ไลน์และพรอมต์"
+    "message": "ปรับให้รองรับเว็บแชต AI อื่น ๆ เพื่อปลดล็อกไทม์ไลน์ พรอมต์ บันทึกด่วน และฟีเจอร์อื่น ๆ"
   },
   "promptCommonGithubStarButton": {
     "message": "ไปที่ GitHub"

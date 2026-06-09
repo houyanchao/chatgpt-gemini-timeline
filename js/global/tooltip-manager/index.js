@@ -146,6 +146,7 @@ class GlobalTooltipManager {
      * @param {string} options.placement - 位置：auto/top/bottom/left/right
      * @param {number} options.gap - 与目标元素的距离
      * @param {string} options.style - 样式风格：'mini' 使用紧凑样式（小号字、无箭头）
+     * @param {boolean} options.noArrow - 是否隐藏箭头（保留默认 tooltip 样式）
      */
     show(id, type, target, content, options = {}) {
         try {
@@ -564,6 +565,10 @@ class GlobalTooltipManager {
             tooltip.className = 'timeline-tooltip-overlay';
         } else {
             tooltip.className = config.className;
+        }
+
+        if (config.noArrow) {
+            tooltip.classList.add('timeline-tooltip-no-arrow');
         }
         
         tooltip.setAttribute('role', 'tooltip');

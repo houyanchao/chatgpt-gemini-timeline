@@ -105,7 +105,7 @@
     "message": "Timeline が役に立ったら、GitHub で Star をお願いします。"
   },
   "promptCommonMirrorSiteHint": {
-    "message": "新しい AI チャットサイトを追加して、タイムラインやプロンプトなどの機能を解放します。"
+    "message": "他のAIチャットサイトに対応し、タイムライン、プロンプト、フラッシュメモなどの機能を解放します。"
   },
   "promptCommonGithubStarButton": {
     "message": "GitHub へ"

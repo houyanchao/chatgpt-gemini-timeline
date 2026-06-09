@@ -105,7 +105,7 @@
     "message": "Timeline이 도움이 되었다면 GitHub에서 Star로 지원해 주세요."
   },
   "promptCommonMirrorSiteHint": {
-    "message": "새로운 AI 대화 사이트를 추가하여 타임라인, 프롬프트 등의 기능을 사용할 수 있습니다."
+    "message": "다른 AI 대화 사이트를 지원해 타임라인, 프롬프트, 플래시 노트 등의 기능을 사용할 수 있습니다."
   },
   "promptCommonGithubStarButton": {
     "message": "GitHub로 이동"

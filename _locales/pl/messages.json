@@ -105,7 +105,7 @@
     "message": "Jeśli Timeline jest przydatny, wesprzyj go gwiazdką na GitHubie."
   },
   "promptCommonMirrorSiteHint": {
-    "message": "Dodaj nową stronę czatu AI, aby odblokować funkcje takie jak oś czasu i prompty."
+    "message": "Dostosuj inne strony czatu AI, aby odblokować oś czasu, prompty, szybkie notatki i inne funkcje."
   },
   "promptCommonGithubStarButton": {
     "message": "Przejdź do GitHuba"

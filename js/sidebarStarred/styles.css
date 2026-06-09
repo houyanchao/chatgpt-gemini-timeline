@@ -38,7 +38,6 @@ body.dark-theme .ait-sidebar-starred.deepseek .ait-ss-list::-webkit-scrollbar-th
 
 /* Collapse */
 .ait-ss-collapsed .ait-ss-list { display: none; }
-.ait-ss-collapsed .ait-ss-header-actions { display: none; }
 
 .ait-ss-header-actions { display: flex; align-items: center; gap: 2px; }
 .ait-ss-add-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: transparent; border-radius: 50%; cursor: pointer; color: #444746; padding: 0; transition: background-color 0.2s; }
