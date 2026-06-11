@@ -309,6 +309,24 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
     transform: scale(1.12) !important;
 }
 
+.timeline-pin-marker.timeline-pin-marker-flash::before {
+    border-left-color: rgb(255, 185, 82) !important;
+    animation: timeline-pin-flash 0.75s ease-in-out infinite !important;
+}
+
+@keyframes timeline-pin-flash {
+    0%, 100% {
+        opacity: 0.45;
+        transform: scale(0.9);
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.24);
+        filter: drop-shadow(0 0 8px rgba(255, 125, 3, 0.55));
+    }
+}
+
 /* Floating tooltip element */
 .timeline-tooltip {
     position: fixed;

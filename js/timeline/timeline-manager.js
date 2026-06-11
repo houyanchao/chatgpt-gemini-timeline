@@ -56,6 +56,9 @@ class TimelineManager {
         this.onStorage = null;
         this.onVisualViewportResize = null;
         this.onAIStateChange = null;
+        this.onPageHide = null;
+        this.onBeforeUnload = null;
+        this.onVisibilityChange = null;
         // ✅ 长按相关事件处理器
         this.startLongPress = null;
         this.checkLongPressMove = null;
@@ -133,6 +136,15 @@ class TimelineManager {
         
         // ✅ 临时 Pin 功能状态：只保存在当前页面内存中，不写入 chrome.storage
         this.temporaryPin = null;
+        this.pendingAutoBottomJump = null;
+        this.autoBottomJumpFlashMarker = null;
+        this.autoBottomJumpFlashTimer = null;
+        this._lastScrollSnapshot = null;
+        this._initialNavigationHandled = false;
+        this._savedScrollPositionRestored = false;
+        this.AUTO_BOTTOM_JUMP_CONFIRM_MS = 6000;
+        this.AUTO_BOTTOM_JUMP_PENDING_MS = 2500;
+        this.AUTO_BOTTOM_JUMP_MIN_DELTA = 80;
         this.pinned = new Set();
         this.pinnedIndexes = new Set();
         
@@ -1020,6 +1032,7 @@ class TimelineManager {
                 };
                 
                 pendingNodesChange = { previousCount, currentCount };
+                this._captureAutoBottomJumpCandidate(previousCount, currentCount);
             }
         }
         
@@ -1276,27 +1289,7 @@ class TimelineManager {
             return null;
         };
         
-        // ✅ 检查是否有跨页面导航任务（同站跳转，如从收藏列表点击）
-        this.getNavigateData('targetIndex').then(nodeKey => {
-            const marker = findMarkerByNodeKey(nodeKey);
-            if (marker && marker.element) {
-                // 延迟500ms，等待页面完全加载后再定位
-                setTimeout(() => {
-                    this.smoothScrollTo(marker.element);
-                }, 500);
-            }
-        }).catch(() => {});
-        
-        // ✅ 检查是否有跨网站导航任务（跨站跳转，如从收藏列表点击其他网站的记录）
-        this.checkCrossSiteNavigate().then(nodeKey => {
-            const marker = findMarkerByNodeKey(nodeKey);
-            if (marker && marker.element) {
-                // 延迟500ms，等待页面完全加载后再定位
-                setTimeout(() => {
-                    this.smoothScrollTo(marker.element);
-                }, 500);
-            }
-        }).catch(() => {});
+        this.handleInitialNavigationOrRestore(findMarkerByNodeKey).catch(() => {});
         
         // 重新渲染时间标签（处理虚拟滚动后新出现的消息元素）
         if (window.chatTimeRecorder) {
@@ -1778,6 +1771,21 @@ class TimelineManager {
         this.onScroll = () => this.scheduleScrollSync();
         this.scrollContainer.addEventListener('scroll', this.onScroll, { passive: true });
 
+        this.onPageHide = () => {
+            this.saveScrollPosition();
+        };
+        this.onBeforeUnload = () => {
+            this.saveScrollPosition();
+        };
+        this.onVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                this.saveScrollPosition();
+            }
+        };
+        window.addEventListener('pagehide', this.onPageHide);
+        window.addEventListener('beforeunload', this.onBeforeUnload);
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
+
         // Tooltip interactions (delegated)
         this.onTimelineBarOver = (e) => {
             const dot = e.target.closest('.ait-timeline-dot');
@@ -2067,6 +2075,223 @@ class TimelineManager {
             this.truncateCache.clear();
         });
     }
+
+    _getScrollTop() {
+        if (!this.scrollContainer) return 0;
+        if (this.scrollContainer === window) {
+            return window.scrollY || document.documentElement?.scrollTop || document.body?.scrollTop || 0;
+        }
+        return this.scrollContainer.scrollTop || 0;
+    }
+
+    getScrollPositionStorageKey(url = location.href) {
+        const urlWithoutProtocol = String(url || '').replace(/^https?:\/\//, '');
+        return `chatTimelineScrollPosition:${urlWithoutProtocol}`;
+    }
+
+    getCurrentUrlWithoutProtocol() {
+        return location.href.replace(/^https?:\/\//, '');
+    }
+
+    async saveScrollPosition() {
+        if (!this.scrollContainer) return false;
+        if (typeof StorageAdapter === 'undefined' || typeof StorageAdapter.set !== 'function') return false;
+
+        const scrollTop = this._getScrollTop();
+        if (!Number.isFinite(scrollTop)) return false;
+
+        const urlWithoutProtocol = this.getCurrentUrlWithoutProtocol();
+        const value = {
+            url: location.href,
+            urlWithoutProtocol,
+            scrollTop,
+            timestamp: Date.now(),
+        };
+
+        try {
+            await StorageAdapter.set(this.getScrollPositionStorageKey(), value);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async restoreSavedScrollPosition() {
+        if (this._savedScrollPositionRestored) return false;
+        if (!this.scrollContainer) return false;
+        if (typeof StorageAdapter === 'undefined' || typeof StorageAdapter.get !== 'function') return false;
+
+        this._savedScrollPositionRestored = true;
+
+        try {
+            const saved = await StorageAdapter.get(this.getScrollPositionStorageKey());
+            if (!saved || typeof saved !== 'object') return false;
+
+            const scrollTop = Number(saved.scrollTop);
+            if (!Number.isFinite(scrollTop)) return false;
+
+            this.setScrollTop(scrollTop);
+            this.scheduleScrollSync?.();
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    setScrollTop(scrollTop) {
+        if (!this.scrollContainer || !Number.isFinite(scrollTop)) return false;
+
+        if (this.scrollContainer === window) {
+            try {
+                window.scrollTo(0, scrollTop);
+            } catch {}
+        } else {
+            this.scrollContainer.scrollTop = scrollTop;
+        }
+        return true;
+    }
+
+    async handleInitialNavigationOrRestore(findMarkerByNodeKey) {
+        if (this._initialNavigationHandled) return false;
+        this._initialNavigationHandled = true;
+
+        const navigateToStoredNode = (nodeKey) => {
+            const marker = findMarkerByNodeKey?.(nodeKey);
+            if (!marker?.element) return false;
+
+            setTimeout(() => {
+                this.smoothScrollTo(marker.element);
+            }, 500);
+            return true;
+        };
+
+        try {
+            const nodeKey = await this.getNavigateData('targetIndex');
+            if (navigateToStoredNode(nodeKey)) return true;
+        } catch {}
+
+        try {
+            const nodeKey = await this.checkCrossSiteNavigate();
+            if (navigateToStoredNode(nodeKey)) return true;
+        } catch {}
+
+        return this.restoreSavedScrollPosition();
+    }
+
+    _recordScrollSnapshot() {
+        if (!this.scrollContainer || !this.markers?.length) return;
+
+        const activeId = this.pendingActiveId || this.activeTurnId;
+        const activeIndex = this.markers.findIndex(marker => marker.id === activeId);
+        const totalCount = this.markers.length;
+        this._lastScrollSnapshot = {
+            scrollTop: this._getScrollTop(),
+            activeIndex,
+            totalCount,
+            isLast: activeIndex === totalCount - 1,
+            timestamp: Date.now(),
+        };
+    }
+
+    _captureAutoBottomJumpCandidate(previousCount, currentCount) {
+        if (!this.scrollContainer || !this.markers?.length) return false;
+        if (currentCount <= previousCount || previousCount <= 0) return false;
+        if (this.adapter?.isReverseScroll?.()) return false;
+
+        const currentActiveIndex = this.markers.findIndex(marker => marker.id === this.activeTurnId);
+        const snapshot = this._lastScrollSnapshot;
+        const snapshotUsable = snapshot &&
+            Number.isFinite(snapshot.scrollTop) &&
+            snapshot.isLast === false &&
+            snapshot.activeIndex >= 0 &&
+            snapshot.activeIndex < previousCount - 1;
+
+        const activeWasBeforeLast = currentActiveIndex >= 0 && currentActiveIndex < this.markers.length - 1;
+        if (!snapshotUsable && !activeWasBeforeLast) return false;
+
+        const capturedScrollTop = snapshotUsable ? snapshot.scrollTop : this._getScrollTop();
+        if (!Number.isFinite(capturedScrollTop)) return false;
+
+        const now = Date.now();
+        this.pendingAutoBottomJump = {
+            scrollTop: Math.max(0, capturedScrollTop),
+            previousCount,
+            currentCount,
+            createdAt: now,
+            expiresAt: now + this.AUTO_BOTTOM_JUMP_PENDING_MS,
+        };
+        return true;
+    }
+
+    _maybeApplyPendingAutoBottomJumpPin() {
+        const pending = this.pendingAutoBottomJump;
+        if (!pending) return false;
+
+        if (!this.scrollContainer || !this.markers?.length) {
+            this.pendingAutoBottomJump = null;
+            return false;
+        }
+
+        if (pending.expiresAt && Date.now() > pending.expiresAt) {
+            this.pendingAutoBottomJump = null;
+            return false;
+        }
+
+        const activeId = this.pendingActiveId || this.activeTurnId;
+        const activeIndex = this.markers.findIndex(marker => marker.id === activeId);
+        if (activeIndex !== this.markers.length - 1) return false;
+
+        const currentScrollTop = this._getScrollTop();
+        if (Math.abs(currentScrollTop - pending.scrollTop) < this.AUTO_BOTTOM_JUMP_MIN_DELTA) {
+            return false;
+        }
+
+        this.pendingAutoBottomJump = null;
+
+        if (this.temporaryPin) {
+            return this._showAutoBottomJumpFlashCandidate(pending.scrollTop);
+        }
+
+        return this.setTemporaryPinAtScrollTop(pending.scrollTop);
+    }
+
+    _showAutoBottomJumpFlashCandidate(scrollTop, durationMs = this.AUTO_BOTTOM_JUMP_CONFIRM_MS) {
+        if (!this.ui?.timelineBar || !Number.isFinite(scrollTop)) return false;
+
+        this._clearAutoBottomJumpFlashCandidate();
+
+        const pinMarker = document.createElement('button');
+        pinMarker.className = 'timeline-pin-marker timeline-pin-marker-flash';
+        pinMarker.type = 'button';
+        pinMarker.setAttribute('aria-label', chrome.i18n.getMessage('useNewReturnPoint') || 'Use new return point');
+        pinMarker.style.setProperty('--n', String(this.getTemporaryPinVisualN(scrollTop)));
+
+        pinMarker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._clearAutoBottomJumpFlashCandidate();
+            this.setTemporaryPinAtScrollTop(scrollTop);
+        });
+
+        this.ui.timelineBar.appendChild(pinMarker);
+        this.autoBottomJumpFlashMarker = pinMarker;
+        this.autoBottomJumpFlashTimer = setTimeout(() => {
+            this._clearAutoBottomJumpFlashCandidate();
+        }, durationMs);
+        return true;
+    }
+
+    _clearAutoBottomJumpFlashCandidate() {
+        if (this.autoBottomJumpFlashTimer !== null) {
+            try { clearTimeout(this.autoBottomJumpFlashTimer); } catch {}
+            this.autoBottomJumpFlashTimer = null;
+        }
+
+        if (this.autoBottomJumpFlashMarker) {
+            try { TimelineUtils.removeElementSafe?.(this.autoBottomJumpFlashMarker); } catch {}
+            try { this.autoBottomJumpFlashMarker.remove?.(); } catch {}
+            this.autoBottomJumpFlashMarker = null;
+        }
+    }
     
     async toggleCurrentTemporaryPin() {
         if (!this.scrollContainer) {
@@ -2098,6 +2323,8 @@ class TimelineManager {
     setTemporaryPinAtScrollTop(scrollTop, sourceMarkerId = null) {
         if (!Number.isFinite(scrollTop)) return false;
 
+        this._clearAutoBottomJumpFlashCandidate();
+
         this.markers.forEach(marker => {
             marker.pinned = false;
             this.updatePinIcon(marker);
@@ -2121,6 +2348,7 @@ class TimelineManager {
     }
 
     clearTemporaryPin() {
+        this._clearAutoBottomJumpFlashCandidate();
         this.temporaryPin = null;
         this.markers.forEach(marker => {
             marker.pinned = false;
@@ -3021,6 +3249,8 @@ class TimelineManager {
             this.syncTimelineTrackToMain();
             this.updateVirtualRangeAndRender();
             this.computeActiveByScroll();
+            this._maybeApplyPendingAutoBottomJumpPin();
+            this._recordScrollSnapshot();
         });
     }
 
@@ -3397,6 +3627,8 @@ class TimelineManager {
     }
 
     destroy() {
+        try { this.saveScrollPosition(); } catch {}
+
         // Disconnect observers
         TimelineUtils.disconnectObserverSafe(this.mutationObserver);
         TimelineUtils.disconnectObserverSafe(this.resizeObserver);
@@ -3468,6 +3700,9 @@ class TimelineManager {
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'touchend', this.cancelLongPress);
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'touchcancel', this.cancelLongPress);
         TimelineUtils.removeEventListenerSafe(this.scrollContainer, 'scroll', this.onScroll, { passive: true });
+        TimelineUtils.removeEventListenerSafe(window, 'pagehide', this.onPageHide);
+        TimelineUtils.removeEventListenerSafe(window, 'beforeunload', this.onBeforeUnload);
+        TimelineUtils.removeEventListenerSafe(document, 'visibilitychange', this.onVisibilityChange);
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'mouseover', this.onTimelineBarOver);
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'mouseout', this.onTimelineBarOut);
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'focusin', this.onTimelineBarFocusIn);
@@ -3488,6 +3723,7 @@ class TimelineManager {
         // ✅ 移除：longPressTimer 已删除
         this.zeroTurnsTimer = TimelineUtils.clearTimerSafe(this.zeroTurnsTimer);
         this.aiCompleteToastTimer = TimelineUtils.clearTimerSafe(this.aiCompleteToastTimer);
+        this._clearAutoBottomJumpFlashCandidate();
         this.showRafId = TimelineUtils.clearRafSafe(this.showRafId);
         
         // Remove DOM elements
@@ -3526,12 +3762,16 @@ class TimelineManager {
         this.onWindowResize = null;
         this.onVisualViewportResize = null;
         this.onAIStateChange = null;
+        this.onPageHide = null;
+        this.onBeforeUnload = null;
+        this.onVisibilityChange = null;
         // ✅ 清理长按相关的引用
         this.startLongPress = this.checkLongPressMove = this.cancelLongPress = null;
         // ✅ 清理键盘导航引用
         this.onKeyDown = null;
         this.pendingActiveId = null;
         this.temporaryPin = null;
+        this.pendingAutoBottomJump = null;
         this.aiCompleteToastAnchor = null;
     }
 
@@ -3563,6 +3803,8 @@ class TimelineManager {
      * ✅ 加载标记数据（与loadStars类似）
      */
     async loadPins() {
+        this.pendingAutoBottomJump = null;
+        this._clearAutoBottomJumpFlashCandidate();
         this.temporaryPin = null;
         this.pinned.clear();
         this.pinnedIndexes.clear();
@@ -4167,14 +4409,18 @@ class TimelineManager {
         if (!this.ui?.timelineBar) return;
 
         const tempPins = this.ui.timelineBar.querySelectorAll('.timeline-pin-marker');
-        tempPins.forEach(pin => pin.remove());
+        tempPins.forEach(pin => {
+            if (!pin.classList.contains('timeline-pin-marker-flash')) {
+                pin.remove();
+            }
+        });
 
         if (!this.temporaryPin) return;
 
         this.temporaryPin.visualN = this.getTemporaryPinVisualN(this.temporaryPin.scrollTop);
 
         const pinMarker = document.createElement('button');
-        pinMarker.className = 'timeline-pin-marker';
+        pinMarker.className = 'timeline-pin-marker timeline-pin-marker-current';
         pinMarker.type = 'button';
         if (this.temporaryPin.sourceMarkerId) {
             pinMarker.dataset.markerId = this.temporaryPin.sourceMarkerId;
