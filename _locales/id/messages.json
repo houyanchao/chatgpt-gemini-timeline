@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Platform AI yang didukung secara native:"
+    "message": "Platform AI yang didukung secara native beserta situs mirrornya:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "แพลตฟอร์ม AI ที่รองรับแบบเนทีฟ:"
+    "message": "แพลตฟอร์ม AI ที่รองรับแบบเนทีฟและเว็บไซต์มิเรอร์:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

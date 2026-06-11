@@ -894,7 +894,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "ネイティブ対応AIプラットフォーム:"
+    "message": "ネイティブ対応AIプラットフォームとそのミラーサイト:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

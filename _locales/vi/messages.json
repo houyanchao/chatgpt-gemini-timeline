@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Các nền tảng AI được hỗ trợ nguyên bản:"
+    "message": "Các nền tảng AI được hỗ trợ nguyên bản và các trang mirror của chúng:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

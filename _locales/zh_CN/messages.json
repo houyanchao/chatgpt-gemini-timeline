@@ -936,7 +936,7 @@
     "message": "开始配置"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "原生支持以下 AI 平台："
+    "message": "原生支持以下 AI 平台及它们的镜像站："
   },
   "mirrorSiteWizardStep1": {
     "message": "打开你想适配的 AI 网站，发起一个新对话"

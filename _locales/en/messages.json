@@ -936,7 +936,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Natively supported AI platforms:"
+    "message": "Natively supported AI platforms and their mirror sites:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Plataformas de IA compatibles de forma nativa:"
+    "message": "Plataformas de IA compatibles de forma nativa y sus sitios espejo:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

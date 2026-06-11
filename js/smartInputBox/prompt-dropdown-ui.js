@@ -258,6 +258,39 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonFeedbackTitle') || '反馈问题、提需求'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonFeedbackHint') || '遇到 bug 或有功能想法，欢迎到插件商店评价区留言。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-store-review-btn">
+                    ${chrome.i18n.getMessage('promptCommonFeedbackButton') || '去反馈'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonGithubStarTitle') || '给一颗 🌟 支持'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonGithubStarHint') || '如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-github-star-btn">
+                    ${chrome.i18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
+                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
+                    </div>
+                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
+                </div>
+                <button class="prompt-common-setting-btn prompt-common-mirror-site-btn">
+                    ${chrome.i18n.getMessage('mirrorSiteAdapterStartButton') || '开始配置'}
+                </button>
+            </div>
+            <div class="prompt-common-setting-item">
+                <div class="prompt-common-setting-info">
+                    <div class="prompt-common-setting-title-row">
                         <div class="prompt-common-setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
                     </div>
                     <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
@@ -304,39 +337,6 @@ function _promptDropdownCreateCommonSettings({
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-smart-input-btn">
                     ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
-                </button>
-            </div>
-            <div class="prompt-common-setting-item">
-                <div class="prompt-common-setting-info">
-                    <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonFeedbackTitle') || '反馈问题、提需求'}</div>
-                    </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonFeedbackHint') || '遇到 bug 或有功能想法，欢迎到插件商店评价区留言。'}</div>
-                </div>
-                <button class="prompt-common-setting-btn prompt-common-store-review-btn">
-                    ${chrome.i18n.getMessage('promptCommonFeedbackButton') || '去反馈'}
-                </button>
-            </div>
-            <div class="prompt-common-setting-item">
-                <div class="prompt-common-setting-info">
-                    <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonGithubStarTitle') || '给一颗 🌟 支持'}</div>
-                    </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonGithubStarHint') || '如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。'}</div>
-                </div>
-                <button class="prompt-common-setting-btn prompt-common-github-star-btn">
-                    ${chrome.i18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
-                </button>
-            </div>
-            <div class="prompt-common-setting-item">
-                <div class="prompt-common-setting-info">
-                    <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
-                    </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
-                </div>
-                <button class="prompt-common-setting-btn prompt-common-mirror-site-btn">
-                    ${chrome.i18n.getMessage('mirrorSiteAdapterStartButton') || '开始配置'}
                 </button>
             </div>
         </div>

@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "मूल रूप से समर्थित AI प्लेटफ़ॉर्म:"
+    "message": "मूल रूप से समर्थित AI प्लेटफ़ॉर्म और उनकी मिरर साइटें:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"

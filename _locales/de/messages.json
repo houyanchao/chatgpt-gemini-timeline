@@ -843,7 +843,7 @@
     "message": "Start setup"
   },
   "mirrorSiteNativeSupportedTitle": {
-    "message": "Nativ unterstützte AI-Plattformen:"
+    "message": "Nativ unterstützte AI-Plattformen und ihre Mirror-Sites:"
   },
   "mirrorSiteWizardStep1": {
     "message": "Open the AI site you want to adapt and start a new conversation"
