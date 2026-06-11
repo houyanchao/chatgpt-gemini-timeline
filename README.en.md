@@ -71,19 +71,19 @@ After installation, open a supported AI chat page. Most features are enabled by 
 
 | Platform | Timeline | Highlight | Smart Input | Animations | Quick Quote | Question Time | Sidebar Bookmarks | Scroll to Bottom |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| ChatGPT | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Gemini | Supported | Supported | Supported | Supported | Supported | Supported | Supported | Supported |
-| DeepSeek | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Claude | Supported | Supported | Supported | - | Supported | - | Supported | - |
-| Kimi | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Doubao | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Tongyi Qianwen | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Qwen International | Supported | Supported | Supported | Supported | Supported | Supported | Supported | - |
-| Grok | Supported | Supported | Supported | Supported | Supported | - | - | - |
-| Perplexity | Supported | Supported | Supported | - | Supported | - | - | - |
-| Tencent Yuanbao | Supported | Supported | Supported | Supported | Supported | - | - | - |
-| Wenxin Yiyan | Supported | Supported | - | - | Supported | - | - | - |
-| NotebookLM | - | Supported | Supported | - | Supported | - | - | - |
+| ChatGPT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Gemini | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| DeepSeek | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Claude | ✅ | ✅ | ✅ | - | ✅ | - | ✅ | - |
+| Kimi | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Doubao | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Tongyi Qianwen | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Qwen International | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | - |
+| Grok | ✅ | ✅ | ✅ | ✅ | ✅ | - | - | - |
+| Perplexity | ✅ | ✅ | ✅ | - | ✅ | - | - | - |
+| Tencent Yuanbao | ✅ | ✅ | ✅ | ✅ | ✅ | - | - | - |
+| Wenxin Yiyan | ✅ | ✅ | - | - | ✅ | - | - | - |
+| NotebookLM | - | ✅ | ✅ | - | ✅ | - | - | - |
 
 Formula copy, code running, and Mermaid diagram features are not tied to a specific AI platform. When matching content is detected on a page, Timeline attempts to provide the corresponding action.
 
