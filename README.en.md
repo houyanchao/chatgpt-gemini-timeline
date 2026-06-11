@@ -7,7 +7,7 @@
   <p>
     <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><img src="https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
     <a href="https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab"><img src="https://img.shields.io/badge/Microsoft-Edge%20Add--ons-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white" alt="Microsoft Edge Add-ons"></a>
-    <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai"><img src="https://img.shields.io/badge/Firefox-Add--ons-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
+    <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/"><img src="https://img.shields.io/badge/Firefox-Add--ons-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Firefox Add-ons"></a>
   </p>
 
   <p>
@@ -24,7 +24,7 @@
     &nbsp;|&nbsp;
     <a href="https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab"><strong>Microsoft Edge Add-ons</strong></a>
     &nbsp;|&nbsp;
-    <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai"><strong>Firefox Add-ons</strong></a>
+    <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/"><strong>Firefox Add-ons</strong></a>
   </p>
 
   <img src="./READMEIMAGE/index.png" alt="Timeline preview" width="840">
@@ -50,7 +50,7 @@ Install from the official browser extension stores:
 | --- | --- |
 | Chrome | **[Install for Chrome](https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh)** |
 | Microsoft Edge | **[Install for Edge](https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab)** |
-| Firefox | **[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai)** |
+| Firefox | **[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/)** |
 
 After installation, open a supported AI chat page. Most features are enabled by default and can be adjusted per platform or per feature in the settings panel.
 

@@ -465,7 +465,7 @@ function _promptDropdownGetStoreReviewUrl() {
 function _promptDropdownGetStoreDetailUrl() {
     const ua = navigator.userAgent || '';
     if (/Firefox/i.test(ua)) {
-        return 'https://addons.mozilla.org/en-US/firefox/addon/ai-timeline-ai';
+        return 'https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/';
     }
     if (/Edg/i.test(ua)) {
         return 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab';
