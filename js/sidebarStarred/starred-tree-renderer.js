@@ -124,18 +124,20 @@ class StarredTreeRenderer {
         const searchQuery = this.opts.showSearch ? this.opts.getSearchQuery() : '';
         const folderStates = this.opts.getFolderStates();
 
-        let filteredItems = folder.items;
+        let filteredItems = folder.items.filter(item => this._isRetainedStarredItem(item));
         let folderNameMatches = false;
 
         if (searchQuery) {
             folderNameMatches = folder.name.toLowerCase().includes(searchQuery);
             filteredItems = folderNameMatches
-                ? folder.items
-                : folder.items.filter(item => this._matchesSearch(item, searchQuery));
+                ? filteredItems
+                : filteredItems.filter(item => this._matchesSearch(item, searchQuery));
 
             const hasMatchingChildren = (folder.children || []).some(child => {
                 const childNameMatches = child.name.toLowerCase().includes(searchQuery);
-                const childHasItems = child.items.some(item => this._matchesSearch(item, searchQuery));
+                const childHasItems = child.items.some(item =>
+                    this._isRetainedStarredItem(item) && this._matchesSearch(item, searchQuery)
+                );
                 return childNameMatches || childHasItems;
             });
 
@@ -208,9 +210,10 @@ class StarredTreeRenderer {
         const searchQuery = this.opts.showSearch ? this.opts.getSearchQuery() : '';
         const folderStates = this.opts.getFolderStates();
 
+        const retainedItems = items.filter(item => this._isRetainedStarredItem(item));
         const filteredItems = searchQuery
-            ? items.filter(item => this._matchesSearch(item, searchQuery))
-            : items;
+            ? retainedItems.filter(item => this._matchesSearch(item, searchQuery))
+            : retainedItems;
 
         if (searchQuery && filteredItems.length === 0) return;
 
@@ -259,12 +262,7 @@ class StarredTreeRenderer {
             el.classList.add('active');
         }
 
-        if (item.turnId?.startsWith('notepad:')) {
-            const logo = document.createElement('div');
-            logo.className = 'timeline-starred-item-logo';
-            logo.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
-            el.appendChild(logo);
-        } else if (this.opts.showPlatformIcon) {
+        if (this.opts.showPlatformIcon) {
             const siteInfo = getSiteInfoByUrl(item.url);
             const logo = document.createElement('div');
             logo.className = 'timeline-starred-item-logo';
@@ -1036,21 +1034,6 @@ class StarredTreeRenderer {
     // ==================== 点击导航 ====================
 
     async _navigateToItem(item) {
-        if (item.turnId?.startsWith('notepad:')) {
-            const noteId = item.turnId.substring('notepad:'.length);
-            if (window.notepadManager) {
-                await window.notepadManager.open();
-                window.notepadManager.openNote(noteId);
-                requestAnimationFrame(() => {
-                    if (window.notepadManager.panel) {
-                        window.notepadManager.panel.classList.add('ait-notepad-focused');
-                    }
-                });
-            }
-            this.opts.onAfterNavigate();
-            return;
-        }
-
         const url = item.url || `https://${item.urlWithoutProtocol}`;
         const nodeKey = item.nodeId !== undefined ? item.nodeId : item.index;
         const needsScroll = nodeKey !== undefined && nodeKey !== -1;
@@ -1068,10 +1051,7 @@ class StarredTreeRenderer {
             if (needsScroll && window.timelineManager) {
                 await window.timelineManager.setNavigateDataForUrl(url, nodeKey);
             }
-            const adapter = window.sidebarStarredAdapterRegistry?.getAdapter();
-            if (!adapter?.navigateToConversation(url)) {
-                location.href = url;
-            }
+            location.href = url;
             this.opts.onAfterNavigate();
         } else {
             if (needsScroll && window.timelineManager) {
@@ -1107,7 +1087,6 @@ class StarredTreeRenderer {
 
     _isCurrentPage(item) {
         if (!item.urlWithoutProtocol) return false;
-        if (item.turnId?.startsWith('notepad:')) return false;
         const current = location.href.replace(/^https?:\/\//, '');
         return current === item.urlWithoutProtocol;
     }
@@ -1149,6 +1128,10 @@ class StarredTreeRenderer {
     _matchesSearch(item, query) {
         if (!query) return true;
         return item.theme && item.theme.toLowerCase().includes(query);
+    }
+
+    _isRetainedStarredItem(item) {
+        return !item?.turnId?.startsWith('notepad:');
     }
 
     _escapeHtml(text) {

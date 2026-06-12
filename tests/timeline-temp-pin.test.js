@@ -51,6 +51,7 @@ class FakeClassList {
 class FakeElement {
     constructor(tagName) {
         this.tagName = tagName.toUpperCase();
+        this.nodeType = 1;
         this.children = [];
         this.parentNode = null;
         this.attributes = {};
@@ -94,6 +95,19 @@ class FakeElement {
         return child;
     }
 
+    get parentElement() {
+        return this.parentNode;
+    }
+
+    get isConnected() {
+        let node = this;
+        while (node) {
+            if (node.tagName === 'BODY') return true;
+            node = node.parentNode;
+        }
+        return false;
+    }
+
     remove() {
         if (!this.parentNode) return;
         this.parentNode.children = this.parentNode.children.filter(child => child !== this);
@@ -104,6 +118,9 @@ class FakeElement {
         this.attributes[name] = String(value);
         if (name === 'class') {
             this.className = value;
+        } else if (name.startsWith('data-')) {
+            const key = name.slice(5).replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+            this.dataset[key] = String(value);
         }
     }
 
@@ -130,17 +147,28 @@ class FakeElement {
         return this.querySelectorAll(selector)[0] || null;
     }
 
+    matches(selector) {
+        const simpleSelectors = selector.split(',').map(part => part.trim()).filter(Boolean);
+        return simpleSelectors.some(simpleSelector => {
+            if (simpleSelector.startsWith('.')) {
+                return this.classList.contains(simpleSelector.slice(1));
+            }
+            if (/^\[.+\]$/.test(simpleSelector)) {
+                const attrs = [...simpleSelector.matchAll(/\[([^=\]]+)(?:="([^"]*)")?\]/g)];
+                return attrs.length > 0 && attrs.every(([, name, value]) => {
+                    if (!(name in this.attributes)) return false;
+                    return value === undefined || this.attributes[name] === value;
+                });
+            }
+            return this.tagName.toLowerCase() === simpleSelector.toLowerCase();
+        });
+    }
+
     querySelectorAll(selector) {
         const results = [];
-        const matches = (element) => {
-            if (selector.startsWith('.')) {
-                return element.classList.contains(selector.slice(1));
-            }
-            return element.tagName.toLowerCase() === selector.toLowerCase();
-        };
         const walk = (element) => {
             for (const child of element.children) {
-                if (matches(child)) results.push(child);
+                if (child.matches(selector)) results.push(child);
                 walk(child);
             }
         };
@@ -196,6 +224,20 @@ function loadTimelineManager(options = {}) {
         cancelAnimationFrame: () => {},
         setTimeout: options.setTimeout || (() => 0),
         clearTimeout: options.clearTimeout || (() => {}),
+        MutationObserver: options.MutationObserver || class {
+            constructor() {}
+            observe() {}
+            disconnect() {}
+        },
+        ResizeObserver: options.ResizeObserver || class {
+            observe() {}
+            disconnect() {}
+        },
+        IntersectionObserver: options.IntersectionObserver || class {
+            observe() {}
+            disconnect() {}
+        },
+        Node: { ELEMENT_NODE: 1 },
         getSiteNameMap: () => ({}),
         getCurrentPlatform: () => ({ features: {} }),
         TIMELINE_CONFIG: { DEBOUNCE_DELAY: 0, INITIAL_RENDER_DELAY: 0 },
@@ -231,9 +273,11 @@ function createManager(options = {}) {
     const adapter = {
         extractConversationId: () => 'test',
         extractIndexFromTurnId: (id) => id.replace(/^chatgpt-/, ''),
+        getUserMessageSelector: () => '[data-turn="user"][data-turn-id]',
         getFeatures: () => ({ notepad: true, questionList: false, timeline_tooltipActions: true }),
         getTimelinePosition: () => ({}),
         getScrollOffset: () => 0,
+        shouldHideTimeline: () => false,
     };
     const manager = new TimelineManager(adapter);
     manager.applyTimelineActiveColor = () => {};
@@ -462,4 +506,59 @@ test('restoring scroll position jumps the same chat to the saved position once',
     manager.scrollContainer.scrollTop = 64;
     assert.equal(await manager.restoreSavedScrollPosition(), false);
     assert.equal(manager.scrollContainer.scrollTop, 64);
+});
+
+test('conversation observer ignores unrelated childList mutations', () => {
+    const observers = [];
+    class CapturingMutationObserver {
+        constructor(callback) {
+            this.callback = callback;
+            observers.push(this);
+        }
+        observe(target, options) {
+            this.target = target;
+            this.options = options;
+        }
+        disconnect() {}
+    }
+
+    const { manager, document } = createManager({ MutationObserver: CapturingMutationObserver });
+    const conversation = document.createElement('main');
+    document.body.appendChild(conversation);
+    manager.conversationContainer = conversation;
+    manager.scrollContainer = document.body;
+    manager.ui.trackContent = document.createElement('div');
+    manager.ui.timelineBar.appendChild(manager.ui.trackContent);
+
+    let recalculations = 0;
+    let containerChecks = 0;
+    manager.debouncedRecalculateAndRender = () => {
+        recalculations++;
+    };
+    manager.ensureContainersUpToDate = () => {
+        containerChecks++;
+    };
+    manager.updateIntersectionObserverTargets = () => {};
+    manager.setupDomCheckObserver = () => {};
+
+    manager.setupObservers();
+    const conversationObserver = observers[0];
+
+    const unrelatedNode = document.createElement('div');
+    conversationObserver.callback([
+        { type: 'childList', addedNodes: [unrelatedNode], removedNodes: [] },
+    ]);
+
+    assert.equal(recalculations, 0);
+    assert.equal(containerChecks, 0);
+
+    const userTurn = document.createElement('article');
+    userTurn.setAttribute('data-turn', 'user');
+    userTurn.setAttribute('data-turn-id', 'abc');
+    conversationObserver.callback([
+        { type: 'childList', addedNodes: [userTurn], removedNodes: [] },
+    ]);
+
+    assert.equal(recalculations, 1);
+    assert.equal(containerChecks, 0);
 });

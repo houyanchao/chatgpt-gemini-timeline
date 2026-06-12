@@ -55,7 +55,6 @@ class TimelineManager {
         this.onTimelineWheel = null;
         this.onStorage = null;
         this.onVisualViewportResize = null;
-        this.onAIStateChange = null;
         this.onPageHide = null;
         this.onBeforeUnload = null;
         this.onVisibilityChange = null;
@@ -67,8 +66,6 @@ class TimelineManager {
         this.onKeyDown = null;
         // ✅ 键盘导航功能启用状态（内存缓存，默认开启）
         this.arrowKeysNavigationEnabled = true;
-        // ✅ AI 回复完成提醒启用状态（内存缓存，默认开启）
-        this.aiCompleteToastEnabled = true;
         // ✅ 平台设置（内存缓存）
         this.platformSettings = {};
         // ✅ 时间轴激活节点颜色设置（内存缓存）
@@ -81,7 +78,6 @@ class TimelineManager {
         this.resizeIdleTimer = null;
         this.resizeIdleRICId = null;
         this.zeroTurnsTimer = null;
-        this.aiCompleteToastTimer = null;
         
         // Padding 管理：AI 生成中不更新，生成结束后更新
         this._pendingPaddingUpdate = null;
@@ -164,8 +160,6 @@ class TimelineManager {
         // ✅ 健康检查定时器
         this.healthCheckInterval = null;
 
-        // ✅ AI 回复完成提示使用的右上角定位锚点
-        this.aiCompleteToastAnchor = null;
     }
 
     getTimelineFeatures() {
@@ -190,8 +184,6 @@ class TimelineManager {
         await this.loadPins();
         // ✅ 加载键盘导航功能状态
         await this.loadArrowKeysNavigationState();
-        // ✅ 加载 AI 回复完成提醒状态
-        await this.loadAICompleteToastState();
         // ✅ 加载平台设置
         await this.loadPlatformSettings();
         // ✅ 加载激活节点颜色设置
@@ -440,8 +432,6 @@ class TimelineManager {
         
         // ✅ 收藏按钮使用相对定位，不需要动态计算位置
         
-        // ✅ 添加收藏整个聊天的按钮（插入到平台原生UI中）
-        this.injectStarChatButton();
     }
     
     // ✅ 收起/展开按钮的 SVG 图标常量
@@ -614,11 +604,6 @@ class TimelineManager {
         const isCollapsed = this.ui.wrapper.classList.toggle('ait-collapsed');
         this.updateToggleButtonIcon(isCollapsed);
         
-        // 收起时关闭闪记面板
-        if (isCollapsed && window.notepadManager && window.notepadManager.isOpen) {
-            window.notepadManager.close();
-        }
-        
         // 保存状态到 chrome.storage.local，并通过 _ 前缀排除云同步
         try {
             chrome.storage.local.set({ _aitTimelineCollapsed: isCollapsed });
@@ -647,251 +632,6 @@ class TimelineManager {
         if (!this.ui.toggleBtn) return;
         this.ui.toggleBtn.innerHTML = isCollapsed ? TimelineManager.TOGGLE_ICON_EXPAND : TimelineManager.TOGGLE_ICON_COLLAPSE;
         this.ui.toggleBtn.classList.toggle('collapsed', isCollapsed);
-    }
-    
-    /**
-     * ✅ 注入收藏聊天按钮（原生插入模式）
-     */
-    async injectStarChatButton() {
-        // 1. 获取Adapter提供的目标元素
-        const targetElement = this.adapter.getStarChatButtonTarget?.();
-        
-        // 如果没有目标元素，不显示按钮
-        if (!targetElement) {
-            return;
-        }
-        
-        // 2. 检查是否已存在按钮
-        let starChatBtn = document.querySelector('.ait-timeline-star-chat-btn-native');
-        
-        if (starChatBtn) {
-            // ✅ 按钮已存在，只更新状态，不重建（避免事件监听器丢失）
-            const isStarred = await this.isChatStarred();
-            const svg = starChatBtn.querySelector('svg');
-            if (svg) {
-                svg.setAttribute('fill', isStarred ? 'rgb(255, 125, 3)' : 'none');
-                svg.setAttribute('stroke', isStarred ? 'rgb(255, 125, 3)' : 'currentColor');
-            }
-            // 保存引用
-            this.ui.starChatBtn = starChatBtn;
-            return;
-        }
-        
-        // 3. 创建新按钮
-        starChatBtn = document.createElement('button');
-        starChatBtn.className = 'ait-timeline-star-chat-btn-native';
-        
-        // 4. 检查收藏状态并设置图标
-        const isStarred = await this.isChatStarred();
-        starChatBtn.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="${isStarred ? 'rgb(255, 125, 3)' : 'none'}" stroke="${isStarred ? 'rgb(255, 125, 3)' : 'currentColor'}" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-        `;
-        
-        // 5. 设置基础样式（适配原生UI）
-        const isDeepSeek = this.adapter.constructor.name === 'DeepSeekAdapter';
-        starChatBtn.style.cssText = `
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            background: transparent;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-            ${isDeepSeek ? 'position: absolute; top: 14px; right: 56px; z-index: 1000;' : 'position: relative;'}
-        `;
-        
-        // 6. Hover效果和tooltip - 直接绑定（mouseenter/mouseleave 不冒泡）
-        starChatBtn.addEventListener('mouseenter', async () => {
-            starChatBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-            
-            const isStarred = await this.isChatStarred();
-            const tooltipText = isStarred ? chrome.i18n.getMessage('bpxjkw') : chrome.i18n.getMessage('zmvkpx');
-            
-            window.globalTooltipManager?.show(
-                'star-chat-btn',
-                'button',
-                starChatBtn,
-                tooltipText,
-                { placement: 'bottom' }
-            );
-        });
-        
-        starChatBtn.addEventListener('mouseleave', () => {
-            starChatBtn.style.backgroundColor = 'transparent';
-            window.globalTooltipManager?.hide();
-        });
-        
-        // 7. 点击事件 - 使用事件委托（click 可以冒泡）
-        this._setupStarChatBtnClickEvent();
-        
-        // 9. 插入按钮到原生UI
-        targetElement.parentNode.insertBefore(starChatBtn, targetElement);
-        
-        // 10. 保存引用
-        this.ui.starChatBtn = starChatBtn;
-    }
-    
-    /**
-     * ✅ 设置收藏聊天按钮的点击事件委托
-     * 使用事件委托解决页面长时间停留后点击事件失效的问题
-     */
-    _setupStarChatBtnClickEvent() {
-        const edm = window.eventDelegateManager;
-        if (!edm) {
-            console.warn('[TimelineManager] eventDelegateManager not available for star chat btn');
-            return;
-        }
-        
-        // 点击：切换收藏状态
-        edm.on('click', '.ait-timeline-star-chat-btn-native', async (e, btn) => {
-            const result = await this.toggleChatStar();
-            
-            if (result && result.success) {
-                const nowStarred = await this.isChatStarred();
-                const svg = btn.querySelector('svg');
-                if (svg) {
-                    svg.setAttribute('fill', nowStarred ? 'rgb(255, 125, 3)' : 'none');
-                    svg.setAttribute('stroke', nowStarred ? 'rgb(255, 125, 3)' : 'currentColor');
-                }
-                
-                // 更新 tooltip 文本
-                const newText = nowStarred ? chrome.i18n.getMessage('bpxjkw') : chrome.i18n.getMessage('zmvkpx');
-                window.globalTooltipManager?.updateContent(newText);
-                
-                // 显示 toast
-                if (window.globalToastManager) {
-                    const toastColor = {
-                        light: { backgroundColor: '#0d0d0d', textColor: '#ffffff', borderColor: '#262626' },
-                        dark: { backgroundColor: '#ffffff', textColor: '#1f2937', borderColor: '#d1d5db' }
-                    };
-                    
-                    if (result.action === 'star') {
-                        window.globalToastManager.success(chrome.i18n.getMessage('kxpmzv'), null, { color: toastColor });
-                    } else if (result.action === 'unstar') {
-                        window.globalToastManager.info(chrome.i18n.getMessage('pzmvkx'), null, { color: toastColor });
-                    }
-                }
-            }
-        });
-    }
-    
-    /**
-     * ✅ 显示编辑对话框（使用全局 Input Modal）
-     */
-    async showEditDialog(currentText) {
-        if (!window.globalInputModal) {
-            console.error('[TimelineManager] globalInputModal not available');
-            return null;
-        }
-        
-        return await window.globalInputModal.show({
-            title: chrome.i18n.getMessage('vkpxzm'),
-            defaultValue: currentText,
-            placeholder: chrome.i18n.getMessage('zmxvkp'),
-            required: true,
-            requiredMessage: chrome.i18n.getMessage('pzmkvx'),
-            maxLength: 100
-        });
-    }
-    
-    /**
-     * ✅ 检查当前聊天是否已被收藏
-     */
-    async isChatStarred() {
-        try {
-            const urlWithoutProtocol = location.href.replace(/^https?:\/\//, '');
-            const key = `chatTimelineStar:${urlWithoutProtocol}:-1`;
-            return await StarStorageManager.exists(key);
-        } catch (e) {
-            return false;
-        }
-    }
-    
-    /**
-     * ✅ 切换聊天收藏状态
-     */
-    async toggleChatStar() {
-        try {
-            const urlWithoutProtocol = location.href.replace(/^https?:\/\//, '');
-            const key = `chatTimelineStar:${urlWithoutProtocol}:-1`;
-            const existingValue = await StarStorageManager.findByKey(key);
-            
-            if (existingValue) {
-                // 已收藏，取消收藏
-                await StarStorageManager.remove(key);
-                return { success: true, action: 'unstar' };
-            } else {
-                // 未收藏，显示输入主题弹窗（带文件夹选择器）
-                if (!window.starInputModal) {
-                    console.error('[TimelineManager] starInputModal not available');
-                    return { success: false, action: null };
-                }
-                
-                // 获取默认主题（通过 Adapter 提供）
-                const defaultTheme = this.adapter.getDefaultChatTheme?.() || '';
-                
-                const result = await window.starInputModal.show({
-                    title: chrome.i18n.getMessage('zmvkpx'),
-                    defaultValue: defaultTheme,
-                    placeholder: chrome.i18n.getMessage('zmxvkp'),
-                    folderManager: this.folderManager,
-                    defaultFolderId: null
-                });
-                
-                if (!result) {
-                    // 用户取消了
-                    return { success: false, action: 'cancelled' };
-                }
-                
-                // 添加收藏
-                // ✅ 限制收藏文字长度为前100个字符
-                const truncatedTheme = this.truncateText(result.value, 100);
-                const value = {
-                    key,
-                    url: location.href,
-                    urlWithoutProtocol: urlWithoutProtocol,
-                    index: -1,
-                    question: truncatedTheme,
-                    timestamp: Date.now(),
-                    folderId: result.folderId || null
-                };
-                await StarStorageManager.add(value);
-                
-                // ✅ 不再需要手动更新收藏列表UI，StarredTab 会自动监听存储变化
-                return { success: true, action: 'star' };
-            }
-        } catch (e) {
-            console.error('Failed to toggle chat star:', e);
-            return { success: false, action: null };
-        }
-    }
-    
-    /**
-     * ✅ 显示主题输入对话框（使用全局 Input Modal）
-     */
-    async showThemeInputDialog() {
-        if (!window.globalInputModal) {
-            console.error('[TimelineManager] globalInputModal not available');
-            return null;
-        }
-        
-            // 获取默认主题（通过 Adapter 提供）
-            const defaultTheme = this.adapter.getDefaultChatTheme?.() || '';
-            
-        return await window.globalInputModal.show({
-            title: chrome.i18n.getMessage('qwxpzm'),
-            defaultValue: defaultTheme,
-            placeholder: chrome.i18n.getMessage('zmxvkp'),
-            required: true,
-            requiredMessage: chrome.i18n.getMessage('mzpxvk'),
-            maxLength: 100
-        });
     }
     
     /**
@@ -927,10 +667,8 @@ class TimelineManager {
     recalculateAndRenderMarkers() {
         if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
-        if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
-
         const selector = this.adapter.getUserMessageSelector();
-        let userTurnElements = this.conversationContainer.querySelectorAll(selector);
+        let userTurnElements = Array.from(this.conversationContainer.querySelectorAll(selector));
         
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
@@ -949,23 +687,6 @@ class TimelineManager {
         // ✅ 确定有节点要渲染，注入收起/展开切换按钮（首次调用时创建，后续调用直接跳过）
         this.injectToggleButton();
 
-        /**
-         * ✅ 按照元素在页面上的实际位置（从上往下）排序
-         * 确保节点顺序和视觉顺序完全一致，适用于所有网站
-         * 
-         * ✅ 性能优化：批量读取所有 rect 后再排序
-         * 原因：getBoundingClientRect() 会触发浏览器重排
-         * 批量读取可以让浏览器合并重排操作，减少布局抖动
-         */
-        const elementsArray = Array.from(userTurnElements);
-        // 一次性批量读取所有 rect（利用浏览器批量优化）
-        const rectsMap = new Map();
-        elementsArray.forEach(el => rectsMap.set(el, el.getBoundingClientRect()));
-        // 使用缓存的 rect 进行排序
-        userTurnElements = elementsArray.sort((a, b) => 
-            rectsMap.get(a).top - rectsMap.get(b).top
-        );
-        
         /**
          * ✅ 性能优化：只在节点真正变化时重新计算位置
          * 
@@ -1005,10 +726,6 @@ class TimelineManager {
             this.updateVirtualRangeAndRender();
             this.updateActiveDotUI();
             this.scheduleScrollSync();
-            // 重新渲染时间标签（虚拟滚动可能导致新元素出现但节点数不变）
-            if (window.chatTimeRecorder) {
-                window.chatTimeRecorder._renderTimeLabels();
-            }
             return;
         }
         
@@ -1253,6 +970,7 @@ class TimelineManager {
         this.updateActiveDotUI();
         this.scheduleScrollSync();
         this.updateIntersectionObserverTargets();
+        if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
         
         // ✅ 对外派发节点数量变化事件
         if (pendingNodesChange) {
@@ -1291,35 +1009,43 @@ class TimelineManager {
         
         this.handleInitialNavigationOrRestore(findMarkerByNodeKey).catch(() => {});
         
-        // 重新渲染时间标签（处理虚拟滚动后新出现的消息元素）
-        if (window.chatTimeRecorder) {
-            window.chatTimeRecorder._renderTimeLabels();
-        }
-        
     }
     
+    mutationTouchesUserTurns(mutations) {
+        const selector = this.adapter.getUserMessageSelector();
+        if (!selector) return false;
+        const elementNode = (typeof Node !== 'undefined' && Node.ELEMENT_NODE) || 1;
+        const touchesUserTurn = (node) => {
+            if (node?.nodeType !== elementNode) return false;
+            try {
+                return node.matches?.(selector) || Boolean(node.querySelector?.(selector));
+            } catch {
+                return false;
+            }
+        };
+
+        return mutations.some(mutation => {
+            if (mutation.type !== 'childList') return false;
+            return Array.from(mutation.addedNodes || []).some(touchesUserTurn) ||
+                Array.from(mutation.removedNodes || []).some(touchesUserTurn);
+        });
+    }
+
     setupObservers() {
         this.mutationObserver = new MutationObserver((mutations) => {
             /**
-             * ✅ 防御性检查：确保有实际的节点增删变化
-             * 
-             * 理论上，由于只配置了 childList: true，所有 mutation 都应该
-             * 包含 addedNodes 或 removedNodes。但作为防御性编程，
-             * 我们仍然检查以处理可能的边缘情况。
-             * 
-             * 真正的性能优化在 recalculateAndRenderMarkers() 中：
-             * 通过比较 turnId 集合来判断是否需要重建 markers。
+             * 只在用户消息节点增删时重建时间轴。
+             * ChatGPT 长对话会频繁更新按钮、代码块、流式回答等 DOM，
+             * 这些变化不改变用户提问节点，跳过可避免整页扫描和布局读取。
              */
-            const hasRelevantChange = mutations.some(m => 
-                m.type === 'childList' && 
-                (m.addedNodes.length > 0 || m.removedNodes.length > 0)
-            );
-            if (!hasRelevantChange) return;
+            if (!this.mutationTouchesUserTurns(mutations)) return;
             
             // ✅ 注意：padding 恢复逻辑已移至 scheduleScrollSync()
             // 当用户滚动时恢复 padding，而不是用定时器猜测 AI 回答是否结束
             
-            try { this.ensureContainersUpToDate(); } catch {}
+            if (!this.conversationContainer?.isConnected) {
+                try { this.ensureContainersUpToDate(); } catch {}
+            }
             this.debouncedRecalculateAndRender();
         });
         this.mutationObserver.observe(this.conversationContainer, { childList: true, subtree: true });
@@ -1392,18 +1118,6 @@ class TimelineManager {
         checkAndUpdateTimelineVisibility();
         this.hideConflictingElements(conflictingSelectors);
         
-        // 使用 DOMObserverManager 监听 DOM 变化（合并为 1 个订阅）
-        if (window.DOMObserverManager) {
-            this._unsubscribeDomCheck = window.DOMObserverManager.getInstance().subscribeBody('timeline-dom-check', {
-                callback: () => {
-                    checkAndUpdateTimelineVisibility();
-                    this.hideConflictingElements(conflictingSelectors);
-                },
-                filter: { hasAddedNodes: true, hasRemovedNodes: true },
-                debounce: 300  // 300ms 防抖，降低执行频率
-            });
-        }
-
         this.setupFastTimelineVisibilityObserver(checkAndUpdateTimelineVisibility);
     }
 
@@ -1530,11 +1244,6 @@ class TimelineManager {
         // ✅ 重置节点跟踪状态，因为切换了对话
         this._renderedNodeCount = 0;
         this._renderedNodeIds = new Set();
-        
-        // ✅ 重置 ChatTimeRecorder 状态（解耦：通过全局函数调用）
-        if (typeof resetChatTimeRecorder === 'function') {
-            resetChatTimeRecorder();
-        }
         
         // ✅ Padding 状态由 adapter.isAIGenerating() 实时控制
         this._currentPadding = 0;
@@ -1871,13 +1580,6 @@ class TimelineManager {
         };
         this.ui.timelineBar.addEventListener('wheel', this.onTimelineWheel, { passive: false });
 
-        // AI 回复完成后，如果用户当前停留在非最后节点，提示仍有后续内容。
-        this.onAIStateChange = (event) => {
-            if (event.detail?.generating !== false) return;
-            this.scheduleAICompleteToastCheck();
-        };
-        window.addEventListener('ai:stateChange', this.onAIStateChange);
-
         // Cross-tab/cross-site star sync via chrome.storage change event
         this.onStorage = async (changes, areaName) => {
             try {
@@ -1903,17 +1605,6 @@ class TimelineManager {
                 if (changes.chatTimelineStars) {
                     // 重新加载收藏数据
                     await this.loadStars();
-
-                    // 同步收藏整个对话按钮的状态
-                    const starBtn = this.ui.starChatBtn || document.querySelector('.ait-timeline-star-chat-btn-native');
-                    if (starBtn) {
-                        const nowStarred = await this.isChatStarred();
-                        const svg = starBtn.querySelector('svg');
-                        if (svg) {
-                            svg.setAttribute('fill', nowStarred ? 'rgb(255, 125, 3)' : 'none');
-                            svg.setAttribute('stroke', nowStarred ? 'rgb(255, 125, 3)' : 'currentColor');
-                        }
-                    }
 
                     // 同步收藏状态到所有 marker
                     this.markers.forEach(marker => {
@@ -1949,11 +1640,6 @@ class TimelineManager {
                     this.arrowKeysNavigationEnabled = changes.arrowKeysNavigationEnabled.newValue !== false;
                 }
 
-                // ✅ 监听 AI 回复完成提醒状态变化
-                if (changes.timelineAICompleteToastEnabled) {
-                    this.aiCompleteToastEnabled = changes.timelineAICompleteToastEnabled.newValue !== false;
-                }
-                
                 // ✅ 监听平台设置变化
                 if (changes.timelinePlatformSettings) {
                     this.platformSettings = changes.timelinePlatformSettings.newValue || {};
@@ -3254,67 +2940,6 @@ class TimelineManager {
         });
     }
 
-    scheduleAICompleteToastCheck() {
-        this.aiCompleteToastTimer = TimelineUtils.clearTimerSafe(this.aiCompleteToastTimer);
-        this.aiCompleteToastTimer = setTimeout(() => {
-            this.aiCompleteToastTimer = null;
-            this.maybeShowAICompleteNotLatestToast();
-        }, TIMELINE_CONFIG.AI_COMPLETE_TOAST_DELAY);
-    }
-
-    maybeShowAICompleteNotLatestToast() {
-        if (!this.aiCompleteToastEnabled) return;
-        if (!this.isPlatformEnabled()) return;
-        if (!this.markers || this.markers.length <= 1) return;
-        if (this.ui.wrapper && this.ui.wrapper.style.display === 'none') return;
-        if (!window.globalToastManager) return;
-
-        try {
-            this._recalcMarkerPositions();
-            this.computeActiveByScroll();
-        } catch {}
-
-        const activeId = this.pendingActiveId || this.activeTurnId;
-        const activeIndex = activeId ? this.markers.findIndex(m => m.id === activeId) : -1;
-        if (activeIndex < 0 || activeIndex >= this.markers.length - 1) return;
-
-        const platformName = getCurrentPlatform()?.name || 'AI';
-        const message = chrome.i18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
-            `${platformName} 回复已完成`;
-        const anchor = this.getAICompleteToastAnchor();
-
-        window.globalToastManager.info(message, anchor, {
-            duration: 3500,
-            iconType: 'check',
-            color: false,
-            className: 'ait-ai-complete-toast',
-            useClassStyles: true,
-            position: 'left',
-            gap: 10
-        });
-    }
-
-    getAICompleteToastAnchor() {
-        if (this.aiCompleteToastAnchor?.isConnected) {
-            return this.aiCompleteToastAnchor;
-        }
-
-        const anchor = document.createElement('div');
-        anchor.className = 'ait-timeline-ai-complete-toast-anchor';
-        anchor.style.cssText = [
-            'position: fixed',
-            'top: 72px',
-            'right: 26px',
-            'width: 1px',
-            'height: 1px',
-            'pointer-events: none',
-            'z-index: 2147483647'
-        ].join(';');
-        document.body.appendChild(anchor);
-        this.aiCompleteToastAnchor = anchor;
-        return anchor;
-    }
-
     /**
      * 管理底部空白元素，确保最后节点可滚动激活
      * @param {number} lastOffsetTop - 最后节点的 offsetTop
@@ -3709,7 +3334,6 @@ class TimelineManager {
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'focusout', this.onTimelineBarFocusOut);
         // ✅ 注意：不再需要清理 tooltip 事件监听器（因为 tooltip 不由 Timeline 创建）
         TimelineUtils.removeEventListenerSafe(this.ui.timelineBar, 'wheel', this.onTimelineWheel);
-        TimelineUtils.removeEventListenerSafe(window, 'ai:stateChange', this.onAIStateChange);
         TimelineUtils.removeEventListenerSafe(window, 'resize', this.onWindowResize);
         TimelineUtils.removeEventListenerSafe(window.visualViewport, 'resize', this.onVisualViewportResize);
         
@@ -3722,7 +3346,6 @@ class TimelineManager {
         this.resizeIdleRICId = TimelineUtils.clearIdleCallbackSafe(this.resizeIdleRICId);
         // ✅ 移除：longPressTimer 已删除
         this.zeroTurnsTimer = TimelineUtils.clearTimerSafe(this.zeroTurnsTimer);
-        this.aiCompleteToastTimer = TimelineUtils.clearTimerSafe(this.aiCompleteToastTimer);
         this._clearAutoBottomJumpFlashCandidate();
         this.showRafId = TimelineUtils.clearRafSafe(this.showRafId);
         
@@ -3740,9 +3363,6 @@ class TimelineManager {
         // ✅ 清理切换按钮
         TimelineUtils.removeElementSafe(this.ui.toggleBtn);
         
-        // ✅ 清理 AI 完成提示定位锚点
-        TimelineUtils.removeElementSafe(this.aiCompleteToastAnchor);
-
         // ✅ 清理底部空白元素。切换会话时旧容器可能仍留在 DOM 中，必须全局清理残留。
         this.cleanupScrollPadding();
         
@@ -3761,7 +3381,6 @@ class TimelineManager {
         this.onScroll = null;
         this.onWindowResize = null;
         this.onVisualViewportResize = null;
-        this.onAIStateChange = null;
         this.onPageHide = null;
         this.onBeforeUnload = null;
         this.onVisibilityChange = null;
@@ -3772,7 +3391,6 @@ class TimelineManager {
         this.pendingActiveId = null;
         this.temporaryPin = null;
         this.pendingAutoBottomJump = null;
-        this.aiCompleteToastAnchor = null;
     }
 
     // --- Star/Highlight helpers ---
@@ -3827,21 +3445,6 @@ class TimelineManager {
             console.error('[Timeline] Failed to load arrow keys navigation state:', e);
             // 读取失败，默认开启
             this.arrowKeysNavigationEnabled = true;
-        }
-    }
-
-    /**
-     * ✅ 加载 AI 回复完成提醒状态
-     */
-    async loadAICompleteToastState() {
-        try {
-            const result = await chrome.storage.local.get('timelineAICompleteToastEnabled');
-            // 默认开启（!== false）
-            this.aiCompleteToastEnabled = result.timelineAICompleteToastEnabled !== false;
-        } catch (e) {
-            console.error('[Timeline] Failed to load AI complete toast state:', e);
-            // 读取失败，默认开启
-            this.aiCompleteToastEnabled = true;
         }
     }
 

@@ -133,12 +133,7 @@ function destroyTimelineInstance() {
         timelineManagerInstance = null;
     }
 
-    if (window.AIStateMonitor) {
-        window.AIStateMonitor.getInstance().stop();
-    }
-
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
-    TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
     cleanupGlobalObservers();
 }
 
@@ -156,11 +151,6 @@ function initializeTimeline() {
         timelineManagerInstance = new TimelineManager(currentAdapter);
         timelineManagerInstance.init().catch(err => {});
     } catch (err) {
-    }
-    
-    // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
-    if (window.AIStateMonitor && currentAdapter) {
-        window.AIStateMonitor.getInstance().start(currentAdapter);
     }
 }
 

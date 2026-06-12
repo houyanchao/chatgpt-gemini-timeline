@@ -10,17 +10,6 @@
 function getTabClass(name) {
     switch (name) {
         case 'StarredTab': return typeof StarredTab !== 'undefined' ? StarredTab : null;
-        case 'TimelineSettingsTab': return typeof TimelineSettingsTab !== 'undefined' ? TimelineSettingsTab : null;
-        case 'PromptTab': return typeof PromptTab !== 'undefined' ? PromptTab : null;
-        case 'SmartInputBoxTab': return typeof SmartInputBoxTab !== 'undefined' ? SmartInputBoxTab : null;
-        case 'FormulaTab': return typeof FormulaTab !== 'undefined' ? FormulaTab : null;
-        case 'AnimationTab': return typeof AnimationTab !== 'undefined' ? AnimationTab : null;
-        case 'RunnerTab': return typeof RunnerTab !== 'undefined' ? RunnerTab : null;
-        case 'DataSyncTab': return typeof DataSyncTab !== 'undefined' ? DataSyncTab : null;
-        case 'AboutTab': return typeof AboutTab !== 'undefined' ? AboutTab : null;
-        case 'HighlightTab': return typeof HighlightTab !== 'undefined' ? HighlightTab : null;
-        case 'ChatWidthTab': return typeof ChatWidthTab !== 'undefined' ? ChatWidthTab : null;
-        case 'MirrorSiteTab': return typeof MirrorSiteTab !== 'undefined' ? MirrorSiteTab : null;
         default: return null;
     }
 }
@@ -31,18 +20,7 @@ function getTabClass(name) {
  * - className: 对应的类名（字符串）
  */
 const TAB_CONFIG = [
-    { id: 'about', className: 'AboutTab' },
-    { id: 'timeline-settings', className: 'TimelineSettingsTab' },
     { id: 'starred', className: 'StarredTab' },
-    { id: 'prompt', className: 'PromptTab' },
-    { id: 'smart-input-box', className: 'SmartInputBoxTab' },
-    { id: 'formula', className: 'FormulaTab' },
-    { id: 'runner', className: 'RunnerTab' },
-    { id: 'highlight', className: 'HighlightTab' },
-    { id: 'chat-width', className: 'ChatWidthTab' },
-    { id: 'animation', className: 'AnimationTab' },
-    { id: 'data-sync', className: 'DataSyncTab' },
-    { id: 'mirror-site', className: 'MirrorSiteTab' }
 ];
 
 /**
