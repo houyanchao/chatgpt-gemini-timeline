@@ -65,6 +65,8 @@ class FormulaManager {
      */
     async init() {
         if (this.isEnabled) return;
+
+        await TimelineI18n.ready();
         
         // ✅ 检查功能是否启用
         const enabled = await this.checkIfEnabled();
@@ -307,19 +309,19 @@ class FormulaManager {
         const items = [];
         if (hasLatex && this._latexEnabled) {
             items.push({
-                label: chrome.i18n.getMessage('mvxkpz') || '复制 LaTeX 公式',
+                label: TimelineI18n.getMessage('mvxkpz') || '复制 LaTeX 公式',
                 icon: '📐',
                 onClick: () => this._copyAsLatex(formulaElement)
             });
         }
         if (this._mathmlEnabled) {
             items.push({
-                label: chrome.i18n.getMessage('formulaCopyMathML') || '复制 MathML 公式',
+                label: TimelineI18n.getMessage('formulaCopyMathML') || '复制 MathML 公式',
                 icon: '📊',
                 onClick: () => this._copyAsMathML(formulaElement)
             });
             items.push({
-                label: chrome.i18n.getMessage('formulaCopyMathMLWord') || '复制 MathML 公式（Word 版）',
+                label: TimelineI18n.getMessage('formulaCopyMathMLWord') || '复制 MathML 公式（Word 版）',
                 icon: '📝',
                 onClick: () => this._copyAsMathMLForWord(formulaElement)
             });
@@ -365,7 +367,7 @@ class FormulaManager {
             const formatId = result.formulaFormat || 'none';
             const formatted = applyFormulaFormat(latexCode, formatId);
             await navigator.clipboard.writeText(formatted);
-            this.showCopyFeedback(chrome.i18n.getMessage('xpzmvk'), formulaElement, false);
+            this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
             console.error('复制 LaTeX 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
@@ -392,7 +394,7 @@ class FormulaManager {
             } else {
                 await navigator.clipboard.writeText(mathml);
             }
-            this.showCopyFeedback(chrome.i18n.getMessage('xpzmvk'), formulaElement, false);
+            this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
             console.error('复制 MathML 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
@@ -420,7 +422,7 @@ class FormulaManager {
             } else {
                 await navigator.clipboard.writeText(wordMathML);
             }
-            this.showCopyFeedback(chrome.i18n.getMessage('xpzmvk'), formulaElement, false);
+            this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
             console.error('复制 MathML(Word) 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
@@ -432,11 +434,11 @@ class FormulaManager {
      */
     _getTooltipText() {
         if (this._latexEnabled && this._mathmlEnabled) {
-            return chrome.i18n.getMessage('formulaCopyGeneric') || '复制公式';
+            return TimelineI18n.getMessage('formulaCopyGeneric') || '复制公式';
         } else if (this._mathmlEnabled) {
-            return chrome.i18n.getMessage('formulaCopyMathML') || '复制 MathML 公式';
+            return TimelineI18n.getMessage('formulaCopyMathML') || '复制 MathML 公式';
         }
-        return chrome.i18n.getMessage('mvxkpz') || '复制 LaTeX 公式';
+        return TimelineI18n.getMessage('mvxkpz') || '复制 LaTeX 公式';
     }
 
     /**
@@ -452,7 +454,7 @@ class FormulaManager {
 
         const settingsBtn = document.createElement('span');
         settingsBtn.className = 'formula-tooltip-settings';
-        settingsBtn.setAttribute('aria-label', chrome.i18n.getMessage('kpxvmz') || '公式设置');
+        settingsBtn.setAttribute('aria-label', TimelineI18n.getMessage('kpxvmz') || '公式设置');
         settingsBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
             <circle cx="12" cy="12" r="3"/>
@@ -783,4 +785,3 @@ class FormulaManager {
         });
     }
 }
-

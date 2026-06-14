@@ -5,7 +5,6 @@
 class SnailAnimation {
     constructor() {
         this.id = 'snail';
-        this.name = chrome.i18n.getMessage('animSnail') || 'Snail Parade';
         this.icon = '🐌';
         this.maxCount = 7;
         this.growAt = [10, 100, 300, 500, 700, 900, 1100];
@@ -14,6 +13,10 @@ class SnailAnimation {
         this._leaderSize = 45;
         this._followerSize = 28;
         this._colorIds = ['b', 'c', 'd', 'e', 'f', 'g'];
+    }
+
+    get name() {
+        return TimelineI18n.getMessage('animSnail') || 'Snail Parade';
     }
 
     _snailSvg(id, w) {

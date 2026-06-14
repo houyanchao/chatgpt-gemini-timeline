@@ -28,6 +28,8 @@ class CustomSiteFloatButton {
     }
 
     async init() {
+        await TimelineI18n.ready();
+
         await this._loadPrompts();
         this._createButton();
         await this._loadPosition();
@@ -233,7 +235,7 @@ class CustomSiteFloatButton {
         }
 
         if (window.globalToastManager) {
-            window.globalToastManager.show('success', chrome.i18n.getMessage('mirrorSiteCopied') || '已复制到剪贴板');
+            window.globalToastManager.show('success', TimelineI18n.getMessage('mirrorSiteCopied') || '已复制到剪贴板');
         }
     }
 

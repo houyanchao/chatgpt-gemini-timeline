@@ -6,6 +6,8 @@
  */
 
 (async function initCustomSite() {
+    await TimelineI18n.ready();
+
     if (typeof loadCustomTimelineSiteDomains === 'function') {
         loadCustomTimelineSiteDomains();
     }

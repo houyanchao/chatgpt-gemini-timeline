@@ -208,7 +208,7 @@ class BaseSidebarStarredAdapter {
             const urlWithoutProtocol = convInfo.url.replace(/^https?:\/\//, '');
             const key = `chatTimelineStar:${urlWithoutProtocol}:-1`;
             await StarStorageManager.remove(key);
-            window.globalToastManager?.success(chrome.i18n.getMessage('pzmvkx') || 'Unstarred');
+            window.globalToastManager?.success(TimelineI18n.getMessage('pzmvkx') || 'Unstarred');
         } catch (err) {
             console.error('[SidebarStarredAdapter] Unstar failed:', err);
         }
@@ -221,14 +221,14 @@ class BaseSidebarStarredAdapter {
 
             const existing = await StarStorageManager.findByKey(key);
             if (existing) {
-                window.globalToastManager?.info(chrome.i18n.getMessage('nativeMenuAlreadyStarred') || 'Already starred');
+                window.globalToastManager?.info(TimelineI18n.getMessage('nativeMenuAlreadyStarred') || 'Already starred');
                 return;
             }
 
             if (!window.starInputModal || !this._menuFolderManager) return;
 
             const result = await window.starInputModal.show({
-                title: chrome.i18n.getMessage('zmvkpx'),
+                title: TimelineI18n.getMessage('zmvkpx'),
                 defaultValue: convInfo.title || '',
                 folderManager: this._menuFolderManager,
                 defaultFolderId: null
@@ -243,7 +243,7 @@ class BaseSidebarStarredAdapter {
                 folderId: result.folderId || null
             });
 
-            window.globalToastManager?.success(chrome.i18n.getMessage('nativeMenuStarSuccess') || 'Starred');
+            window.globalToastManager?.success(TimelineI18n.getMessage('nativeMenuStarSuccess') || 'Starred');
         } catch (err) {
             console.error('[SidebarStarredAdapter] Star failed:', err);
         }

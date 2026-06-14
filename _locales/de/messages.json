@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Bildpixel können nicht gelesen werden (Browsersicherheit). Versuchen Sie den Original-Download"
+  },
+  "languageSettingLabel": {
+    "message": "Oberflächensprache"
+  },
+  "languageOptionAuto": {
+    "message": "Browsersprache verwenden"
+  },
+  "languageChangeFailed": {
+    "message": "Die Oberflächensprache konnte nicht geändert werden"
   }
 }

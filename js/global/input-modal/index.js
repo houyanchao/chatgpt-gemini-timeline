@@ -70,6 +70,8 @@ class GlobalInputModal {
      */
     async show(options = {}) {
         try {
+            await TimelineI18n.ready();
+
             // 参数校验
             if (!options.title) {
                 console.error('[InputModal] Missing required parameter: title');
@@ -86,13 +88,13 @@ class GlobalInputModal {
             const config = {
                 title: options.title,
                 defaultValue: options.defaultValue || '',
-                placeholder: options.placeholder || chrome.i18n.getMessage('zmxvkp'),
+                placeholder: options.placeholder || TimelineI18n.getMessage('zmxvkp'),
                 required: options.required !== undefined ? options.required : false,
-                requiredMessage: options.requiredMessage || chrome.i18n.getMessage('pzmkvx'),
+                requiredMessage: options.requiredMessage || TimelineI18n.getMessage('pzmkvx'),
                 maxLength: options.maxLength || this.config.defaultMaxLength,
                 validator: options.validator || null,
-                confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel')
+                confirmText: options.confirmText || TimelineI18n.getMessage('vkmzpx'),
+                cancelText: options.cancelText || TimelineI18n.getMessage('commonCancel')
             };
             
             return await this._showModal(config);
@@ -342,4 +344,3 @@ if (typeof window.globalInputModal === 'undefined') {
         debug: false  // 生产环境关闭，调试时可设为 true
     });
 }
-

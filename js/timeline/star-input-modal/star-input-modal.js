@@ -68,6 +68,8 @@ class StarInputModal {
      */
     async show(options = {}) {
         try {
+            await TimelineI18n.ready();
+
             // 参数校验
             if (!options.title) {
                 console.error('[StarInputModal] Missing required parameter: title');
@@ -89,12 +91,12 @@ class StarInputModal {
             const config = {
                 title: options.title,
                 defaultValue: options.defaultValue || '',
-                placeholder: options.placeholder || chrome.i18n.getMessage('zmxvkp'),
+                placeholder: options.placeholder || TimelineI18n.getMessage('zmxvkp'),
                 required: options.required !== undefined ? options.required : true,
-                requiredMessage: options.requiredMessage || chrome.i18n.getMessage('mzpxvk'),
+                requiredMessage: options.requiredMessage || TimelineI18n.getMessage('mzpxvk'),
                 maxLength: options.maxLength || this.config.defaultMaxLength,
-                confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel'),
+                confirmText: options.confirmText || TimelineI18n.getMessage('vkmzpx'),
+                cancelText: options.cancelText || TimelineI18n.getMessage('commonCancel'),
                 folderManager: options.folderManager,
                 defaultFolderId: options.defaultFolderId || null
             };
@@ -157,7 +159,7 @@ class StarInputModal {
                 <div class="star-input-modal-body">
                     <div class="star-input-modal-row">
                         <label class="star-input-modal-label">
-                            ${chrome.i18n.getMessage('pkmvxz')}<span class="star-input-modal-required">*</span>
+                            ${TimelineI18n.getMessage('pkmvxz')}<span class="star-input-modal-required">*</span>
                         </label>
                         <input 
                             type="text"
@@ -170,10 +172,10 @@ class StarInputModal {
                     </div>
                     <div class="star-input-modal-row">
                         <label class="star-input-modal-label">
-                            ${chrome.i18n.getMessage('kxzpmv')}<span class="star-input-modal-required">*</span>
+                            ${TimelineI18n.getMessage('kxzpmv')}<span class="star-input-modal-required">*</span>
                         </label>
                         <div class="star-input-modal-folder-selector">
-                            <span class="star-input-modal-folder-text placeholder">${chrome.i18n.getMessage('folderRequired') || 'Please select a folder'}</span>
+                            <span class="star-input-modal-folder-text placeholder">${TimelineI18n.getMessage('folderRequired') || 'Please select a folder'}</span>
                             <svg class="star-input-modal-folder-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
@@ -267,7 +269,7 @@ class StarInputModal {
                         subItems.push({ type: 'divider' });
                     }
                     subItems.push({
-                        label: chrome.i18n.getMessage('vpmzkx'),
+                        label: TimelineI18n.getMessage('vpmzkx'),
                         className: 'create-action',
                         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -294,7 +296,7 @@ class StarInputModal {
                 // 添加"新建一级文件夹"选项
                 items.push({ type: 'divider' });
                 items.push({
-                    label: chrome.i18n.getMessage('kxvpmz'),
+                    label: TimelineI18n.getMessage('kxvpmz'),
                     className: 'create-action',
                     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -356,7 +358,7 @@ class StarInputModal {
                 if (!selectedFolderId) {
                     return {
                         valid: false,
-                        message: chrome.i18n.getMessage('folderRequired') || 'Please select a folder'
+                        message: TimelineI18n.getMessage('folderRequired') || 'Please select a folder'
                     };
                 }
                 
@@ -507,25 +509,25 @@ class StarInputModal {
 
             const parentPath = parentId ? await folderManager.getFolderPath(parentId) : '';
             const title = parentId
-                ? (chrome.i18n.getMessage('xmkvpz') || 'New subfolder in {folderName}').replace('{folderName}', parentPath)
-                : chrome.i18n.getMessage('kxvpmz') || 'New Folder';
+                ? (TimelineI18n.getMessage('xmkvpz') || 'New subfolder in {folderName}').replace('{folderName}', parentPath)
+                : TimelineI18n.getMessage('kxvpmz') || 'New Folder';
 
             const result = await window.folderEditModal.show({
                 mode: 'create', title,
-                placeholder: chrome.i18n.getMessage('vzkpmx') || 'Folder name',
-                requiredMessage: chrome.i18n.getMessage('kmxpvz') || 'Name is required',
+                placeholder: TimelineI18n.getMessage('vzkpmx') || 'Folder name',
+                requiredMessage: TimelineI18n.getMessage('kmxpvz') || 'Name is required',
                 maxLength: 10
             });
             if (!result) return null;
 
             const exists = await folderManager.isFolderNameExists(result.name, parentId);
             if (exists) {
-                window.globalToastManager?.error(chrome.i18n.getMessage('kpvzmx') || 'Name already exists');
+                window.globalToastManager?.error(TimelineI18n.getMessage('kpvzmx') || 'Name already exists');
                 return null;
             }
 
             const newFolder = await folderManager.createFolder(result.name, parentId, result.icon);
-            window.globalToastManager?.success(chrome.i18n.getMessage('xzvkpm') || 'Created');
+            window.globalToastManager?.success(TimelineI18n.getMessage('xzvkpm') || 'Created');
             return newFolder;
         } catch (error) {
             console.error('[StarInputModal] Failed to create folder:', error);
@@ -543,4 +545,3 @@ if (typeof window.starInputModal === 'undefined') {
         debug: false
     });
 }
-

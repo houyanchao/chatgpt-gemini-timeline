@@ -9,7 +9,7 @@ class StarredTab extends BaseTab {
     constructor() {
         super();
         this.id = 'starred';
-        this.name = chrome.i18n.getMessage('vnkxpm');
+        this.name = TimelineI18n.getMessage('vnkxpm');
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>`;
@@ -65,7 +65,7 @@ class StarredTab extends BaseTab {
         this.addEventListener(addFolderBtn, 'mouseenter', () => {
             window.globalTooltipManager.show(
                 'add-folder-btn', 'button', addFolderBtn,
-                chrome.i18n.getMessage('kxvpmz'),
+                TimelineI18n.getMessage('kxvpmz'),
                 { placement: 'top' }
             );
         });
@@ -79,7 +79,7 @@ class StarredTab extends BaseTab {
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'starred-toolbar-search';
-        searchInput.placeholder = chrome.i18n.getMessage('mvkzpx');
+        searchInput.placeholder = TimelineI18n.getMessage('mvkzpx');
         searchInput.autocomplete = 'off';
         searchInput.value = '';
 
@@ -134,8 +134,8 @@ class StarredTab extends BaseTab {
             hideToggleSection.innerHTML = `
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('hideStarredFromListLabel') || '去重模式'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('hideStarredFromListHint') || '开启后，已加入文件夹的对话将从侧边栏列表中隐藏'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('hideStarredFromListLabel') || '去重模式'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('hideStarredFromListHint') || '开启后，已加入文件夹的对话将从侧边栏列表中隐藏'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="hide-starred-from-list-toggle">
@@ -158,10 +158,10 @@ class StarredTab extends BaseTab {
             manageSection.innerHTML = `
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('starredDisplayLabel') || '显示文件夹'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('sidebarStarredHint') || 'Control which platforms show the starred folder in their sidebar'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('starredDisplayLabel') || '显示文件夹'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('sidebarStarredHint') || 'Control which platforms show the starred folder in their sidebar'}</div>
                     </div>
-                    <button class="starred-manage-btn">${chrome.i18n.getMessage('promptBtnSwitch') || '开关'}</button>
+                    <button class="starred-manage-btn">${TimelineI18n.getMessage('promptBtnSwitch') || '开关'}</button>
                 </div>
             `;
             sidebarSettingsContainer.appendChild(manageSection);
@@ -227,7 +227,7 @@ class StarredTab extends BaseTab {
         overlay.innerHTML = `
             <div class="starred-platform-modal">
                 <div class="starred-platform-modal-header">
-                    <span>${chrome.i18n.getMessage('mkvzpx') || 'Supported Platforms'}</span>
+                    <span>${TimelineI18n.getMessage('mkvzpx') || 'Supported Platforms'}</span>
                     <button class="starred-platform-modal-close">✕</button>
                 </div>
                 <div class="starred-platform-modal-body">${platformItems}</div>

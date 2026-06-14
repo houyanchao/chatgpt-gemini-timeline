@@ -58,6 +58,8 @@ class SmartEnterManager {
      * 初始化
      */
     async init() {
+        await TimelineI18n.ready();
+
         // ✅ 预加载平台信息（平台配置现在异步获取，缓存供同步方法使用）
         this._currentPlatform = await getCurrentPlatform();
 
@@ -535,7 +537,7 @@ class SmartEnterManager {
                 toastKey = 'smartEnterToastShiftEnter';
             }
             const ctrlLabel = navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl';
-            const message = chrome.i18n.getMessage(toastKey).replace('{ctrl}', ctrlLabel);
+            const message = TimelineI18n.getMessage(toastKey).replace('{ctrl}', ctrlLabel);
             window.globalToastManager.info(message, inputElement, {
                 duration: 2500,
                 icon: '',  // 不显示图标

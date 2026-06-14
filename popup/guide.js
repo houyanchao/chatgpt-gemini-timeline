@@ -13,20 +13,29 @@ const PLATFORMS = [
     { name: 'NotebookLM', url: 'https://notebooklm.google.com', logo: 'images/logo/notebooklm.svg' }
 ];
 
-document.getElementById('logo').src = chrome.runtime.getURL('icons/icon128.png');
-document.getElementById('subtitle').textContent = chrome.i18n.getMessage('guideSubtitle') || 'AI conversation enhancement extension';
-document.getElementById('guideTitle').textContent = chrome.i18n.getMessage('guideTitle') || 'Quick Start';
-document.getElementById('step1').textContent = chrome.i18n.getMessage('guideStep1') || 'Open an AI platform you use.';
-document.getElementById('step2').textContent = chrome.i18n.getMessage('guideStep2') || 'Start a conversation.';
-document.getElementById('step3').textContent = chrome.i18n.getMessage('guideStep3') || 'If a timeline appears on the right side of the conversation page, the installation is successful. If not, please refresh the page.';
-document.getElementById('platformsTitle').textContent = chrome.i18n.getMessage('guidePlatformsTitle') || 'Supported Platforms';
+async function initializeGuide() {
+    await TimelineI18n.ready();
 
-const grid = document.getElementById('platformGrid');
-for (const p of PLATFORMS) {
-    const a = document.createElement('a');
-    a.className = 'platform-item';
-    a.href = p.url;
-    a.target = '_blank';
-    a.innerHTML = `<img src="${chrome.runtime.getURL(p.logo)}" alt="${p.name}"><span>${p.name}</span>`;
-    grid.appendChild(a);
+    document.documentElement.lang = TimelineI18n.getUILanguage();
+    document.getElementById('logo').src = chrome.runtime.getURL('icons/icon128.png');
+    document.getElementById('subtitle').textContent = TimelineI18n.getMessage('guideSubtitle') || 'AI conversation enhancement extension';
+    document.getElementById('guideTitle').textContent = TimelineI18n.getMessage('guideTitle') || 'Quick Start';
+    document.getElementById('step1').textContent = TimelineI18n.getMessage('guideStep1') || 'Open an AI platform you use.';
+    document.getElementById('step2').textContent = TimelineI18n.getMessage('guideStep2') || 'Start a conversation.';
+    document.getElementById('step3').textContent = TimelineI18n.getMessage('guideStep3') || 'If a timeline appears on the right side of the conversation page, the installation is successful. If not, please refresh the page.';
+    document.getElementById('platformsTitle').textContent = TimelineI18n.getMessage('guidePlatformsTitle') || 'Supported Platforms';
+
+    const grid = document.getElementById('platformGrid');
+    for (const p of PLATFORMS) {
+        const a = document.createElement('a');
+        a.className = 'platform-item';
+        a.href = p.url;
+        a.target = '_blank';
+        a.innerHTML = `<img src="${chrome.runtime.getURL(p.logo)}" alt="${p.name}"><span>${p.name}</span>`;
+        grid.appendChild(a);
+    }
 }
+
+initializeGuide().catch(error => {
+    console.error('[Guide] Failed to initialize:', error);
+});

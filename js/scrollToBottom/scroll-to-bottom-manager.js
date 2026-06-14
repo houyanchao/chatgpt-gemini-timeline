@@ -480,6 +480,8 @@ class ScrollToBottomManager {
         if (scrollToBottomManager || initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             if (!(await isPlatformSupported())) return;
 
             const adapter = await getAdapter();

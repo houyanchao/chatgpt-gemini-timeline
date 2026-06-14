@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "No se pueden leer los píxeles (seguridad del navegador). Pruebe a descargar la original"
+  },
+  "languageSettingLabel": {
+    "message": "Idioma de la interfaz"
+  },
+  "languageOptionAuto": {
+    "message": "Seguir el idioma del navegador"
+  },
+  "languageChangeFailed": {
+    "message": "No se pudo cambiar el idioma de la interfaz"
   }
 }

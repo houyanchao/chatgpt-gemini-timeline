@@ -38,6 +38,7 @@
         "<all_urls>"
       ],
       "js": [
+        "js/global/i18n.js",
         "js/global/constants.js",
         "js/global/url-change-monitor/index.js",
         "js/global/dom-observer-manager/index.js",
@@ -238,6 +239,8 @@
         "images/logo.png",
         "images/logo/*.webp",
         "images/logo/*.svg",
+        "_locales/en/messages.json",
+        "_locales/zh_CN/messages.json",
         "js/runner/languages/javascript/sandbox.html",
         "js/runner/languages/javascript/sandbox-script.js",
         "js/runner/languages/typescript/sandbox.html",

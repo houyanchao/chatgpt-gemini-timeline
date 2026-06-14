@@ -18,6 +18,8 @@
      * 初始化公式复制功能
      */
     async function initFormulaModule() {
+        await TimelineI18n.ready();
+
         // 避免重复初始化
         if (globalFormulaManager) {
             console.log('[Formula] Already initialized');
@@ -111,4 +113,3 @@
         getInstance: () => globalFormulaManager
     };
 })();
-

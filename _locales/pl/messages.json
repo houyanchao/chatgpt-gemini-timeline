@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Nie można odczytać pikseli (ograniczenia przeglądarki). Spróbuj pobrać oryginał"
+  },
+  "languageSettingLabel": {
+    "message": "Język interfejsu"
+  },
+  "languageOptionAuto": {
+    "message": "Użyj języka przeglądarki"
+  },
+  "languageChangeFailed": {
+    "message": "Nie udało się zmienić języka interfejsu"
   }
 }

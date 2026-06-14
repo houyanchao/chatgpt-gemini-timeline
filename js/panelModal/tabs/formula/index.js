@@ -10,7 +10,7 @@ class FormulaTab extends BaseTab {
     constructor() {
         super();
         this.id = 'formula';
-        this.name = chrome.i18n.getMessage('kpxvmz');
+        this.name = TimelineI18n.getMessage('kpxvmz');
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 3H4l5 8-5 8h10"/>
             <path d="M14 15l3 3 5-6"/>
@@ -37,8 +37,8 @@ class FormulaTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('formulaMathMLTitle') || '复制 MathML 公式'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('formulaMathMLHint') || '点击公式复制为 MathML 格式，可直接粘贴到 Word'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('formulaMathMLTitle') || '复制 MathML 公式'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('formulaMathMLHint') || '点击公式复制为 MathML 格式，可直接粘贴到 Word'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="formula-mathml-toggle">
@@ -50,10 +50,10 @@ class FormulaTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('formulaLatexTitle') || '复制 LaTeX 公式'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('formulaLatexHint') || '点击公式复制为 LaTeX 格式'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('formulaLatexTitle') || '复制 LaTeX 公式'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('formulaLatexHint') || '点击公式复制为 LaTeX 格式'}</div>
                         <div class="format-inline" id="format-section" style="display: none;">
-                            <div class="format-inline-title">${chrome.i18n.getMessage('formulaFormatTitle') || '选择复制格式'}</div>
+                            <div class="format-inline-title">${TimelineI18n.getMessage('formulaFormatTitle') || '选择复制格式'}</div>
                             <div class="format-options">
                                 ${formatOptionsHtml}
                             </div>

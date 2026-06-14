@@ -6,7 +6,6 @@
 class ZombieAnimation {
     constructor() {
         this.id = 'zombie';
-        this.name = chrome.i18n.getMessage('animZombie') || 'Zombie Walk';
         this.icon = '🧟';
         this.maxCount = 7;
         this.growAt = [10, 100, 300, 500, 700, 900, 1100];
@@ -44,6 +43,10 @@ class ZombieAnimation {
               hair: '<path d="M5 6L7 -1L10 4L14 -2L18 4L21 -1L23 6Z" fill="#FFD700" stroke="#DAA520" stroke-width="0.5"/><circle cx="10" cy="0" r="1" fill="#FF0000"/><circle cx="14" cy="-1" r="1" fill="#4169E1"/><circle cx="18" cy="0" r="1" fill="#50C878"/>',
               extra: '<path d="M4 19Q1 26 4 33L7 22Z" fill="#4A1A6B" opacity="0.7"/><path d="M24 19Q27 26 24 33L21 22Z" fill="#4A1A6B" opacity="0.7"/>' }
         ];
+    }
+
+    get name() {
+        return TimelineI18n.getMessage('animZombie') || 'Zombie Walk';
     }
 
     _zombieSvg(w, typeIdx) {

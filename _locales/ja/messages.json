@@ -1015,5 +1015,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "画像ピクセルを読み取れません（ブラウザのセキュリティ制限の可能性）。元画像のダウンロードをお試しください"
+  },
+  "languageSettingLabel": {
+    "message": "インターフェース言語"
+  },
+  "languageOptionAuto": {
+    "message": "ブラウザの言語に従う"
+  },
+  "languageChangeFailed": {
+    "message": "インターフェース言語を変更できませんでした"
   }
 }

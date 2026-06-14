@@ -1057,5 +1057,23 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "无法读取图片像素（可能被浏览器安全策略拦截），请尝试下载原图"
+  },
+  "languageSettingLabel": {
+    "message": "插件界面语言"
+  },
+  "languageOptionAuto": {
+    "message": "跟随浏览器"
+  },
+  "languageChangeFailed": {
+    "message": "界面语言切换失败"
+  },
+  "formulaCopyMathMLWord": {
+    "message": "复制 MathML 公式（Word 版）"
+  },
+  "highlightSettings": {
+    "message": "设置"
+  },
+  "highlightConfirm": {
+    "message": "确定"
   }
 }

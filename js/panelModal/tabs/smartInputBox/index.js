@@ -10,7 +10,7 @@ class SmartInputBoxTab extends BaseTab {
     constructor() {
         super();
         this.id = 'smartInputBox';
-        this.name = chrome.i18n.getMessage('xmvkpz');
+        this.name = TimelineI18n.getMessage('xmvkpz');
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>`;
@@ -27,7 +27,7 @@ class SmartInputBoxTab extends BaseTab {
             case 'ctrlEnter': return `${this._ctrlLabel} + Enter`;
             case 'shiftEnter': return 'Shift + Enter';
             case 'doubleEnter':
-            default: return chrome.i18n.getMessage('smartEnterModeDoubleEnter');
+            default: return TimelineI18n.getMessage('smartEnterModeDoubleEnter');
         }
     }
     
@@ -43,8 +43,8 @@ class SmartInputBoxTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('quickAskTitle') || '追问功能'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('quickAskHint') || '选中页面上的文字后，显示追问按钮，点击可快速引用到对话框中'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('quickAskTitle') || '追问功能'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('quickAskHint') || '选中页面上的文字后，显示追问按钮，点击可快速引用到对话框中'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="quick-ask-toggle">
@@ -59,8 +59,8 @@ class SmartInputBoxTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('scrollToBottomTitle') || '返回底部'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('scrollToBottomHint') || '显示返回底部的快捷按钮，方便回到最新消息'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('scrollToBottomTitle') || '返回底部'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('scrollToBottomHint') || '显示返回底部的快捷按钮，方便回到最新消息'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="scroll-to-bottom-toggle">
@@ -74,7 +74,7 @@ class SmartInputBoxTab extends BaseTab {
         
         // ==================== Enter 换行控制模块 ====================
         // 提示文字中嵌入 Dropdown trigger
-        const hintTemplate = chrome.i18n.getMessage('mkpxvz');
+        const hintTemplate = TimelineI18n.getMessage('mkpxvz');
         const defaultLabel = this._getModeLabel('doubleEnter');
         const triggerHtml = `<span class="smart-enter-mode-trigger" id="smart-enter-mode-trigger">${defaultLabel}<svg viewBox="0 0 12 12" width="10" height="10"><path d="M3 4.5L6 7.5L9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
         const hintHtml = hintTemplate.includes('{mode}')
@@ -83,7 +83,7 @@ class SmartInputBoxTab extends BaseTab {
         
         const enterKeySection = `
             <div class="platform-list">
-                <div class="platform-list-title">${chrome.i18n.getMessage('kvzmxp')}</div>
+                <div class="platform-list-title">${TimelineI18n.getMessage('kvzmxp')}</div>
                 <div class="platform-list-hint">${hintHtml}</div>
                 
                 <div class="platform-list-container"></div>

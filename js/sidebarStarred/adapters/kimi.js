@@ -110,8 +110,8 @@ class KimiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
         const scopeAttr = this._getVueScopeAttr(items[0]);
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
 
         const menuItem = document.createElement('li');
         menuItem.className = 'opt-item';
@@ -141,8 +141,8 @@ class KimiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
     updateStarMenuItemState(menuItem, isStarred) {
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
         const nameEl = menuItem.querySelector('.opt-name');
         if (nameEl) nameEl.textContent = label;
 

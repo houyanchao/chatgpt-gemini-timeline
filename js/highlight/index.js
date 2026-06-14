@@ -66,7 +66,7 @@
         popoverEl.innerHTML = `
             <div class="ait-hl-pop-header">
                 <div class="ait-hl-pop-colors">${colorButtons}</div>
-                <button class="ait-hl-pop-settings" title="${chrome.i18n.getMessage('highlightSettings') || '设置'}">${settingsIcon}</button>
+                <button class="ait-hl-pop-settings" title="${TimelineI18n.getMessage('highlightSettings') || '设置'}">${settingsIcon}</button>
             </div>
             <div class="ait-hl-pop-styles">
                 <button class="ait-hl-pop-style-btn" data-style="solid"><span class="ait-hl-pop-style-preview">AaBb</span></button>
@@ -75,11 +75,11 @@
                 <button class="ait-hl-pop-style-btn" data-style="textOnly"><span class="ait-hl-pop-style-preview">AaBb</span></button>
             </div>
             <div class="ait-hl-pop-note">
-                <textarea class="ait-hl-pop-input" rows="1" maxlength="140" placeholder="${chrome.i18n.getMessage('highlightAnnotationPlaceholder') || '想法…'}"></textarea>
-                <button class="ait-hl-pop-confirm" title="${chrome.i18n.getMessage('highlightConfirm') || '确定'}">
+                <textarea class="ait-hl-pop-input" rows="1" maxlength="140" placeholder="${TimelineI18n.getMessage('highlightAnnotationPlaceholder') || '想法…'}"></textarea>
+                <button class="ait-hl-pop-confirm" title="${TimelineI18n.getMessage('highlightConfirm') || '确定'}">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
-                <button class="ait-hl-pop-delete ait-hl-pop-edit-only" title="${chrome.i18n.getMessage('highlightRemoveYes') || '删除'}">${deleteIcon}</button>
+                <button class="ait-hl-pop-delete ait-hl-pop-edit-only" title="${TimelineI18n.getMessage('highlightRemoveYes') || '删除'}">${deleteIcon}</button>
             </div>
         `;
 
@@ -514,7 +514,7 @@
         if (opts.showHighlight) {
             const hlBtn = document.createElement('button');
             hlBtn.className = 'ait-highlight-action';
-            hlBtn.innerHTML = `${HIGHLIGHT_BTN_ICON}<span>${chrome.i18n.getMessage('highlightMark') || '标注'}</span>`;
+            hlBtn.innerHTML = `${HIGHLIGHT_BTN_ICON}<span>${TimelineI18n.getMessage('highlightMark') || '标注'}</span>`;
             items.push(hlBtn);
         }
 
@@ -527,7 +527,7 @@
             }
             const copyBtn = document.createElement('button');
             copyBtn.className = 'ait-copy-action';
-            copyBtn.innerHTML = `${COPY_BTN_ICON}<span>${chrome.i18n.getMessage('mvkxpz') || '复制'}</span>`;
+            copyBtn.innerHTML = `${COPY_BTN_ICON}<span>${TimelineI18n.getMessage('mvkxpz') || '复制'}</span>`;
             items.push(copyBtn);
         }
 
@@ -589,13 +589,13 @@
             const toast = window.globalToastManager;
             if (ok) {
                 toast?.success?.(
-                    chrome.i18n.getMessage('xpzmvk') || '已复制',
+                    TimelineI18n.getMessage('xpzmvk') || '已复制',
                     null,
                     { duration: 1600 }
                 );
             } else {
                 toast?.error?.(
-                    chrome.i18n.getMessage('kpzmvx') || '复制失败',
+                    TimelineI18n.getMessage('kpzmvx') || '复制失败',
                     null,
                     { duration: 1600 }
                 );
@@ -603,7 +603,7 @@
         } catch (e) {
             console.error('[Highlight] copy failed:', e);
             window.globalToastManager?.error?.(
-                chrome.i18n.getMessage('kpzmvx') || '复制失败',
+                TimelineI18n.getMessage('kpzmvx') || '复制失败',
                 null,
                 { duration: 1600 }
             );
@@ -743,6 +743,8 @@
 
     async function initHighlight() {
         try {
+            await TimelineI18n.ready();
+
             if (typeof HighlightManager === 'undefined') return;
             if (typeof window.eventDelegateManager === 'undefined') return;
 

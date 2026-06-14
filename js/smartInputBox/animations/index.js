@@ -35,6 +35,8 @@ class InputBoxAnimationManager {
     }
 
     async init() {
+        await TimelineI18n.ready();
+
         this._petData = await StorageAdapter.get(this._petDataKey) || {};
         const savedId = await StorageAdapter.get(this._storageKey);
         // 默认动画为巫师
@@ -159,8 +161,8 @@ class InputBoxAnimationManager {
             });
             clickTarget.addEventListener('mouseenter', () => {
                 if (window.globalTooltipManager) {
-                    window.globalTooltipManager.show('anim-hint', 'button', clickTarget, 
-                        chrome.i18n.getMessage('animViewMore') || '更换宠物', 
+                    window.globalTooltipManager.show('anim-hint', 'button', clickTarget,
+                        TimelineI18n.getMessage('animViewMore') || '更换宠物',
                         { style: 'mini', placement: 'top' }
                     );
                 }

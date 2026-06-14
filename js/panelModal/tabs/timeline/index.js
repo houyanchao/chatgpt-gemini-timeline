@@ -11,7 +11,7 @@ class TimelineSettingsTab extends BaseTab {
     constructor() {
         super();
         this.id = 'timeline';
-        this.name = chrome.i18n.getMessage('pxkmvz');
+        this.name = TimelineI18n.getMessage('pxkmvz');
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="9"/>
         </svg>`;
@@ -33,8 +33,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('chatTimeLabelTitle')}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('chatTimeLabelHint')}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('chatTimeLabelTitle')}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('chatTimeLabelHint')}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="chat-time-label-toggle">
@@ -46,18 +46,18 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('timelineThemeColorLabel') || '时间轴主题色'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('timelineThemeColorHint') || '为不同平台设置时间轴激活节点的主题色'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('timelineThemeColorLabel') || '时间轴主题色'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('timelineThemeColorHint') || '为不同平台设置时间轴激活节点的主题色'}</div>
                     </div>
-                    <button class="starred-manage-btn timeline-theme-color-manage-btn">${chrome.i18n.getMessage('timelineThemeColorManageButton') || '设置'}</button>
+                    <button class="starred-manage-btn timeline-theme-color-manage-btn">${TimelineI18n.getMessage('timelineThemeColorManageButton') || '设置'}</button>
                 </div>
             </div>
             ${divider}
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="ai-complete-toast-toggle">
@@ -69,8 +69,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="prevent-auto-scroll-toggle">
@@ -82,8 +82,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label"><svg class="setting-label-icon setting-label-icon-pin" viewBox="0 0 24 24" fill="rgb(255, 125, 3)" stroke="rgb(255, 125, 3)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>${chrome.i18n.getMessage('pxmzkv')}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('kzxvpm')}</div>
+                        <div class="setting-label"><svg class="setting-label-icon setting-label-icon-pin" viewBox="0 0 24 24" fill="rgb(255, 125, 3)" stroke="rgb(255, 125, 3)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1 1 1 0 0 1 1 1z"/></svg>${TimelineI18n.getMessage('pxmzkv')}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('kzxvpm')}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="long-press-mark-toggle">
@@ -95,8 +95,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('notepadTitle')}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('notepadToggleHint')}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('notepadTitle')}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('notepadToggleHint')}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="notepad-toggle">
@@ -108,8 +108,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('vkpmzx')}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('xpvmkz')}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('vkpmzx')}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('xpvmkz')}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="arrow-keys-nav-toggle">
@@ -130,10 +130,10 @@ class TimelineSettingsTab extends BaseTab {
         bottomSection.innerHTML = `
             <div class="setting-item">
                 <div class="setting-info">
-                    <div class="setting-label">${chrome.i18n.getMessage('timelineDisplayLabel') || '显示时间轴'}</div>
-                    <div class="setting-hint">${chrome.i18n.getMessage('mzkvxp')}</div>
+                    <div class="setting-label">${TimelineI18n.getMessage('timelineDisplayLabel') || '显示时间轴'}</div>
+                    <div class="setting-hint">${TimelineI18n.getMessage('mzkvxp')}</div>
                 </div>
-                <button class="starred-manage-btn">${chrome.i18n.getMessage('promptBtnSwitch') || '开关'}</button>
+                <button class="starred-manage-btn">${TimelineI18n.getMessage('promptBtnSwitch') || '开关'}</button>
             </div>
         `;
         container.appendChild(bottomSection);
@@ -276,7 +276,7 @@ class TimelineSettingsTab extends BaseTab {
                 
                 // 显示 toast 提示
                 if (window.globalToastManager) {
-                    const message = chrome.i18n.getMessage('qoytxz');
+                    const message = TimelineI18n.getMessage('qoytxz');
                     window.globalToastManager.info(message, e.target, {
                         duration: 2200,
                         icon: '',  // 不显示图标
@@ -358,7 +358,7 @@ class TimelineSettingsTab extends BaseTab {
         overlay.innerHTML = `
             <div class="starred-platform-modal">
                 <div class="starred-platform-modal-header">
-                    <span>${chrome.i18n.getMessage('mkvzpx')}</span>
+                    <span>${TimelineI18n.getMessage('mkvzpx')}</span>
                     <button class="starred-platform-modal-close">✕</button>
                 </div>
                 <div class="starred-platform-modal-body">${items}</div>
@@ -391,7 +391,7 @@ class TimelineSettingsTab extends BaseTab {
         const result = await chrome.storage.local.get('timelineActiveColorByPlatform');
         const activeColorByPlatform = result.timelineActiveColorByPlatform || {};
         const activeColorOptions = getTimelineActiveColorOptions();
-        const themeColorLabel = chrome.i18n.getMessage('timelineThemeColorLabel') || '时间轴主题色';
+        const themeColorLabel = TimelineI18n.getMessage('timelineThemeColorLabel') || '时间轴主题色';
 
         const overlay = document.createElement('div');
         overlay.className = 'starred-platform-modal-overlay';

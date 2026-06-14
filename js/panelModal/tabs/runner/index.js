@@ -10,7 +10,7 @@ class RunnerTab extends BaseTab {
     constructor() {
         super();
         this.id = 'runner';
-        this.name = chrome.i18n.getMessage('runnerTabName') || '代码运行';
+        this.name = TimelineI18n.getMessage('runnerTabName') || '代码运行';
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
         </svg>`;
@@ -41,8 +41,8 @@ class RunnerTab extends BaseTab {
         
         container.innerHTML = `
             <div class="platform-list">
-                <div class="platform-list-title">${chrome.i18n.getMessage('runnerSettingsTitle') || '代码运行功能'}</div>
-                <div class="platform-list-hint">${chrome.i18n.getMessage('runnerSettingsHint') || '控制是否在代码块上显示运行按钮'}</div>
+                <div class="platform-list-title">${TimelineI18n.getMessage('runnerSettingsTitle') || '代码运行功能'}</div>
+                <div class="platform-list-hint">${TimelineI18n.getMessage('runnerSettingsHint') || '控制是否在代码块上显示运行按钮'}</div>
                 <div class="platform-list-container">
                     ${languageItems}
                 </div>

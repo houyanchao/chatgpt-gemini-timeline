@@ -12,7 +12,7 @@
     // ===== 安全的 i18n 调用 =====
     function safeI18n(key, fallback = '') {
         try {
-            return chrome.i18n.getMessage(key) || fallback;
+            return TimelineI18n.getMessage(key) || fallback;
         } catch (e) {
             // 扩展上下文失效时返回默认值
             return fallback;
@@ -762,6 +762,8 @@
         if (initialized || initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             // 只在已知 AI 平台上运行
             if (!(await isAiPlatform())) {
                 return;

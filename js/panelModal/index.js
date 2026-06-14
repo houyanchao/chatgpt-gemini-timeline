@@ -25,6 +25,9 @@ class PanelModal {
         this.content = null;
         this.tabsContainer = null;
         this.closeBtn = null;
+        this.languageControl = null;
+        this.languageValue = null;
+        this.languageSelect = null;
         this.shareBtn = null;
         
         this.tabs = new Map(); // tabId -> tab instance
@@ -134,9 +137,40 @@ class PanelModal {
         this.titleElement.className = 'ait-panel-modal-title';
         this.titleElement.textContent = 'Panel'; // 默认标题，会在切换 tab 时更新
 
+        const headerActions = document.createElement('div');
+        headerActions.className = 'ait-panel-modal-header-actions';
+
+        this.languageControl = document.createElement('label');
+        this.languageControl.className = 'ait-panel-modal-language';
+        this.languageControl.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20"/>
+                <path d="M12 2a15.3 15.3 0 010 20"/>
+                <path d="M12 2a15.3 15.3 0 000 20"/>
+            </svg>
+        `;
+
+        this.languageSelect = document.createElement('select');
+        this.languageSelect.className = 'ait-panel-modal-language-select';
+        this.languageSelect.disabled = true;
+
+        this.languageValue = document.createElement('span');
+        this.languageValue.className = 'ait-panel-modal-language-value';
+
+        const languageArrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        languageArrow.classList.add('ait-panel-modal-language-arrow');
+        languageArrow.setAttribute('viewBox', '0 0 12 12');
+        languageArrow.setAttribute('aria-hidden', 'true');
+        languageArrow.innerHTML = '<path d="m3 4.5 3 3 3-3"/>';
+
+        this.languageControl.appendChild(this.languageValue);
+        this.languageControl.appendChild(languageArrow);
+        this.languageControl.appendChild(this.languageSelect);
+
         this.shareBtn = document.createElement('button');
         this.shareBtn.className = 'ait-panel-modal-share';
-        this.shareBtn.setAttribute('aria-label', chrome.i18n.getMessage('shareExtension') || '分享插件');
+        this.shareBtn.setAttribute('aria-label', 'Timeline');
         this.shareBtn.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="18" cy="5" r="3"/>
@@ -147,8 +181,10 @@ class PanelModal {
             </svg>
         `;
         
+        headerActions.appendChild(this.languageControl);
+        headerActions.appendChild(this.shareBtn);
         header.appendChild(this.titleElement);
-        header.appendChild(this.shareBtn);
+        header.appendChild(headerActions);
         
         // 内容区（可滚动）
         this.content = document.createElement('div');
@@ -180,6 +216,24 @@ class PanelModal {
             this.hide();
         });
 
+        this.languageSelect.addEventListener('change', async (e) => {
+            const previousLanguage = TimelineI18n.getLanguage();
+            this.languageSelect.disabled = true;
+
+            try {
+                await TimelineI18n.setLanguage(e.target.value);
+                location.reload();
+            } catch (error) {
+                console.error('[PanelModal] Failed to change language:', error);
+                this.languageSelect.value = previousLanguage;
+                this._refreshLanguageValue();
+                this.languageSelect.disabled = false;
+                window.globalToastManager?.error(
+                    TimelineI18n.getMessage('languageChangeFailed') || 'Failed to change interface language'
+                );
+            }
+        });
+
         this.shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             window.open(this._getStoreDetailUrl(), '_blank', 'noopener,noreferrer');
@@ -190,7 +244,7 @@ class PanelModal {
                 'panel-modal-share-extension',
                 'button',
                 this.shareBtn,
-                chrome.i18n.getMessage('shareExtension') || '分享插件',
+                TimelineI18n.getMessage('shareExtension') || '分享插件',
                 { style: 'mini', placement: 'bottom' }
             );
         });
@@ -209,6 +263,35 @@ class PanelModal {
             return 'https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9Agemini%E3%80%81chatgp/ekednjjojnhlajfobalaaihkibbdcbab';
         }
         return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
+    }
+
+    _refreshLanguageControl() {
+        if (!this.languageSelect || !this.languageControl || !this.languageValue) return;
+
+        const label = TimelineI18n.getMessage('languageSettingLabel') || 'Interface language';
+        this.languageControl.title = label;
+        this.languageSelect.setAttribute('aria-label', label);
+        this.languageSelect.replaceChildren();
+
+        for (const language of TimelineI18n.getAvailableLanguages()) {
+            const option = document.createElement('option');
+            option.value = language.id;
+            option.textContent = language.label
+                || TimelineI18n.getMessage(language.messageKey)
+                || language.id;
+            this.languageSelect.appendChild(option);
+        }
+
+        this.languageSelect.value = TimelineI18n.getLanguage();
+        this._refreshLanguageValue();
+        this.languageSelect.disabled = false;
+    }
+
+    _refreshLanguageValue() {
+        const selectedOption = this.languageSelect?.selectedOptions?.[0];
+        if (this.languageValue) {
+            this.languageValue.textContent = selectedOption?.textContent || '';
+        }
     }
     
     /**
@@ -311,6 +394,13 @@ class PanelModal {
      */
     async show(tabId = null) {
         try {
+            await TimelineI18n.ready();
+            this._refreshLanguageControl();
+            this.shareBtn?.setAttribute(
+                'aria-label',
+                TimelineI18n.getMessage('shareExtension') || '分享插件'
+            );
+
             // ✅ 确保所有可用的 tabs 已注册（按固定顺序）
             if (typeof registerAllTabs === 'function') {
                 await registerAllTabs();
@@ -487,6 +577,9 @@ class PanelModal {
         this.content = null;
         this.tabsContainer = null;
         this.closeBtn = null;
+        this.languageControl = null;
+        this.languageValue = null;
+        this.languageSelect = null;
         this.shareBtn = null;
         
         console.log('[PanelModal] Destroyed');

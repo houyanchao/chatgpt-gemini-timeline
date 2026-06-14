@@ -22,7 +22,7 @@ function _mirrorSiteMsg(key, fallbackOrSubstitutions = '', maybeSubstitutions) {
     const fallback = Array.isArray(fallbackOrSubstitutions) ? '' : fallbackOrSubstitutions;
     const substitutions = Array.isArray(fallbackOrSubstitutions) ? fallbackOrSubstitutions : maybeSubstitutions;
     try {
-        return chrome.i18n.getMessage(key, substitutions) || fallback;
+        return TimelineI18n.getMessage(key, substitutions) || fallback;
     } catch {
         return fallback;
     }
@@ -606,4 +606,6 @@ const PageDetector = (() => {
     return { init };
 })();
 
-PageDetector.init();
+TimelineI18n.ready()
+    .then(() => PageDetector.init())
+    .catch(error => console.error('[MirrorSite] Failed to initialize page detector:', error));

@@ -16,7 +16,7 @@
     // ===== 安全的 i18n 调用 =====
     function safeI18n(key, fallback = '') {
         try {
-            return chrome.i18n.getMessage(key) || fallback;
+            return TimelineI18n.getMessage(key) || fallback;
         } catch (e) {
             return fallback;
         }

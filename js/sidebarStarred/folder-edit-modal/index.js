@@ -125,6 +125,8 @@ class FolderEditModal {
      */
     async show(options = {}) {
         try {
+            await TimelineI18n.ready();
+
             if (!options.title) {
                 console.error('[FolderEditModal] Missing required parameter: title');
                 return null;
@@ -140,13 +142,13 @@ class FolderEditModal {
                 title: options.title,
                 name: options.name || '',
                 icon: options.icon || '',
-                placeholder: options.placeholder || chrome.i18n.getMessage('vzkpmx') || 'Folder name',
+                placeholder: options.placeholder || TimelineI18n.getMessage('vzkpmx') || 'Folder name',
                 maxLength: options.maxLength || 20,
                 required: options.required !== undefined ? options.required : true,
-                requiredMessage: options.requiredMessage || chrome.i18n.getMessage('kmxpvz') || 'Name is required',
+                requiredMessage: options.requiredMessage || TimelineI18n.getMessage('kmxpvz') || 'Name is required',
                 validator: options.validator || null,
-                confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx') || 'OK',
-                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel') || 'Cancel'
+                confirmText: options.confirmText || TimelineI18n.getMessage('vkmzpx') || 'OK',
+                cancelText: options.cancelText || TimelineI18n.getMessage('commonCancel') || 'Cancel'
             };
 
             return await this._showModal(config);

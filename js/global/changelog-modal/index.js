@@ -17,7 +17,9 @@ class ChangelogModal {
     /**
      * 无条件弹出更新弹窗（供外部调用，如 Logo 按钮点击）
      */
-    show() {
+    async show() {
+        await TimelineI18n.ready();
+
         const hasContent = CHANGELOG_DATA.features?.length || CHANGELOG_DATA.improvements?.length;
         if (!CHANGELOG_DATA.id || !hasContent) return;
         this._render();
@@ -73,7 +75,7 @@ class ChangelogModal {
      */
     _getLang() {
         try {
-            const uiLang = chrome.i18n.getUILanguage?.() || navigator.language || 'en';
+            const uiLang = TimelineI18n.getUILanguage() || navigator.language || 'en';
             return uiLang.startsWith('zh') ? 'zh' : 'en';
         } catch {
             return 'en';
@@ -152,13 +154,13 @@ class ChangelogModal {
 
         const title = document.createElement('div');
         title.className = 'changelog-modal-title';
-        const titleText = chrome.i18n.getMessage('changelogTitle') || 'Timeline 更新啦！';
+        const titleText = TimelineI18n.getMessage('changelogTitle') || 'Timeline 更新啦！';
         title.innerHTML = `${titleText} <span class="changelog-version-badge">v${version}</span>`;
 
         const subtitle = document.createElement('div');
         subtitle.className = 'changelog-modal-subtitle';
         const userCount = '37,000+';
-        subtitle.textContent = chrome.i18n.getMessage('changelogSubtitle', [userCount]) || `${userCount} 用户在用，新版本体验再升级。`;
+        subtitle.textContent = TimelineI18n.getMessage('changelogSubtitle', [userCount]) || `${userCount} 用户在用，新版本体验再升级。`;
 
         headerContent.appendChild(title);
         headerContent.appendChild(subtitle);
@@ -170,8 +172,8 @@ class ChangelogModal {
         const body = document.createElement('div');
         body.className = 'changelog-modal-body';
 
-        const featTitle = chrome.i18n.getMessage('changelogFeatures') || '新功能';
-        const improveTitle = chrome.i18n.getMessage('changelogImprovements') || '功能优化';
+        const featTitle = TimelineI18n.getMessage('changelogFeatures') || '新功能';
+        const improveTitle = TimelineI18n.getMessage('changelogImprovements') || '功能优化';
 
         this._renderSection(body, featTitle, '✨', features, lang);
         this._renderSection(body, improveTitle, '🔧', improvements, lang);
@@ -212,19 +214,19 @@ class ChangelogModal {
         docsLink.href = 'https://timeline4ai.com/#/guide?section=timeline';
         docsLink.target = '_blank';
         docsLink.className = 'changelog-footer-icon';
-        docsLink.title = chrome.i18n.getMessage('aboutBtnDocs') || '功能文档';
+        docsLink.title = TimelineI18n.getMessage('aboutBtnDocs') || '功能文档';
         docsLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>';
 
         const githubLink = document.createElement('a');
         githubLink.href = 'https://github.com/houyanchao/chatgpt-gemini-timeline';
         githubLink.target = '_blank';
         githubLink.className = 'changelog-footer-icon';
-        githubLink.title = chrome.i18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
+        githubLink.title = TimelineI18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
         githubLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>';
 
         const tooltipOpts = { style: 'mini', placement: 'top' };
-        const docsTooltipText = chrome.i18n.getMessage('aboutBtnDocs') || '功能文档';
-        const githubTooltipText = chrome.i18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
+        const docsTooltipText = TimelineI18n.getMessage('aboutBtnDocs') || '功能文档';
+        const githubTooltipText = TimelineI18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
 
         docsLink.addEventListener('mouseenter', () => {
             window.globalTooltipManager?.show('changelog-docs', 'button', docsLink, docsTooltipText, tooltipOpts);

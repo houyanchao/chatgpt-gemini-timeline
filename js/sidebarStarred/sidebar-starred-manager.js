@@ -44,6 +44,8 @@ class SidebarStarredManager {
 
     async init() {
         if (this.isDestroyed) return false;
+
+        await TimelineI18n.ready();
         const saved = await StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES);
         this.folderStates = saved && typeof saved === 'object' ? saved : {};
         const ok = this._injectIntoSidebar();
@@ -107,19 +109,19 @@ class SidebarStarredManager {
 
         const title = document.createElement('span');
         title.className = 'ait-ss-title';
-        title.textContent = chrome.i18n.getMessage('vnkxpm') || 'Starred';
+        title.textContent = TimelineI18n.getMessage('vnkxpm') || 'Starred';
 
         const helpBtn = document.createElement('button');
         helpBtn.className = 'ait-ss-add-btn ait-ss-help-btn';
         helpBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
         helpBtn.addEventListener('mouseenter', () => {
             if (!window.globalTooltipManager) return;
-            const desc = chrome.i18n.getMessage('starredHelpDesc') || '文件夹，分类整理对话，告别杂乱无章。';
-            const tipsTitle = chrome.i18n.getMessage('starredHelpTipsTitle') || '使用小技巧：';
-            const tip1 = chrome.i18n.getMessage('starredHelpTip1') || '拖动对话到文件夹。';
-            const tip2 = chrome.i18n.getMessage('starredHelpTip2') || '拖动文件夹中的对话调整位置。';
-            const tip3 = chrome.i18n.getMessage('starredHelpTip3') || '拖动二级文件夹调整位置。';
-            const tip4 = chrome.i18n.getMessage('starredHelpTip4') || '双击文件夹或对话，快速编辑。';
+            const desc = TimelineI18n.getMessage('starredHelpDesc') || '文件夹，分类整理对话，告别杂乱无章。';
+            const tipsTitle = TimelineI18n.getMessage('starredHelpTipsTitle') || '使用小技巧：';
+            const tip1 = TimelineI18n.getMessage('starredHelpTip1') || '拖动对话到文件夹。';
+            const tip2 = TimelineI18n.getMessage('starredHelpTip2') || '拖动文件夹中的对话调整位置。';
+            const tip3 = TimelineI18n.getMessage('starredHelpTip3') || '拖动二级文件夹调整位置。';
+            const tip4 = TimelineI18n.getMessage('starredHelpTip4') || '双击文件夹或对话，快速编辑。';
             const html = `<div style="font-size:12px;line-height:1.6">`
                 + `<div style="font-size:13px;font-weight:600;margin-bottom:6px">${desc}</div>`
                 + `<div style="font-weight:600;margin-bottom:4px">${tipsTitle}</div>`
@@ -140,7 +142,7 @@ class SidebarStarredManager {
         settingsBtn.addEventListener('mouseenter', () => {
             window.globalTooltipManager?.show(
                 'starred-sidebar-settings', 'button', settingsBtn,
-                chrome.i18n.getMessage('sidebarStarredManage'),
+                TimelineI18n.getMessage('sidebarStarredManage'),
                 { style: 'mini', placement: 'top' }
             );
         });
@@ -166,7 +168,7 @@ class SidebarStarredManager {
         this.searchBtn.addEventListener('mouseenter', () => {
             window.globalTooltipManager?.show(
                 'starred-sidebar-search', 'button', this.searchBtn,
-                chrome.i18n.getMessage('mvkzpx'),
+                TimelineI18n.getMessage('mvkzpx'),
                 { style: 'mini', placement: 'top' }
             );
         });
@@ -182,7 +184,7 @@ class SidebarStarredManager {
         addBtn.addEventListener('mouseenter', () => {
             window.globalTooltipManager?.show(
                 'starred-sidebar-add-folder', 'button', addBtn,
-                chrome.i18n.getMessage('kxvpmz'),
+                TimelineI18n.getMessage('kxvpmz'),
                 { style: 'mini', placement: 'top' }
             );
         });

@@ -169,6 +169,8 @@ class TimelineManager {
     }
 
     async init() {
+        await TimelineI18n.ready();
+
         this._currentPlatform = await getCurrentPlatform();
         if (this._destroyed) return false;
         this.siteNameMap = await getSiteNameMap();
@@ -369,7 +371,7 @@ class TimelineManager {
                 questionListBtn = document.createElement('button');
                 questionListBtn.className = 'ait-question-list-btn';
                 questionListBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
-                questionListBtn.setAttribute('aria-label', chrome.i18n.getMessage('questionListTitle') || 'Questions');
+                questionListBtn.setAttribute('aria-label', TimelineI18n.getMessage('questionListTitle') || 'Questions');
                 questionListBtn.style.display = 'none';
 
                 questionListBtn.addEventListener('mouseenter', () => {
@@ -377,7 +379,7 @@ class TimelineManager {
                         'question-list-btn',
                         'button',
                         questionListBtn,
-                        chrome.i18n.getMessage('questionListTitle') || 'Questions',
+                        TimelineI18n.getMessage('questionListTitle') || 'Questions',
                         { placement: 'left' }
                     );
                 });
@@ -401,7 +403,7 @@ class TimelineManager {
             starredBtn = document.createElement('button');
             starredBtn.className = 'timeline-starred-btn';
             starredBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-            starredBtn.setAttribute('aria-label', chrome.i18n.getMessage('hkjvnr'));
+            starredBtn.setAttribute('aria-label', TimelineI18n.getMessage('hkjvnr'));
             // ✅ 初始状态：隐藏，等时间轴渲染完成后再显示
             starredBtn.style.display = 'none';
             
@@ -411,7 +413,7 @@ class TimelineManager {
                     'starred-btn',
                     'button',
                     starredBtn,
-                    chrome.i18n.getMessage('vnkxpm'),
+                    TimelineI18n.getMessage('vnkxpm'),
                     { placement: 'left' }
                 );
             });
@@ -441,7 +443,7 @@ class TimelineManager {
                         'notepad-btn',
                         'button',
                         notepadBtn,
-                        chrome.i18n.getMessage('notepadTitle') || '闪记',
+                        TimelineI18n.getMessage('notepadTitle') || '闪记',
                         { placement: 'left' }
                     );
                 });
@@ -589,8 +591,8 @@ class TimelineManager {
         if (!this.ui.wrapper || !this.ui.toggleBtn || !window.globalTooltipManager) return;
         const isCollapsed = this.ui.wrapper.classList.contains('ait-collapsed');
         const text = isCollapsed
-            ? (chrome.i18n.getMessage('timelineToggleExpandTooltip') || '展开时间轴')
-            : (chrome.i18n.getMessage('timelineToggleCollapseTooltip') || '收起时间轴');
+            ? (TimelineI18n.getMessage('timelineToggleExpandTooltip') || '展开时间轴')
+            : (TimelineI18n.getMessage('timelineToggleCollapseTooltip') || '收起时间轴');
         window.globalTooltipManager.show(
             'timeline-toggle',
             'button',
@@ -732,7 +734,7 @@ class TimelineManager {
             starChatBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
             
             const isStarred = await this.isChatStarred();
-            const tooltipText = isStarred ? chrome.i18n.getMessage('bpxjkw') : chrome.i18n.getMessage('zmvkpx');
+            const tooltipText = isStarred ? TimelineI18n.getMessage('bpxjkw') : TimelineI18n.getMessage('zmvkpx');
             
             window.globalTooltipManager?.show(
                 'star-chat-btn',
@@ -782,7 +784,7 @@ class TimelineManager {
                 }
                 
                 // 更新 tooltip 文本
-                const newText = nowStarred ? chrome.i18n.getMessage('bpxjkw') : chrome.i18n.getMessage('zmvkpx');
+                const newText = nowStarred ? TimelineI18n.getMessage('bpxjkw') : TimelineI18n.getMessage('zmvkpx');
                 window.globalTooltipManager?.updateContent(newText);
                 
                 // 显示 toast
@@ -793,9 +795,9 @@ class TimelineManager {
                     };
                     
                     if (result.action === 'star') {
-                        window.globalToastManager.success(chrome.i18n.getMessage('kxpmzv'), null, { color: toastColor });
+                        window.globalToastManager.success(TimelineI18n.getMessage('kxpmzv'), null, { color: toastColor });
                     } else if (result.action === 'unstar') {
-                        window.globalToastManager.info(chrome.i18n.getMessage('pzmvkx'), null, { color: toastColor });
+                        window.globalToastManager.info(TimelineI18n.getMessage('pzmvkx'), null, { color: toastColor });
                     }
                 }
             }
@@ -812,11 +814,11 @@ class TimelineManager {
         }
         
         return await window.globalInputModal.show({
-            title: chrome.i18n.getMessage('vkpxzm'),
+            title: TimelineI18n.getMessage('vkpxzm'),
             defaultValue: currentText,
-            placeholder: chrome.i18n.getMessage('zmxvkp'),
+            placeholder: TimelineI18n.getMessage('zmxvkp'),
             required: true,
-            requiredMessage: chrome.i18n.getMessage('pzmkvx'),
+            requiredMessage: TimelineI18n.getMessage('pzmkvx'),
             maxLength: 100
         });
     }
@@ -858,9 +860,9 @@ class TimelineManager {
                 const defaultTheme = this.adapter.getDefaultChatTheme?.() || '';
                 
                 const result = await window.starInputModal.show({
-                    title: chrome.i18n.getMessage('zmvkpx'),
+                    title: TimelineI18n.getMessage('zmvkpx'),
                     defaultValue: defaultTheme,
-                    placeholder: chrome.i18n.getMessage('zmxvkp'),
+                    placeholder: TimelineI18n.getMessage('zmxvkp'),
                     folderManager: this.folderManager,
                     defaultFolderId: null
                 });
@@ -906,11 +908,11 @@ class TimelineManager {
             const defaultTheme = this.adapter.getDefaultChatTheme?.() || '';
             
         return await window.globalInputModal.show({
-            title: chrome.i18n.getMessage('qwxpzm'),
+            title: TimelineI18n.getMessage('qwxpzm'),
             defaultValue: defaultTheme,
-            placeholder: chrome.i18n.getMessage('zmxvkp'),
+            placeholder: TimelineI18n.getMessage('zmxvkp'),
             required: true,
-            requiredMessage: chrome.i18n.getMessage('mzpxvk'),
+            requiredMessage: TimelineI18n.getMessage('mzpxvk'),
             maxLength: 100
         });
     }
@@ -2474,8 +2476,8 @@ class TimelineManager {
             pinSpan.dataset.targetTurnId = id;
             if (!isPinned) pinSpan.classList.add('not-pinned');
             pinSpan.dataset.tip = isPinned
-                ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
-                : (chrome.i18n.getMessage('pinAction') || '标记重点');
+                ? (TimelineI18n.getMessage('unpinAction') || '取消标记重点')
+                : (TimelineI18n.getMessage('pinAction') || '标记重点');
             pinSpan.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 window.globalTooltipManager.hideOverlay();
@@ -2485,8 +2487,8 @@ class TimelineManager {
                     const nowPinned = this.pinned.has(turnId);
                     pinSpan.classList.toggle('not-pinned', !nowPinned);
                     pinSpan.dataset.tip = nowPinned
-                        ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
-                        : (chrome.i18n.getMessage('pinAction') || '标记重点');
+                        ? (TimelineI18n.getMessage('unpinAction') || '取消标记重点')
+                        : (TimelineI18n.getMessage('pinAction') || '标记重点');
                 }
             });
             pinSpan.addEventListener('mouseenter', () => {
@@ -2502,8 +2504,8 @@ class TimelineManager {
             starSpan.dataset.targetTurnId = id;
             if (!isStarred) starSpan.classList.add('not-starred');
             starSpan.dataset.tip = isStarred
-                ? (chrome.i18n.getMessage('unstarAction') || '取消收藏')
-                : (chrome.i18n.getMessage('starAction') || '收藏到文件夹');
+                ? (TimelineI18n.getMessage('unstarAction') || '取消收藏')
+                : (TimelineI18n.getMessage('starAction') || '收藏到文件夹');
             starSpan.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 window.globalTooltipManager.hideOverlay();
@@ -2516,15 +2518,15 @@ class TimelineManager {
                     };
                     if (result.action === 'star') {
                         starSpan.classList.remove('not-starred');
-                        starSpan.dataset.tip = chrome.i18n.getMessage('unstarAction') || '取消收藏';
+                        starSpan.dataset.tip = TimelineI18n.getMessage('unstarAction') || '取消收藏';
                         if (window.globalToastManager) {
-                            window.globalToastManager.success(chrome.i18n.getMessage('kxpmzv'), null, { color: toastColor });
+                            window.globalToastManager.success(TimelineI18n.getMessage('kxpmzv'), null, { color: toastColor });
                         }
                     } else if (result.action === 'unstar') {
                         starSpan.classList.add('not-starred');
-                        starSpan.dataset.tip = chrome.i18n.getMessage('starAction') || '收藏到文件夹';
+                        starSpan.dataset.tip = TimelineI18n.getMessage('starAction') || '收藏到文件夹';
                         if (window.globalToastManager) {
-                            window.globalToastManager.info(chrome.i18n.getMessage('pzmvkx'), null, { color: toastColor });
+                            window.globalToastManager.info(TimelineI18n.getMessage('pzmvkx'), null, { color: toastColor });
                         }
                     }
                 }
@@ -3056,7 +3058,7 @@ class TimelineManager {
         if (activeIndex < 0 || activeIndex >= this.markers.length - 1) return;
 
         const platformName = this._currentPlatform?.name || 'AI';
-        const message = chrome.i18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
+        const message = TimelineI18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
             `${platformName} 回复已完成`;
         const anchor = this.getAICompleteToastAnchor();
 
@@ -3827,7 +3829,7 @@ class TimelineManager {
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
             if (isTempId) {
                 if (window.globalToastManager) {
-                    window.globalToastManager.info(chrome.i18n.getMessage('pleaseWait') || '请稍等，节点ID正在加载...');
+                    window.globalToastManager.info(TimelineI18n.getMessage('pleaseWait') || '请稍等，节点ID正在加载...');
                 }
                 return { success: false, action: null };
             }
@@ -3886,9 +3888,9 @@ class TimelineManager {
             }
             
             const result = await window.starInputModal.show({
-                title: chrome.i18n.getMessage('zmvkpx'),
+                title: TimelineI18n.getMessage('zmvkpx'),
                 defaultValue: m.summary,
-                placeholder: chrome.i18n.getMessage('zmxvkp'),
+                placeholder: TimelineI18n.getMessage('zmxvkp'),
                 folderManager: this.folderManager,
                 defaultFolderId: null
             });
@@ -4031,7 +4033,7 @@ class TimelineManager {
     // ✅ 显示复制成功的反馈提示（使用全局 Toast 管理器）
     showCopyFeedback(targetElement) {
         window.globalToastManager.success(
-            chrome.i18n.getMessage('xpzmvk'),
+            TimelineI18n.getMessage('xpzmvk'),
             targetElement
         );
     }
@@ -4174,7 +4176,7 @@ class TimelineManager {
             const isTempId = tempMatch && parseInt(tempMatch[1], 10) < 1000;
             if (isTempId) {
                 if (window.globalToastManager) {
-                    window.globalToastManager.info(chrome.i18n.getMessage('pleaseWait') || '请稍等，节点ID正在加载...');
+                    window.globalToastManager.info(TimelineI18n.getMessage('pleaseWait') || '请稍等，节点ID正在加载...');
                 }
                 return false;
             }

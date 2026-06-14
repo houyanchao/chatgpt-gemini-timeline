@@ -64,6 +64,8 @@ class NotepadManager {
     }
 
     async init() {
+        await TimelineI18n.ready();
+
         try {
             this.folderManager = new FolderManager(StorageAdapter);
         } catch (e) {}
@@ -94,10 +96,10 @@ class NotepadManager {
                         <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                         <path d="m15 5 4 4"/>
                     </svg>
-                    ${chrome.i18n.getMessage('notepadTitle') || '闪记'}
+                    ${TimelineI18n.getMessage('notepadTitle') || '闪记'}
                 </span>
                 <div class="ait-notepad-header-right">
-                    <button class="ait-notepad-list-btn" aria-label="${chrome.i18n.getMessage('notepadAllNotes') || '全部笔记'}">
+                    <button class="ait-notepad-list-btn" aria-label="${TimelineI18n.getMessage('notepadAllNotes') || '全部笔记'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             width="16" height="16">
@@ -109,7 +111,7 @@ class NotepadManager {
                             <line x1="3" y1="18" x2="3.01" y2="18"/>
                         </svg>
                     </button>
-                    <button class="ait-notepad-add-btn" aria-label="${chrome.i18n.getMessage('notepadNewNote') || '新建笔记'}">
+                    <button class="ait-notepad-add-btn" aria-label="${TimelineI18n.getMessage('notepadNewNote') || '新建笔记'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                             width="16" height="16">
@@ -117,7 +119,7 @@ class NotepadManager {
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                     </button>
-                    <button class="ait-notepad-close-btn" aria-label="${chrome.i18n.getMessage('notepadClose') || '关闭'}">
+                    <button class="ait-notepad-close-btn" aria-label="${TimelineI18n.getMessage('notepadClose') || '关闭'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             width="14" height="14">
@@ -129,7 +131,7 @@ class NotepadManager {
             </div>
             <div class="ait-notepad-body">
                 <div class="ait-notepad-list"></div>
-                <textarea class="ait-notepad-editor" placeholder="${chrome.i18n.getMessage('notepadPlaceholder') || '想到什么就写什么，无需排版…'}"></textarea>
+                <textarea class="ait-notepad-editor" placeholder="${TimelineI18n.getMessage('notepadPlaceholder') || '想到什么就写什么，无需排版…'}"></textarea>
                 <div class="ait-notepad-preview" aria-hidden="true" hidden></div>
             </div>
             <div class="ait-notepad-footer">
@@ -139,7 +141,7 @@ class NotepadManager {
                         width="13" height="13">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                     </svg>
-                    <span class="ait-notepad-location-text ait-notepad-location-empty">${chrome.i18n.getMessage('notepadSaveToFolder') || '保存到文件夹'}</span>
+                    <span class="ait-notepad-location-text ait-notepad-location-empty">${TimelineI18n.getMessage('notepadSaveToFolder') || '保存到文件夹'}</span>
                 </div>
             </div>
             <div class="ait-notepad-resize-handle" data-direction="se"></div>
@@ -182,17 +184,17 @@ class NotepadManager {
         this._bindHeaderButtonTooltip(
             this.listBtn,
             'notepad-list',
-            chrome.i18n.getMessage('notepadAllNotes') || '全部笔记'
+            TimelineI18n.getMessage('notepadAllNotes') || '全部笔记'
         );
         this._bindHeaderButtonTooltip(
             this.addBtn,
             'notepad-add',
-            chrome.i18n.getMessage('notepadNewNote') || '新建笔记'
+            TimelineI18n.getMessage('notepadNewNote') || '新建笔记'
         );
         this._bindHeaderButtonTooltip(
             this.panel.querySelector('.ait-notepad-close-btn'),
             'notepad-close',
-            chrome.i18n.getMessage('notepadClose') || '关闭'
+            TimelineI18n.getMessage('notepadClose') || '关闭'
         );
 
         this._onMouseMove = (e) => this.onMouseMove(e);
@@ -381,7 +383,7 @@ class NotepadManager {
 
         this.listContainer.innerHTML = sorted.map(note => {
             const star = noteStarMap[note.id];
-            const contentTitle = this._extractTitle(note.content) || (chrome.i18n.getMessage('notepadUntitled') || '无标题');
+            const contentTitle = this._extractTitle(note.content) || (TimelineI18n.getMessage('notepadUntitled') || '无标题');
             const folderPath = star?.folderId ? (folderPaths[star.folderId] || '') : '';
             const starTitle = star?.question || '';
             const time = this._formatTime(note.updatedAt);
@@ -400,7 +402,7 @@ class NotepadManager {
                             <span class="ait-notepad-item-time">${time}</span>
                         </div>
                     </div>
-                    <button class="ait-notepad-item-delete" title="${chrome.i18n.getMessage('mzxvkp') || '删除'}">
+                    <button class="ait-notepad-item-delete" title="${TimelineI18n.getMessage('mzxvkp') || '删除'}">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                             width="14" height="14">
@@ -456,10 +458,10 @@ class NotepadManager {
 
     async deleteNote(id) {
         const confirmed = await window.globalPopconfirmManager?.show({
-            title: chrome.i18n.getMessage('notepadConfirmDeleteTitle') || '确认删除',
-            content: chrome.i18n.getMessage('notepadConfirmDeleteContent') || '删除后将无法恢复，确定要继续吗？',
-            confirmText: chrome.i18n.getMessage('mzxvkp') || '删除',
-            cancelText: chrome.i18n.getMessage('commonCancel') || '取消'
+            title: TimelineI18n.getMessage('notepadConfirmDeleteTitle') || '确认删除',
+            content: TimelineI18n.getMessage('notepadConfirmDeleteContent') || '删除后将无法恢复，确定要继续吗？',
+            confirmText: TimelineI18n.getMessage('mzxvkp') || '删除',
+            cancelText: TimelineI18n.getMessage('commonCancel') || '取消'
         });
         if (!confirmed) return;
 
@@ -513,7 +515,7 @@ class NotepadManager {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         if (d.toDateString() === yesterday.toDateString()) {
-            return `${chrome.i18n.getMessage('notepadYesterday') || '昨天'} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            return `${TimelineI18n.getMessage('notepadYesterday') || '昨天'} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
         if (d.getFullYear() === now.getFullYear()) {
@@ -550,7 +552,7 @@ class NotepadManager {
     async _updateLocationDisplay() {
         if (!this.locationTextEl || !this.activeNoteId) return;
 
-        const emptyText = chrome.i18n.getMessage('notepadSaveToFolder') || '保存到文件夹';
+        const emptyText = TimelineI18n.getMessage('notepadSaveToFolder') || '保存到文件夹';
         const starRecord = await StarStorageManager.findByKey(this._getNoteStarKey(this.activeNoteId));
 
         if (!starRecord?.folderId || !this.folderManager) {
@@ -593,7 +595,7 @@ class NotepadManager {
         const defaultTitle = existingStar?.question || this._extractTitle(note.content) || '';
 
         const result = await window.starInputModal.show({
-            title: chrome.i18n.getMessage('zmvkpx') || '收藏到文件夹',
+            title: TimelineI18n.getMessage('zmvkpx') || '收藏到文件夹',
             defaultValue: defaultTitle,
             folderManager: this.folderManager,
             defaultFolderId: existingStar?.folderId || null

@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Impossibile leggere i pixel (sicurezza del browser). Prova a scaricare l’originale"
+  },
+  "languageSettingLabel": {
+    "message": "Lingua dell’interfaccia"
+  },
+  "languageOptionAuto": {
+    "message": "Segui la lingua del browser"
+  },
+  "languageChangeFailed": {
+    "message": "Impossibile cambiare la lingua dell’interfaccia"
   }
 }

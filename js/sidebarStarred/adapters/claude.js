@@ -242,8 +242,8 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         menuItem.className = refItem.className;
 
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
 
         const iconWrapper = menuItem.querySelector('div[style*="width: 20px"]');
         if (iconWrapper) {
@@ -264,8 +264,8 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
     updateStarMenuItemState(menuItem, isStarred) {
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
 
         const iconWrapper = menuItem.querySelector('div[style*="width: 20px"]');
         if (iconWrapper) {

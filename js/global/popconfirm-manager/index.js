@@ -40,7 +40,7 @@ class GlobalPopconfirmManager {
      * @returns {Promise<boolean>} 用户选择：true=确认，false=取消
      */
     show(options = {}) {
-        return new Promise((resolve) => {
+        return TimelineI18n.ready().then(() => new Promise((resolve) => {
             // 如果已经有一个弹窗，先关闭
             if (this.state.isVisible) {
                 this.hide(false);
@@ -57,8 +57,8 @@ class GlobalPopconfirmManager {
             const finalConfig = {
                 title: options.title || '',
                 content: options.content || '',
-                confirmText: options.confirmText || chrome.i18n.getMessage('vkmzpx'),
-                cancelText: options.cancelText || chrome.i18n.getMessage('commonCancel'),
+                confirmText: options.confirmText || TimelineI18n.getMessage('vkmzpx'),
+                cancelText: options.cancelText || TimelineI18n.getMessage('commonCancel'),
                 confirmTextType: options.confirmTextType || 'danger', // 默认红色（危险操作）
                 showCancel: options.showCancel !== false // 默认显示取消按钮
             };
@@ -77,7 +77,7 @@ class GlobalPopconfirmManager {
             }, 100);
             
             this._log('Popconfirm shown', finalConfig);
-        });
+        }));
     }
     
     /**
@@ -259,4 +259,3 @@ if (!window.globalPopconfirmManager) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = GlobalPopconfirmManager;
 }
-

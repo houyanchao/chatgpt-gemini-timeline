@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Cannot read image pixels (blocked by browser security). Try downloading the original instead."
+  },
+  "languageSettingLabel": {
+    "message": "इंटरफ़ेस की भाषा"
+  },
+  "languageOptionAuto": {
+    "message": "ब्राउज़र की भाषा का अनुसरण करें"
+  },
+  "languageChangeFailed": {
+    "message": "इंटरफ़ेस की भाषा बदली नहीं जा सकी"
   }
 }

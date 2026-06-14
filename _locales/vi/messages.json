@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Không đọc được pixel (bị chặn bởi bảo mật trình duyệt). Hãy thử tải bản gốc"
+  },
+  "languageSettingLabel": {
+    "message": "Ngôn ngữ giao diện"
+  },
+  "languageOptionAuto": {
+    "message": "Theo ngôn ngữ trình duyệt"
+  },
+  "languageChangeFailed": {
+    "message": "Không thể thay đổi ngôn ngữ giao diện"
   }
 }

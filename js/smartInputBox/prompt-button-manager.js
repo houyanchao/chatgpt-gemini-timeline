@@ -48,6 +48,8 @@ class PromptButtonManager {
      * 初始化
      */
     async init() {
+        await TimelineI18n.ready();
+
         // ✅ 预加载平台信息（平台配置现在异步获取，缓存供同步方法使用）
         this._currentPlatform = await getCurrentPlatform();
 

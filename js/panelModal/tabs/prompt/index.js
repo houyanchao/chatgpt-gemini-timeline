@@ -10,7 +10,7 @@ class PromptTab extends BaseTab {
     constructor() {
         super();
         this.id = 'prompt';
-        this.name = chrome.i18n.getMessage('hosegod');
+        this.name = TimelineI18n.getMessage('hosegod');
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
         </svg>`;
@@ -45,13 +45,13 @@ class PromptTab extends BaseTab {
         scrollArea.innerHTML = `
             <div class="prompt-list-section">
                 <div class="prompt-list-header">
-                    <div class="prompt-list-title">${chrome.i18n.getMessage('biwhckdj')}</div>
+                    <div class="prompt-list-title">${TimelineI18n.getMessage('biwhckdj')}</div>
                     <button class="prompt-add-btn" id="prompt-add-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        <span>${chrome.i18n.getMessage('addkbt')}</span>
+                        <span>${TimelineI18n.getMessage('addkbt')}</span>
                     </button>
                 </div>
                 <div class="prompt-list-container" id="prompt-list-container"></div>
@@ -69,10 +69,10 @@ class PromptTab extends BaseTab {
         bottomSection.innerHTML = `
             <div class="setting-item">
                 <div class="setting-info">
-                    <div class="setting-label">${chrome.i18n.getMessage('promptBtnDisplayLabel') || '显示提示词按钮'}</div>
-                    <div class="setting-hint">${chrome.i18n.getMessage('hobsidbg')}</div>
+                    <div class="setting-label">${TimelineI18n.getMessage('promptBtnDisplayLabel') || '显示提示词按钮'}</div>
+                    <div class="setting-hint">${TimelineI18n.getMessage('hobsidbg')}</div>
                 </div>
-                <button class="starred-manage-btn">${chrome.i18n.getMessage('promptBtnSwitch') || '开关'}</button>
+                <button class="starred-manage-btn">${TimelineI18n.getMessage('promptBtnSwitch') || '开关'}</button>
             </div>
         `;
         container.appendChild(bottomSection);
@@ -153,7 +153,7 @@ class PromptTab extends BaseTab {
     async _ensurePlatformInfoCache() {
         if (this._platformInfoLoaded) return;
 
-        const allPlatformOption = { id: '', name: chrome.i18n.getMessage('allptfm') };
+        const allPlatformOption = { id: '', name: TimelineI18n.getMessage('allptfm') };
         try {
             const siteInfoList = typeof getSiteInfoList === 'function'
                 ? await getSiteInfoList()
@@ -193,7 +193,7 @@ class PromptTab extends BaseTab {
                         <line x1="16" y1="13" x2="8" y2="13"/>
                         <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
-                    <span>${chrome.i18n.getMessage('hsiwhwl')}</span>
+                    <span>${TimelineI18n.getMessage('hsiwhwl')}</span>
                 </div>
             `;
             return;
@@ -286,7 +286,7 @@ class PromptTab extends BaseTab {
                     .catch(err => console.error('[PromptTab] Failed to toggle pin:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
-                window.globalTooltipManager?.show('prompt-pin', 'button', btn, chrome.i18n.getMessage('pntotp') || '置顶');
+                window.globalTooltipManager?.show('prompt-pin', 'button', btn, TimelineI18n.getMessage('pntotp') || '置顶');
             });
             this.addEventListener(btn, 'mouseleave', () => {
                 window.globalTooltipManager?.hide();
@@ -302,7 +302,7 @@ class PromptTab extends BaseTab {
                     .catch(err => console.error('[PromptTab] Failed to edit prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
-                window.globalTooltipManager?.show('prompt-edit', 'button', btn, chrome.i18n.getMessage('vkpxzm') || '编辑');
+                window.globalTooltipManager?.show('prompt-edit', 'button', btn, TimelineI18n.getMessage('vkpxzm') || '编辑');
             });
             this.addEventListener(btn, 'mouseleave', () => {
                 window.globalTooltipManager?.hide();
@@ -318,7 +318,7 @@ class PromptTab extends BaseTab {
                     .catch(err => console.error('[PromptTab] Failed to delete prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
-                window.globalTooltipManager?.show('prompt-delete', 'button', btn, chrome.i18n.getMessage('mzxvkp') || '删除');
+                window.globalTooltipManager?.show('prompt-delete', 'button', btn, TimelineI18n.getMessage('mzxvkp') || '删除');
             });
             this.addEventListener(btn, 'mouseleave', () => {
                 window.globalTooltipManager?.hide();
@@ -334,7 +334,7 @@ class PromptTab extends BaseTab {
                     .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
-                window.globalTooltipManager?.show('prompt-move-up', 'button', btn, chrome.i18n.getMessage('mvupkt') || '上移');
+                window.globalTooltipManager?.show('prompt-move-up', 'button', btn, TimelineI18n.getMessage('mvupkt') || '上移');
             });
             this.addEventListener(btn, 'mouseleave', () => {
                 window.globalTooltipManager?.hide();
@@ -350,7 +350,7 @@ class PromptTab extends BaseTab {
                     .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
             });
             this.addEventListener(btn, 'mouseenter', () => {
-                window.globalTooltipManager?.show('prompt-move-down', 'button', btn, chrome.i18n.getMessage('mvdnkt') || '下移');
+                window.globalTooltipManager?.show('prompt-move-down', 'button', btn, TimelineI18n.getMessage('mvdnkt') || '下移');
             });
             this.addEventListener(btn, 'mouseleave', () => {
                 window.globalTooltipManager?.hide();
@@ -376,8 +376,8 @@ class PromptTab extends BaseTab {
             // 显示提示
             if (window.globalToastManager) {
                 const message = prompts[index].pinned 
-                    ? (chrome.i18n.getMessage('pmpknd'))
-                    : (chrome.i18n.getMessage('pmuknp'));
+                    ? (TimelineI18n.getMessage('pmpknd'))
+                    : (TimelineI18n.getMessage('pmuknp'));
                 window.globalToastManager.show('success', message);
             }
         }
@@ -415,7 +415,7 @@ class PromptTab extends BaseTab {
     _getSmartInputPlatforms() {
         return this._smartInputPlatforms.length > 0
             ? [...this._smartInputPlatforms]
-            : [{ id: '', name: chrome.i18n.getMessage('allptfm') }];
+            : [{ id: '', name: TimelineI18n.getMessage('allptfm') }];
     }
     
     /**
@@ -424,8 +424,8 @@ class PromptTab extends BaseTab {
     async showPromptModal(prompt = null) {
         const isEdit = !!prompt;
         const title = isEdit 
-            ? (chrome.i18n.getMessage('hsksuywm'))
-            : (chrome.i18n.getMessage('byaskjndg'));
+            ? (TimelineI18n.getMessage('hsksuywm'))
+            : (TimelineI18n.getMessage('byaskjndg'));
         
         // 获取平台列表
         await this._ensurePlatformInfoCache();
@@ -452,19 +452,19 @@ class PromptTab extends BaseTab {
             </div>
             <div class="prompt-modal-body">
                 <div class="prompt-modal-field">
-                    <label>${chrome.i18n.getMessage('hsuywkw')}<span class="required-mark">*</span></label>
+                    <label>${TimelineI18n.getMessage('hsuywkw')}<span class="required-mark">*</span></label>
                     <input type="text" class="prompt-modal-input" id="prompt-name-input"
-                        placeholder="${chrome.i18n.getMessage('hsuywkwPlaceholder')}"
+                        placeholder="${TimelineI18n.getMessage('hsuywkwPlaceholder')}"
                         maxlength="16" value="${this._escapeHtml(prompt?.name || '')}">
                 </div>
                 <div class="prompt-modal-field">
-                    <label>${chrome.i18n.getMessage('promptContent')}<span class="required-mark">*</span></label>
+                    <label>${TimelineI18n.getMessage('promptContent')}<span class="required-mark">*</span></label>
                     <textarea class="prompt-modal-textarea" id="prompt-content-input"
-                        placeholder="${chrome.i18n.getMessage('uwkjwjw')}"
+                        placeholder="${TimelineI18n.getMessage('uwkjwjw')}"
                         rows="4" maxlength="10000">${this._escapeHtml(prompt?.content || '')}</textarea>
                     <div class="prompt-char-counter">
                         <div class="prompt-platform-select" id="prompt-platform-select">
-                            <span class="prompt-platform-label">${chrome.i18n.getMessage('ptfmsl')}：</span>
+                            <span class="prompt-platform-label">${TimelineI18n.getMessage('ptfmsl')}：</span>
                             <span class="prompt-platform-select-text">${currentPlatform.name}</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"/>
@@ -475,8 +475,8 @@ class PromptTab extends BaseTab {
                 </div>
             </div>
             <div class="prompt-modal-footer">
-                <button class="prompt-modal-btn prompt-modal-cancel">${chrome.i18n.getMessage('commonCancel')}</button>
-                <button class="prompt-modal-btn prompt-modal-confirm">${chrome.i18n.getMessage('svkbtn')}</button>
+                <button class="prompt-modal-btn prompt-modal-cancel">${TimelineI18n.getMessage('commonCancel')}</button>
+                <button class="prompt-modal-btn prompt-modal-confirm">${TimelineI18n.getMessage('svkbtn')}</button>
             </div>
         `;
         
@@ -556,7 +556,7 @@ class PromptTab extends BaseTab {
             // 验证名称
             if (!name) {
                 if (window.globalToastManager) {
-                    window.globalToastManager.show('error', chrome.i18n.getMessage('zmxvkp'));
+                    window.globalToastManager.show('error', TimelineI18n.getMessage('zmxvkp'));
                 }
                 nameInput.focus();
                 return;
@@ -565,7 +565,7 @@ class PromptTab extends BaseTab {
             // 验证内容
             if (!content) {
                 if (window.globalToastManager) {
-                    window.globalToastManager.show('error', chrome.i18n.getMessage('zmxvkp'));
+                    window.globalToastManager.show('error', TimelineI18n.getMessage('zmxvkp'));
                 }
                 contentInput.focus();
                 return;
@@ -611,7 +611,7 @@ class PromptTab extends BaseTab {
         
         // 显示成功提示
         if (window.globalToastManager) {
-            window.globalToastManager.show('success', chrome.i18n.getMessage('shwsuwk'));
+            window.globalToastManager.show('success', TimelineI18n.getMessage('shwsuwk'));
         }
     }
     
@@ -648,7 +648,7 @@ class PromptTab extends BaseTab {
             
             // 显示成功提示
             if (window.globalToastManager) {
-                window.globalToastManager.show('success', chrome.i18n.getMessage('hwkwbhwk'));
+                window.globalToastManager.show('success', TimelineI18n.getMessage('hwkwbhwk'));
             }
         }
     }
@@ -663,9 +663,9 @@ class PromptTab extends BaseTab {
         // 使用确认弹窗
         if (window.globalPopconfirmManager) {
             const confirmed = await window.globalPopconfirmManager.show({
-                title: chrome.i18n.getMessage('dcnfmq'),
-                confirmText: chrome.i18n.getMessage('mzxvkp'),
-                cancelText: chrome.i18n.getMessage('commonCancel'),
+                title: TimelineI18n.getMessage('dcnfmq'),
+                confirmText: TimelineI18n.getMessage('mzxvkp'),
+                cancelText: TimelineI18n.getMessage('commonCancel'),
                 confirmTextType: 'danger'
             });
             
@@ -677,7 +677,7 @@ class PromptTab extends BaseTab {
                 
                 // 显示成功提示
                 if (window.globalToastManager) {
-                    window.globalToastManager.show('success', chrome.i18n.getMessage('qrtypd'));
+                    window.globalToastManager.show('success', TimelineI18n.getMessage('qrtypd'));
                 }
             }
         }
@@ -711,7 +711,7 @@ class PromptTab extends BaseTab {
         overlay.innerHTML = `
             <div class="starred-platform-modal">
                 <div class="starred-platform-modal-header">
-                    <span>${chrome.i18n.getMessage('mkvzpx')}</span>
+                    <span>${TimelineI18n.getMessage('mkvzpx')}</span>
                     <button class="starred-platform-modal-close">✕</button>
                 </div>
                 <div class="starred-platform-modal-body">${items}</div>

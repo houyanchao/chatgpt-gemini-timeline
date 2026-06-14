@@ -272,6 +272,7 @@ function setupPlatformSettingsListener() {
 }
 
 async function bootstrapTimeline() {
+    await TimelineI18n.ready();
     await adapterRegistry.loadCustomAdapters();
 
     // Check if current site is supported before initializing

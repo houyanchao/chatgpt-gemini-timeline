@@ -688,7 +688,13 @@ const HIGHLIGHT_DEFAULT_COLORS = ['#F6E26B', '#FC7D9F', '#6BD66B', '#68B5FB', '#
  * @property {string} template - 格式模板（%s 为公式占位符）
  */
 const FORMULA_FORMATS = [
-    { id: 'none', label: chrome.i18n.getMessage('formulaFormatNone') || '无特殊附加', template: '%s' },
+    {
+        id: 'none',
+        get label() {
+            return TimelineI18n.getMessage('formulaFormatNone') || '无特殊附加';
+        },
+        template: '%s'
+    },
     { id: 'dollar', label: '$ ... $', template: '$%s$' },
     { id: 'doubleDollar', label: '$$ ... $$', template: '$$%s$$' },
     { id: 'paren', label: '\\( ... \\)', template: '\\(%s\\)' },

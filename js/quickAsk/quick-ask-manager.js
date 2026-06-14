@@ -33,6 +33,8 @@ class QuickAskManager {
      */
     async init() {
         if (this.isEnabled) return;
+
+        await TimelineI18n.ready();
         
         await this._loadPosition();
         await this._ensureAdapter();
@@ -47,6 +49,8 @@ class QuickAskManager {
      */
     async enable() {
         if (this.isEnabled) return;
+
+        await TimelineI18n.ready();
         
         await this._loadPosition();
         await this._ensureAdapter();
@@ -133,7 +137,7 @@ class QuickAskManager {
                     <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/>
                     <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
                 </svg>
-                <span>${chrome.i18n.getMessage('quickAsk') || '追问'}</span>
+                <span>${TimelineI18n.getMessage('quickAsk') || '追问'}</span>
             </button>
         `;
         btn.style.display = 'none';
@@ -200,7 +204,7 @@ class QuickAskManager {
             divider.dataset.aitOwner = 'highlight';
             const hlBtn = document.createElement('button');
             hlBtn.className = 'ait-highlight-action';
-            hlBtn.innerHTML = `${icon}<span>${chrome.i18n.getMessage('highlightMark') || '标注'}</span>`;
+            hlBtn.innerHTML = `${icon}<span>${TimelineI18n.getMessage('highlightMark') || '标注'}</span>`;
             this.buttonElement.appendChild(divider);
             this.buttonElement.appendChild(hlBtn);
         } else if (!hlEnabled && existing) {
@@ -226,7 +230,7 @@ class QuickAskManager {
             divider.dataset.aitOwner = 'copy';
             const btn = document.createElement('button');
             btn.className = 'ait-copy-action';
-            btn.innerHTML = `${QuickAskManager._getCopyIcon()}<span>${chrome.i18n.getMessage('mvkxpz') || '复制'}</span>`;
+            btn.innerHTML = `${QuickAskManager._getCopyIcon()}<span>${TimelineI18n.getMessage('mvkxpz') || '复制'}</span>`;
             this.buttonElement.appendChild(divider);
             this.buttonElement.appendChild(btn);
         } else if (!need && existing) {
@@ -582,13 +586,13 @@ class QuickAskManager {
             const toast = window.globalToastManager;
             if (ok) {
                 toast?.success?.(
-                    chrome.i18n.getMessage('xpzmvk') || '已复制',
+                    TimelineI18n.getMessage('xpzmvk') || '已复制',
                     null,
                     { duration: 1600 }
                 );
             } else {
                 toast?.error?.(
-                    chrome.i18n.getMessage('kpzmvx') || '复制失败',
+                    TimelineI18n.getMessage('kpzmvx') || '复制失败',
                     null,
                     { duration: 1600 }
                 );
@@ -596,7 +600,7 @@ class QuickAskManager {
         } catch (e) {
             console.error('[QuickAsk] copy failed:', e);
             window.globalToastManager?.error?.(
-                chrome.i18n.getMessage('kpzmvx') || '复制失败',
+                TimelineI18n.getMessage('kpzmvx') || '复制失败',
                 null,
                 { duration: 1600 }
             );

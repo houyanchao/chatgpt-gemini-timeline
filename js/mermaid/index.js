@@ -144,7 +144,7 @@
     let panStartY = 0;
 
     function safeI18n(key, fallback) {
-        try { return chrome.i18n.getMessage(key) || fallback; }
+        try { return TimelineI18n.getMessage(key) || fallback; }
         catch { return fallback; }
     }
 

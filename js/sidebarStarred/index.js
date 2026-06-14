@@ -54,6 +54,8 @@
         if (manager || initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             if (!adapter) {
                 if (!await resolveSupport()) return;
             }

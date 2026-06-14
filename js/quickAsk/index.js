@@ -105,6 +105,8 @@
         if (initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             // 检查平台是否支持
             isSupported = await isQuickAskSupported();
             if (!isSupported) {

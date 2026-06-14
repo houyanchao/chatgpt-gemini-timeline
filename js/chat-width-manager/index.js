@@ -35,6 +35,8 @@ class ChatWidthManager {
      * 初始化：从平台配置读取宽度参数并应用已保存的宽度
      */
     async init() {
+        await TimelineI18n.ready();
+
         const platform = await getCurrentPlatform();
         if (!platform) return;
 
@@ -192,7 +194,7 @@ class ChatWidthManager {
 
     _formatVal(v) {
         return v <= 100
-            ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
+            ? (TimelineI18n.getMessage('chatWidthNormal') || '正常')
             : v + '%';
     }
 
@@ -211,7 +213,7 @@ class ChatWidthManager {
                 </svg>
                 <input type="range" class="ait-cw-float-slider" min="100" max="150" step="5" value="${this._scale}">
                 <span class="ait-cw-float-val">${this._formatVal(this._scale)}</span>
-                <button class="ait-cw-float-ok">${chrome.i18n.getMessage('chatWidthConfirm') || '确定'}</button>
+                <button class="ait-cw-float-ok">${TimelineI18n.getMessage('chatWidthConfirm') || '确定'}</button>
                 <button class="ait-cw-float-close" title="Close">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
                 </button>
@@ -417,6 +419,8 @@ window.ChatWidthManager = ChatWidthManager;
         if (initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             if (!(await getCurrentPlatform())) return;
             await ChatWidthManager.getInstance().init();
         } catch (error) {

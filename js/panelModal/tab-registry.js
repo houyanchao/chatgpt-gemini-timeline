@@ -49,6 +49,8 @@ const TAB_CONFIG = [
  * 注册所有可用的 tabs（按配置数组顺序）
  */
 async function registerAllTabs() {
+    await TimelineI18n.ready();
+
     if (!window.panelModal) {
         console.error('[TabRegistry] PanelModal not initialized');
         return;

@@ -50,7 +50,7 @@ class QuestionListPopup {
 
         const title = document.createElement('span');
         title.className = 'ait-ql-title';
-        title.textContent = chrome.i18n.getMessage('questionListTitle') || 'Questions';
+        title.textContent = TimelineI18n.getMessage('questionListTitle') || 'Questions';
 
         const headerRight = document.createElement('div');
         headerRight.className = 'ait-ql-header-right';
@@ -146,7 +146,7 @@ class QuestionListPopup {
         this._listEl.innerHTML = '';
 
         if (tm.markers.length === 0) {
-            this._listEl.innerHTML = `<div class="ait-ql-empty">${chrome.i18n.getMessage('questionListEmpty') || 'No questions yet'}</div>`;
+            this._listEl.innerHTML = `<div class="ait-ql-empty">${TimelineI18n.getMessage('questionListEmpty') || 'No questions yet'}</div>`;
             return;
         }
 
@@ -177,8 +177,8 @@ class QuestionListPopup {
                 pin.className = 'ait-ql-item-pin';
                 if (!isPinned) pin.classList.add('not-pinned');
                 const pinTip = () => tm.pinned.has(marker.id)
-                    ? (chrome.i18n.getMessage('unpinAction') || '取消标记重点')
-                    : (chrome.i18n.getMessage('pinAction') || '标记重点');
+                    ? (TimelineI18n.getMessage('unpinAction') || '取消标记重点')
+                    : (TimelineI18n.getMessage('pinAction') || '标记重点');
                 pin.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const ok = await tm.togglePin(marker.id);
@@ -194,8 +194,8 @@ class QuestionListPopup {
                 // Star icon
                 const isStarred = tm.starred.has(marker.id);
                 const starTip = () => tm.starred.has(marker.id)
-                    ? (chrome.i18n.getMessage('unstarAction') || '取消收藏')
-                    : (chrome.i18n.getMessage('starAction') || '收藏到文件夹');
+                    ? (TimelineI18n.getMessage('unstarAction') || '取消收藏')
+                    : (TimelineI18n.getMessage('starAction') || '收藏到文件夹');
                 star = document.createElement('span');
                 star.className = 'ait-ql-item-star';
                 if (!isStarred) star.classList.add('not-starred');

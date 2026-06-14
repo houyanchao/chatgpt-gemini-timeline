@@ -171,8 +171,8 @@ class GeminiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         menuItem.removeAttribute('jslog');
 
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
         const labelEl = menuItem.querySelector('.gem-menu-item-label');
         if (labelEl) {
             labelEl.textContent = label;
@@ -199,8 +199,8 @@ class GeminiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
     updateStarMenuItemState(menuItem, isStarred) {
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
         const labelEl = menuItem.querySelector('.gem-menu-item-label');
         if (labelEl) {
             labelEl.textContent = label;

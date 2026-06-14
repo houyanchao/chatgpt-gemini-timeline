@@ -11,7 +11,7 @@ class HighlightTab extends BaseTab {
     constructor() {
         super();
         this.id = 'highlight';
-        this.name = chrome.i18n.getMessage('highlightMark') || '文本高亮';
+        this.name = TimelineI18n.getMessage('highlightMark') || '文本高亮';
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
@@ -29,8 +29,8 @@ class HighlightTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('highlightToggleTitle') || '启用文本高亮'}</div>
-                        <div class="setting-hint">${chrome.i18n.getMessage('highlightToggleHint') || '开启后，选中网页文字时可进行高亮标注'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('highlightToggleTitle') || '启用文本高亮'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('highlightToggleHint') || '开启后，选中网页文字时可进行高亮标注'}</div>
                     </div>
                     <label class="ait-toggle-switch">
                         <input type="checkbox" id="highlight-toggle">
@@ -42,7 +42,7 @@ class HighlightTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item hl-list-item">
                     <div class="setting-info">
-                        <div class="setting-label">${chrome.i18n.getMessage('highlightStyleTitle') || '高亮样式'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('highlightStyleTitle') || '高亮样式'}</div>
                         <div class="hl-style-list" id="hl-style-list"></div>
                     </div>
                 </div>
@@ -52,8 +52,8 @@ class HighlightTab extends BaseTab {
                 <div class="setting-item hl-list-item">
                     <div class="setting-info">
                         <div class="setting-label">
-                            ${chrome.i18n.getMessage('highlightMyColors') || '高亮颜色'}
-                            <button class="hl-add-color-btn" id="hl-add-color-btn">+ ${chrome.i18n.getMessage('highlightAddColorBtn') || '颜色'}</button>
+                            ${TimelineI18n.getMessage('highlightMyColors') || '高亮颜色'}
+                            <button class="hl-add-color-btn" id="hl-add-color-btn">+ ${TimelineI18n.getMessage('highlightAddColorBtn') || '颜色'}</button>
                         </div>
                         <div class="hl-color-list" id="hl-color-list"></div>
                     </div>
@@ -98,10 +98,10 @@ class HighlightTab extends BaseTab {
         if (!styleList) return;
 
         const styles = [
-            { id: 'solid', name: chrome.i18n.getMessage('highlightStyleFullCover') || '全覆盖', desc: chrome.i18n.getMessage('highlightStyleFullCoverDesc') || '高亮区域完整罩住文字' },
-            { id: 'half', name: chrome.i18n.getMessage('highlightStyleHalfCover') || '半覆盖', desc: chrome.i18n.getMessage('highlightStyleHalfCoverDesc') || '高亮区域在文字腰部以下' },
-            { id: 'underline', name: chrome.i18n.getMessage('highlightStyleUnderline') || '下划线', desc: chrome.i18n.getMessage('highlightStyleUnderlineDesc') || '高亮区域在文字下方' },
-            { id: 'textOnly', name: chrome.i18n.getMessage('highlightStyleTextOnly') || '仅文字', desc: chrome.i18n.getMessage('highlightStyleTextOnlyDesc') || '无背景高亮，仅文字变色' },
+            { id: 'solid', name: TimelineI18n.getMessage('highlightStyleFullCover') || '全覆盖', desc: TimelineI18n.getMessage('highlightStyleFullCoverDesc') || '高亮区域完整罩住文字' },
+            { id: 'half', name: TimelineI18n.getMessage('highlightStyleHalfCover') || '半覆盖', desc: TimelineI18n.getMessage('highlightStyleHalfCoverDesc') || '高亮区域在文字腰部以下' },
+            { id: 'underline', name: TimelineI18n.getMessage('highlightStyleUnderline') || '下划线', desc: TimelineI18n.getMessage('highlightStyleUnderlineDesc') || '高亮区域在文字下方' },
+            { id: 'textOnly', name: TimelineI18n.getMessage('highlightStyleTextOnly') || '仅文字', desc: TimelineI18n.getMessage('highlightStyleTextOnlyDesc') || '无背景高亮，仅文字变色' },
         ];
 
         styleList.innerHTML = styles.map(s => `
@@ -220,8 +220,8 @@ class HighlightTab extends BaseTab {
                 const color = row.dataset.color;
                 if (!window.globalPopconfirmManager) return;
                 const confirmed = await window.globalPopconfirmManager.show({
-                    title: chrome.i18n.getMessage('mzxvkp') || '删除',
-                    content: (chrome.i18n.getMessage('highlightDeleteColorConfirm') || '确定要删除颜色 {color} 吗？').replace('{color}', color),
+                    title: TimelineI18n.getMessage('mzxvkp') || '删除',
+                    content: (TimelineI18n.getMessage('highlightDeleteColorConfirm') || '确定要删除颜色 {color} 吗？').replace('{color}', color),
                 });
                 if (!confirmed) return;
                 const customColors = await this._getCustomColors();
@@ -260,7 +260,7 @@ class HighlightTab extends BaseTab {
 
             const header = document.createElement('div');
             header.className = 'folder-edit-modal-header';
-            header.innerHTML = `<h3>${chrome.i18n.getMessage('highlightAddColorTitle') || '添加颜色'}</h3>`;
+            header.innerHTML = `<h3>${TimelineI18n.getMessage('highlightAddColorTitle') || '添加颜色'}</h3>`;
 
             const body = document.createElement('div');
             body.className = 'folder-edit-modal-body';
@@ -312,7 +312,7 @@ class HighlightTab extends BaseTab {
 
             const hint = document.createElement('div');
             hint.className = 'hl-modal-color-hint';
-            hint.textContent = chrome.i18n.getMessage('highlightColorHint') || '请输入 6 位十六进制颜色值，例如 #FF5733';
+            hint.textContent = TimelineI18n.getMessage('highlightColorHint') || '请输入 6 位十六进制颜色值，例如 #FF5733';
             body.appendChild(hint);
 
             const footer = document.createElement('div');
@@ -320,11 +320,11 @@ class HighlightTab extends BaseTab {
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'folder-edit-modal-cancel';
-            cancelBtn.textContent = chrome.i18n.getMessage('commonCancel') || '取消';
+            cancelBtn.textContent = TimelineI18n.getMessage('commonCancel') || '取消';
 
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'folder-edit-modal-confirm';
-            confirmBtn.textContent = chrome.i18n.getMessage('vkmzpx') || '确定';
+            confirmBtn.textContent = TimelineI18n.getMessage('vkmzpx') || '确定';
 
             footer.appendChild(cancelBtn);
             footer.appendChild(confirmBtn);
@@ -352,7 +352,7 @@ class HighlightTab extends BaseTab {
                 value = value.toUpperCase();
 
                 if (!/^#[0-9A-F]{6}$/.test(value)) {
-                    if (window.globalToastManager) window.globalToastManager.error(chrome.i18n.getMessage('highlightInvalidHex') || '无效的颜色格式', input);
+                    if (window.globalToastManager) window.globalToastManager.error(TimelineI18n.getMessage('highlightInvalidHex') || '无效的颜色格式', input);
                     return;
                 }
 
@@ -361,7 +361,7 @@ class HighlightTab extends BaseTab {
 
                 const allColors = [...customColors, ...this._defaultColors];
                 if (allColors.includes(value)) {
-                    if (window.globalToastManager) window.globalToastManager.error(chrome.i18n.getMessage('highlightColorExists') || '颜色已存在', input);
+                    if (window.globalToastManager) window.globalToastManager.error(TimelineI18n.getMessage('highlightColorExists') || '颜色已存在', input);
                     return;
                 }
 

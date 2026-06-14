@@ -39,6 +39,8 @@ class GeminiWatermarkRemover {
     }
 
     async init() {
+        await TimelineI18n.ready();
+
         this._setRuntimeState('loading');
         // 仅在 Gemini 平台运行
         if (!(await this._isGeminiPlatform())) {
@@ -460,7 +462,7 @@ class GeminiWatermarkRemover {
 
     _t(key, fallback) {
         try {
-            return chrome.i18n.getMessage(key) || fallback;
+            return TimelineI18n.getMessage(key) || fallback;
         } catch (e) {
             return fallback;
         }
@@ -485,6 +487,8 @@ class GeminiWatermarkRemover {
 
     async function init() {
         try {
+            await TimelineI18n.ready();
+
             remover = new GeminiWatermarkRemover();
             await remover.init();
         } catch (e) {

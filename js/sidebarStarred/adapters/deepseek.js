@@ -129,8 +129,8 @@ class DeepSeekSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         if (items.length === 0) return null;
 
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
 
         const menuItem = document.createElement('div');
         menuItem.className = 'ds-dropdown-menu-option ds-dropdown-menu-option--none';
@@ -153,8 +153,8 @@ class DeepSeekSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
     updateStarMenuItemState(menuItem, isStarred) {
         const label = isStarred
-            ? (chrome.i18n.getMessage('bpxjkw') || 'Unstar')
-            : (chrome.i18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
+            ? (TimelineI18n.getMessage('bpxjkw') || 'Unstar')
+            : (TimelineI18n.getMessage('nativeMenuStarToFolder') || 'Star to Folder');
         const labelEl = menuItem.querySelector('.ds-dropdown-menu-option__label');
         if (labelEl) labelEl.textContent = label;
 

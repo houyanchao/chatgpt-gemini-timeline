@@ -37,16 +37,16 @@ function createPromptDropdownUI({
         tabs.innerHTML = `
             <div class="prompt-dropdown-tab-group">
                 <button type="button" class="prompt-dropdown-tab active" data-prompt-tab="prompts">
-                    <span class="prompt-dropdown-tab-text">${chrome.i18n.getMessage('hosegod') || '提示词'}</span>
-                    <span class="prompt-dropdown-tab-icon prompt-dropdown-add-tab-action" aria-label="${chrome.i18n.getMessage('byaskjndg') || '添加提示词'}">
+                    <span class="prompt-dropdown-tab-text">${TimelineI18n.getMessage('hosegod') || '提示词'}</span>
+                    <span class="prompt-dropdown-tab-icon prompt-dropdown-add-tab-action" aria-label="${TimelineI18n.getMessage('byaskjndg') || '添加提示词'}">
                         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </span>
                 </button>
                 <button type="button" class="prompt-dropdown-tab" data-prompt-tab="common-settings">
-                    <span class="prompt-dropdown-tab-text">${chrome.i18n.getMessage('promptCommonSettingsTab') || '常用设置'}</span>
-                    <span class="prompt-dropdown-tab-icon prompt-dropdown-settings-tab-action" aria-label="${chrome.i18n.getMessage('promptAllSettingsTooltip') || '全部设置'}">
+                    <span class="prompt-dropdown-tab-text">${TimelineI18n.getMessage('promptCommonSettingsTab') || '常用设置'}</span>
+                    <span class="prompt-dropdown-tab-icon prompt-dropdown-settings-tab-action" aria-label="${TimelineI18n.getMessage('promptAllSettingsTooltip') || '全部设置'}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z"/>
                             <circle cx="12" cy="12" r="3"/>
@@ -54,7 +54,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+            ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="18" cy="5" r="3"/>
                     <circle cx="6" cy="12" r="3"/>
@@ -65,7 +65,7 @@ function createPromptDropdownUI({
             </button>` : ''}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
-        const addTooltip = chrome.i18n.getMessage('byaskjndg') || '添加提示词';
+        const addTooltip = TimelineI18n.getMessage('byaskjndg') || '添加提示词';
         addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (onManageClick) onManageClick();
@@ -84,7 +84,7 @@ function createPromptDropdownUI({
         });
 
         const settingsBtn = tabs.querySelector('.prompt-dropdown-settings-tab-action');
-        const settingsTooltip = chrome.i18n.getMessage('promptAllSettingsTooltip') || '全部设置';
+        const settingsTooltip = TimelineI18n.getMessage('promptAllSettingsTooltip') || '全部设置';
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (onSettingsClick) onSettingsClick();
@@ -113,10 +113,10 @@ function createPromptDropdownUI({
                 <svg class="prompt-dropdown-title-icon" viewBox="0 0 24 24" fill="currentColor">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
-                <span class="prompt-dropdown-title">${chrome.i18n.getMessage('hosegod')}</span>
+                <span class="prompt-dropdown-title">${TimelineI18n.getMessage('hosegod')}</span>
             </div>
             <div class="prompt-dropdown-actions">
-                ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${chrome.i18n.getMessage('shareExtension') || '分享插件'}">
+                ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="18" cy="5" r="3"/>
                         <circle cx="6" cy="12" r="3"/>
@@ -158,7 +158,7 @@ function createPromptDropdownUI({
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.className = 'prompt-dropdown-search-input';
-        searchInput.placeholder = chrome.i18n.getMessage('searchPrompt') || '搜索提示词...';
+        searchInput.placeholder = TimelineI18n.getMessage('searchPrompt') || '搜索提示词...';
         searchInput.autocomplete = 'off';
         searchInput.addEventListener('input', () => {
             _promptDropdownFilter(container, searchInput.value.trim().toLowerCase());
@@ -179,12 +179,12 @@ function createPromptDropdownUI({
         const empty = document.createElement('div');
         empty.className = 'prompt-dropdown-empty';
         empty.innerHTML = `
-            <span class="prompt-dropdown-empty-hint">${chrome.i18n.getMessage('promptEmptyHint') || '保存常用提示词，用的时候点一下就能插入输入框。'}</span>
+            <span class="prompt-dropdown-empty-hint">${TimelineI18n.getMessage('promptEmptyHint') || '保存常用提示词，用的时候点一下就能插入输入框。'}</span>
             <button type="button" class="prompt-dropdown-empty-action">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <span>${chrome.i18n.getMessage('byaskjndg') || '添加提示词'}</span>
+                <span>${TimelineI18n.getMessage('byaskjndg') || '添加提示词'}</span>
             </button>
         `;
         empty.querySelector('.prompt-dropdown-empty-action')?.addEventListener('click', (e) => {
@@ -235,16 +235,16 @@ function _promptDropdownCreateCommonSettings({
     const supported = !!manager?.isSupported?.();
     const currentScale = manager?.getScale?.() || 100;
     const currentText = currentScale <= 100
-        ? (chrome.i18n.getMessage('chatWidthNormal') || '正常')
+        ? (TimelineI18n.getMessage('chatWidthNormal') || '正常')
         : `${currentScale}%`;
     const storeReviewUrl = _promptDropdownGetStoreReviewUrl();
     const geminiWatermarkSetting = _promptDropdownIsGeminiPlatform() ? `
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('geminiWatermarkTitle') || 'Nano Banana 去水印'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('geminiWatermarkTitle') || 'Nano Banana 去水印'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('geminiWatermarkHint') || '在 Gemini 生成的图片上显示去水印下载选项，可下载原图或去除右下角水印后的图片。'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('geminiWatermarkHint') || '在 Gemini 生成的图片上显示去水印下载选项，可下载原图或去除右下角水印后的图片。'}</div>
                 </div>
                 <label class="ait-toggle-switch">
                     <input type="checkbox" class="prompt-common-gemini-watermark-toggle">
@@ -258,42 +258,42 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonFeedbackTitle') || '反馈问题、提需求'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('promptCommonFeedbackTitle') || '反馈问题、提需求'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonFeedbackHint') || '遇到 bug 或有功能想法，欢迎到插件商店评价区留言。'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonFeedbackHint') || '遇到 bug 或有功能想法，欢迎到插件商店评价区留言。'}</div>
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-store-review-btn">
-                    ${chrome.i18n.getMessage('promptCommonFeedbackButton') || '去反馈'}
+                    ${TimelineI18n.getMessage('promptCommonFeedbackButton') || '去反馈'}
                 </button>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('promptCommonGithubStarTitle') || '给一颗 🌟 支持'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('promptCommonGithubStarTitle') || '给一颗 🌟 支持'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonGithubStarHint') || '如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonGithubStarHint') || '如果 Timeline 对你有帮助，欢迎在 GitHub 点 Star 支持。'}</div>
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-github-star-btn">
-                    ${chrome.i18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
+                    ${TimelineI18n.getMessage('promptCommonGithubStarButton') || '去 GitHub'}
                 </button>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-mirror-site-btn">
-                    ${chrome.i18n.getMessage('mirrorSiteAdapterStartButton') || '开始配置'}
+                    ${TimelineI18n.getMessage('mirrorSiteAdapterStartButton') || '开始配置'}
                 </button>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
                 </div>
                 <label class="ait-toggle-switch">
                     <input type="checkbox" class="prompt-common-ai-complete-toast-toggle">
@@ -303,9 +303,9 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('preventAutoScrollLabel') || '阻止发送后跳到底部'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('preventAutoScrollHint') || '向上查看历史时发送消息，页面保持在当前阅读位置，不跳到底部'}</div>
                 </div>
                 <label class="ait-toggle-switch">
                     <input type="checkbox" class="prompt-common-prevent-auto-scroll-toggle">
@@ -316,27 +316,27 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item ${supported ? '' : 'disabled'}">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('chatWidthTitle') || '对话宽度'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('chatWidthTitle') || '对话宽度'}</div>
                         <span class="prompt-common-setting-value">${currentText}</span>
                     </div>
                     <div class="prompt-common-setting-hint">${supported
-                        ? (chrome.i18n.getMessage('chatWidthHint') || '调大对话区域宽度，充分利用屏幕空间')
-                        : (chrome.i18n.getMessage('chatWidthUnsupported') || '当前平台暂不支持调节对话宽度')
+                        ? (TimelineI18n.getMessage('chatWidthHint') || '调大对话区域宽度，充分利用屏幕空间')
+                        : (TimelineI18n.getMessage('chatWidthUnsupported') || '当前平台暂不支持调节对话宽度')
                     }</div>
                 </div>
                 <button class="prompt-common-setting-btn" ${supported ? '' : 'disabled'}>
-                    ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
+                    ${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}
                 </button>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${chrome.i18n.getMessage('kvzmxp') || '换行与发送消息'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('kvzmxp') || '换行与发送消息'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${chrome.i18n.getMessage('promptCommonSmartInputHint') || '对话框，设置 Enter 键控制「换行」和「发送消息」'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonSmartInputHint') || '对话框，设置 Enter 键控制「换行」和「发送消息」'}</div>
                 </div>
                 <button class="prompt-common-setting-btn prompt-common-smart-input-btn">
-                    ${chrome.i18n.getMessage('sidebarStarredManage') || '设置'}
+                    ${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}
                 </button>
             </div>
         </div>
@@ -475,7 +475,7 @@ function _promptDropdownGetStoreDetailUrl() {
 
 function _promptDropdownBindStoreDetailButton(button) {
     if (!button) return;
-    const tooltip = chrome.i18n.getMessage('shareExtension') || '分享插件';
+    const tooltip = TimelineI18n.getMessage('shareExtension') || '分享插件';
     button.addEventListener('click', (e) => {
         e.stopPropagation();
         _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl());
@@ -568,7 +568,7 @@ function _promptDropdownFilter(container, query) {
         if (!tip) {
             tip = document.createElement('div');
             tip.className = 'prompt-dropdown-search-empty';
-            tip.textContent = chrome.i18n.getMessage('jwvnkp') || 'No results';
+            tip.textContent = TimelineI18n.getMessage('jwvnkp') || 'No results';
             body.appendChild(tip);
         }
         tip.style.display = '';

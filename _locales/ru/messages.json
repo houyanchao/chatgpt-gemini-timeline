@@ -964,5 +964,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "Не удалось прочитать пиксели (ограничения браузера). Попробуйте скачать оригинал"
+  },
+  "languageSettingLabel": {
+    "message": "Язык интерфейса"
+  },
+  "languageOptionAuto": {
+    "message": "Использовать язык браузера"
+  },
+  "languageChangeFailed": {
+    "message": "Не удалось изменить язык интерфейса"
   }
 }

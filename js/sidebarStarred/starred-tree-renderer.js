@@ -242,7 +242,7 @@ class StarredTreeRenderer {
 
         const info = document.createElement('div');
         info.className = 'ait-folder-info';
-        info.innerHTML = `<span class="ait-folder-icon">${isExpanded ? this._folderSvgOpen : this._folderSvgClosed}</span><span class="ait-folder-name">${chrome.i18n.getMessage('defaultFolder') || 'Default'}</span>`;
+        info.innerHTML = `<span class="ait-folder-icon">${isExpanded ? this._folderSvgOpen : this._folderSvgClosed}</span><span class="ait-folder-name">${TimelineI18n.getMessage('defaultFolder') || 'Default'}</span>`;
         info.style.cursor = 'pointer';
 
         header.appendChild(toggle);
@@ -792,20 +792,20 @@ class StarredTreeRenderer {
 
         if (level === 0) {
             items.push({
-                label: chrome.i18n.getMessage('vpmzkx') || 'New Subfolder',
+                label: TimelineI18n.getMessage('vpmzkx') || 'New Subfolder',
                 icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>',
                 onClick: () => this.handleCreateFolder(folder.id)
             });
         }
 
         items.push({
-            label: folder.pinned ? (chrome.i18n.getMessage('unpinItem') || 'Unpin') : (chrome.i18n.getMessage('pinItem') || 'Pin to top'),
+            label: folder.pinned ? (TimelineI18n.getMessage('unpinItem') || 'Unpin') : (TimelineI18n.getMessage('pinItem') || 'Pin to top'),
             icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3" x2="19" y2="3"/><line x1="12" y1="7" x2="12" y2="21"/><polyline points="8 11 12 7 16 11"/></svg>',
             onClick: () => this._handleTogglePinFolder(folder.id)
         });
 
         items.push({
-            label: chrome.i18n.getMessage('xvkpmz') || 'Edit',
+            label: TimelineI18n.getMessage('xvkpmz') || 'Edit',
             icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
             onClick: () => this.handleEditFolder(folder.id, folder.name)
         });
@@ -813,7 +813,7 @@ class StarredTreeRenderer {
         items.push({ type: 'divider' });
 
         items.push({
-            label: chrome.i18n.getMessage('mzxvkp') || 'Delete',
+            label: TimelineI18n.getMessage('mzxvkp') || 'Delete',
             icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
             className: 'danger',
             onClick: () => this.handleDeleteFolder(folder.id)
@@ -825,28 +825,28 @@ class StarredTreeRenderer {
     async _showItemMenu(trigger, item) {
         const items = [
             {
-                label: item.pinned ? (chrome.i18n.getMessage('unpinItem') || 'Unpin') : (chrome.i18n.getMessage('pinItem') || 'Pin to top'),
+                label: item.pinned ? (TimelineI18n.getMessage('unpinItem') || 'Unpin') : (TimelineI18n.getMessage('pinItem') || 'Pin to top'),
                 icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="3" x2="19" y2="3"/><line x1="12" y1="7" x2="12" y2="21"/><polyline points="8 11 12 7 16 11"/></svg>',
                 onClick: () => this._handleTogglePinStarred(item.turnId)
             },
             {
-                label: chrome.i18n.getMessage('vkpxzm') || 'Edit',
+                label: TimelineI18n.getMessage('vkpxzm') || 'Edit',
                 icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
                 onClick: () => this.handleEditStarred(item.turnId, item.theme, item.folderId)
             },
             {
-                label: chrome.i18n.getMessage('vxkpmz') || 'Move to',
+                label: TimelineI18n.getMessage('vxkpmz') || 'Move to',
                 icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
                 onClick: () => this.handleEditStarred(item.turnId, item.theme, item.folderId)
             },
             {
-                label: chrome.i18n.getMessage('mvkxpz') || 'Copy',
+                label: TimelineI18n.getMessage('mvkxpz') || 'Copy',
                 icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
                 onClick: () => this.handleCopy(item.theme)
             },
             { type: 'divider' },
             {
-                label: chrome.i18n.getMessage('bpxjkw') || 'Unstar',
+                label: TimelineI18n.getMessage('bpxjkw') || 'Unstar',
                 icon: '<svg viewBox="0 0 24 24" fill="rgb(255, 125, 3)" stroke="rgb(255, 125, 3)" stroke-width="0.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
                 className: 'danger',
                 onClick: () => this.handleUnstar(item.turnId)
@@ -863,7 +863,7 @@ class StarredTreeRenderer {
         const o = this.opts.toastOptions;
         const hasOpts = o && Object.keys(o).length > 0;
         window.globalToastManager[type](
-            chrome.i18n.getMessage(msgKey) || fallback,
+            TimelineI18n.getMessage(msgKey) || fallback,
             null,
             hasOpts ? o : undefined
         );
@@ -873,7 +873,7 @@ class StarredTreeRenderer {
         if (!window.globalToastManager) return;
         const header = folderEl.querySelector(':scope > .ait-folder-header') || folderEl;
         window.globalToastManager.success(
-            chrome.i18n.getMessage(msgKey) || fallback,
+            TimelineI18n.getMessage(msgKey) || fallback,
             header,
             {
                 position: 'right',
@@ -891,13 +891,13 @@ class StarredTreeRenderer {
         try {
             const parentPath = parentId ? await this.folderManager.getFolderPath(parentId) : '';
             const title = parentId
-                ? (chrome.i18n.getMessage('xmkvpz') || 'New subfolder in {folderName}').replace('{folderName}', parentPath)
-                : chrome.i18n.getMessage('kxvpmz') || 'New Folder';
+                ? (TimelineI18n.getMessage('xmkvpz') || 'New subfolder in {folderName}').replace('{folderName}', parentPath)
+                : TimelineI18n.getMessage('kxvpmz') || 'New Folder';
 
             const result = await window.folderEditModal.show({
                 mode: 'create', title,
-                placeholder: chrome.i18n.getMessage('vzkpmx') || 'Folder name',
-                requiredMessage: chrome.i18n.getMessage('kmxpvz') || 'Name is required',
+                placeholder: TimelineI18n.getMessage('vzkpmx') || 'Folder name',
+                requiredMessage: TimelineI18n.getMessage('kmxpvz') || 'Name is required',
                 maxLength: 15
             });
             if (!result) return;
@@ -924,10 +924,10 @@ class StarredTreeRenderer {
 
             const result = await window.folderEditModal.show({
                 mode: 'edit',
-                title: chrome.i18n.getMessage('pxmzvk') || 'Edit Folder',
+                title: TimelineI18n.getMessage('pxmzvk') || 'Edit Folder',
                 name: currentName,
                 icon: folder.icon || '',
-                placeholder: chrome.i18n.getMessage('mvzxkp') || 'Folder name',
+                placeholder: TimelineI18n.getMessage('mvzxkp') || 'Folder name',
                 maxLength: 15
             });
             if (!result) return;
@@ -964,10 +964,10 @@ class StarredTreeRenderer {
             if (!folderData) { this._toast('error', 'zpxmkv', 'Folder not found'); return; }
 
             const totalItems = this._countAllItems(folderData);
-            const title = (chrome.i18n.getMessage('qzmvkx') || 'Delete folder "{folderName}"?')
+            const title = (TimelineI18n.getMessage('qzmvkx') || 'Delete folder "{folderName}"?')
                 .replace('{folderName}', folderData.name);
             const content = totalItems > 0
-                ? (chrome.i18n.getMessage('wjxnkp') || '{count} starred items inside will also be deleted.')
+                ? (TimelineI18n.getMessage('wjxnkp') || '{count} starred items inside will also be deleted.')
                     .replace('{count}', totalItems)
                 : '';
 
@@ -1008,9 +1008,9 @@ class StarredTreeRenderer {
         if (!window.starInputModal) return;
         try {
             const result = await window.starInputModal.show({
-                title: chrome.i18n.getMessage('vkpxzm') || 'Edit',
+                title: TimelineI18n.getMessage('vkpxzm') || 'Edit',
                 defaultValue: currentTheme,
-                placeholder: chrome.i18n.getMessage('zmxvkp') || 'Title',
+                placeholder: TimelineI18n.getMessage('zmxvkp') || 'Title',
                 folderManager: this.folderManager,
                 defaultFolderId: currentFolderId || null
             });

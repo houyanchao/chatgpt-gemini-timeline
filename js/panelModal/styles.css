@@ -327,11 +327,81 @@
     background: #fafafa;
 }
 
-.ait-panel-modal-share {
+.ait-panel-modal-header-actions {
     position: absolute;
     right: 18px;
     top: 50%;
     transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ait-panel-modal-language {
+    position: relative;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 7px;
+    border-radius: 8px;
+    color: #6b7280;
+    background: transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ait-panel-modal-language:hover,
+.ait-panel-modal-language:focus-within {
+    background: rgba(0, 0, 0, 0.06);
+    color: #374151;
+}
+
+.ait-panel-modal-language > svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.ait-panel-modal-language-value {
+    max-width: 96px;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 28px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ait-panel-modal-language > .ait-panel-modal-language-arrow {
+    width: 12px;
+    height: 12px;
+    margin-left: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ait-panel-modal-language-select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: inherit;
+    outline: none;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.ait-panel-modal-language-select:disabled {
+    cursor: wait;
+    opacity: 0;
+}
+
+.ait-panel-modal-share {
     width: 32px;
     height: 32px;
     display: flex;
@@ -352,7 +422,7 @@
 }
 
 .ait-panel-modal-share:active {
-    transform: translateY(-50%) scale(0.96);
+    transform: scale(0.96);
 }
 
 .ait-panel-modal-share svg {

@@ -6,7 +6,6 @@
 class WizardAnimation {
     constructor() {
         this.id = 'wizard';
-        this.name = chrome.i18n.getMessage('animWizard') || 'Wizard Flight';
         this.icon = '🧙';
         this.maxCount = 7;
         this.growAt = [10, 100, 300, 500, 700, 900, 1100];
@@ -44,6 +43,10 @@ class WizardAnimation {
               band: '#FFF8E1', skin: '#FFCCAA', boots: '#8B6914',
               stars: ['#FFD700','#FFC107','#FFB300'], hatDeco: '#FFFFFF' }
         ];
+    }
+
+    get name() {
+        return TimelineI18n.getMessage('animWizard') || 'Wizard Flight';
     }
 
     _wizardSvg(w, typeIdx) {

@@ -34,6 +34,8 @@
         if (window.smartEnterManager || initInFlight) return;
         initInFlight = true;
         try {
+            await TimelineI18n.ready();
+
             // 检查依赖是否加载
             if (typeof SmartEnterAdapterRegistry === 'undefined') {
                 console.error('[SmartInputBox] SmartEnterAdapterRegistry not loaded');

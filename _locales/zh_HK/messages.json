@@ -988,5 +988,14 @@
   },
   "geminiWatermarkErrorUnreadable": {
     "message": "無法讀取圖片像素（可能被瀏覽器安全政策阻擋），請改為下載原圖"
+  },
+  "languageSettingLabel": {
+    "message": "插件介面語言"
+  },
+  "languageOptionAuto": {
+    "message": "跟隨瀏覽器"
+  },
+  "languageChangeFailed": {
+    "message": "介面語言切換失敗"
   }
 }
