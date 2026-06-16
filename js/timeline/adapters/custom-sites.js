@@ -23,5 +23,17 @@ globalThis.CUSTOM_SITE_INFO = [
             questionList: true,
             notepad: true
         },
+    },
+    {
+        sites: ['meta.ai'],
+        conversationUrlPattern: '^(?:www\\.)?meta\\.ai/prompt/[A-Za-z0-9-]+(?:[/?#].*)?$',
+        userMessageSelector: '[style*="container-name:chat-scroller"] button[data-slot="button"]',
+        textSelector: '',
+        conversationContainerSelector: '[style*="container-name:chat-scroller"]',
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
     }
 ];

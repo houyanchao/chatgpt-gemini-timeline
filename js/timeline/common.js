@@ -746,29 +746,43 @@ const ChatTimeStorageManager = {
     },
 
     /**
-     * 清理不活跃的会话数据
-     * @param {number} maxInactiveDays - 最大不活跃天数（默认30天）
-     * @returns {Promise<number>} - 清理的会话数量
+     * 按节点时间数量清理最早的节点时间记录
+     * @param {number} maxNodeTimes - 最大保留节点时间数（默认1000个）
+     * @param {number} cleanupCount - 超限后清理的节点时间数（默认50个）
+     * @returns {Promise<number>} - 清理的节点时间数量
      */
-    async cleanup(maxInactiveDays = 30) {
+    async cleanup(maxNodeTimes = 1000, cleanupCount = 50) {
         const all = await this.getAllRecords();
-        const now = Date.now();
-        const maxAge = maxInactiveDays * 24 * 60 * 60 * 1000;
-        let cleanedCount = 0;
+        const nodeTimeEntries = [];
         
         for (const [convKey, data] of Object.entries(all)) {
-            // 如果没有 lastVisit 或 lastVisit 已过期，删除该会话
-            if (!data.lastVisit || (now - data.lastVisit > maxAge)) {
-                delete all[convKey];
-                cleanedCount++;
+            const nodes = data?.nodes;
+            if (!nodes || typeof nodes !== 'object') continue;
+
+            for (const [nodeId, timestamp] of Object.entries(nodes)) {
+                nodeTimeEntries.push({ convKey, nodeId, timestamp: Number(timestamp) || 0 });
             }
         }
         
-        if (cleanedCount > 0) {
-            await StorageAdapter.set(this.STORAGE_KEY, all);
+        if (nodeTimeEntries.length <= maxNodeTimes) {
+            return 0;
         }
         
-        return cleanedCount;
+        const nodeTimesToRemove = nodeTimeEntries
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .slice(0, cleanupCount);
+
+        for (const { convKey, nodeId } of nodeTimesToRemove) {
+            if (all[convKey]?.nodes) {
+                delete all[convKey].nodes[nodeId];
+                if (Object.keys(all[convKey].nodes).length === 0) {
+                    delete all[convKey];
+                }
+            }
+        }
+
+        await StorageAdapter.set(this.STORAGE_KEY, all);
+        return nodeTimesToRemove.length;
     }
 };
 
@@ -776,5 +790,5 @@ const ChatTimeStorageManager = {
 // 在脚本加载时立即执行迁移检查（异步，不阻塞）
 StorageAdapter.migrateFromSyncToLocal();
 
-// 定期清理不活跃的 chatTimes 数据（每次加载时检查）
-ChatTimeStorageManager.cleanup(30).catch(() => {});
+// chatTimes 节点时间超过 1000 个时，清理最早的 50 个节点时间（每次加载时检查）
+ChatTimeStorageManager.cleanup(1000, 50).catch(() => {});
