@@ -10,6 +10,7 @@
  * - KaTeX
  * - MathJax
  * - MediaWiki Math
+ * - Meta.ai (img)
  * 
  * @requires variables.css
  */
@@ -18,11 +19,12 @@
    公式交互样式（FormulaManager）
    ============================================ */
 
-/* 公式基础交互样式（统一识别 .katex、.mwe-math-element 和 MathJax 元素）*/
+/* 公式基础交互样式（统一识别 .katex、.mwe-math-element、MathJax 和 Meta.ai img 元素）*/
 .katex.formula-interactive,
 .mwe-math-element.formula-interactive,
 .MathJax_SVG.formula-interactive,
-.MathJax.formula-interactive {
+.MathJax.formula-interactive,
+img.formula-interactive {
     position: relative;
     transition: background-color 0.2s ease, transform 0.15s ease;
     border-radius: 6px;
@@ -32,7 +34,8 @@
 .katex.formula-interactive.formula-hover,
 .mwe-math-element.formula-interactive.formula-hover,
 .MathJax_SVG.formula-interactive.formula-hover,
-.MathJax.formula-interactive.formula-hover {
+.MathJax.formula-interactive.formula-hover,
+img.formula-interactive.formula-hover {
     background-color: rgba(0, 0, 0, 0.06) !important;
     cursor: pointer;
 }
@@ -40,15 +43,29 @@
 html[data-timeline-theme="dark"] .katex.formula-interactive.formula-hover,
 html[data-timeline-theme="dark"] .mwe-math-element.formula-interactive.formula-hover,
 html[data-timeline-theme="dark"] .MathJax_SVG.formula-interactive.formula-hover,
-html[data-timeline-theme="dark"] .MathJax.formula-interactive.formula-hover {
+html[data-timeline-theme="dark"] .MathJax.formula-interactive.formula-hover,
+html[data-timeline-theme="dark"] img.formula-interactive.formula-hover {
     background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Meta.ai img 公式 hover：outline 比 background 更适合图片 */
+img.formula-interactive.formula-hover {
+    background-color: transparent !important;
+    outline: 2px solid rgba(0, 0, 0, 0.12);
+    outline-offset: 2px;
+}
+
+html[data-timeline-theme="dark"] img.formula-interactive.formula-hover {
+    background-color: transparent !important;
+    outline-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 公式点击效果 */
 .katex.formula-interactive:active,
 .mwe-math-element.formula-interactive:active,
 .MathJax_SVG.formula-interactive:active,
-.MathJax.formula-interactive:active {
+.MathJax.formula-interactive:active,
+img.formula-interactive:active {
     transform: scale(0.998);
 }
 

@@ -670,6 +670,14 @@ class FormulaManager {
         // 扫描带 data-mathml 属性的 MathJax 公式（覆盖仅有 MathML、无 LaTeX 的场景）
         const mathmlElements = document.querySelectorAll('[data-mathml]:not([data-latex-source])');
         mathmlElements.forEach(formula => this.attachFormulaListeners(formula));
+
+        // Meta.ai：img[alt] 公式（LaTeX 源码在 alt 属性中）
+        if (location.hostname.endsWith('meta.ai')) {
+            const metaImgs = document.querySelectorAll(
+                '[data-testid="assistant-message"] .markdown-content img[alt]:not([data-latex-source])'
+            );
+            metaImgs.forEach(img => this.attachFormulaListeners(img));
+        }
     }
     
     /**
@@ -774,7 +782,7 @@ class FormulaManager {
      * 清理所有公式的交互标记和样式类
      */
     _cleanupFormulaMarkers() {
-        const formulas = document.querySelectorAll('.katex[data-latex-source], .math-inline[data-latex-source], .mwe-math-element[data-latex-source], .MathJax_SVG[data-latex-source], .MathJax[data-latex-source], [data-mathml][data-latex-source]');
+        const formulas = document.querySelectorAll('.katex[data-latex-source], .math-inline[data-latex-source], .mwe-math-element[data-latex-source], .MathJax_SVG[data-latex-source], .MathJax[data-latex-source], [data-mathml][data-latex-source], img[data-latex-source]');
         formulas.forEach(formula => {
             formula.removeEventListener('mouseenter', this.handleMouseEnter);
             formula.removeEventListener('mouseleave', this.handleMouseLeave);

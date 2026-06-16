@@ -25,15 +25,15 @@ globalThis.CUSTOM_SITE_INFO = [
         },
     },
     {
-        sites: ['meta.ai'],
-        conversationUrlPattern: '^(?:www\\.)?meta\\.ai/prompt/[A-Za-z0-9-]+(?:[/?#].*)?$',
-        userMessageSelector: '[style*="container-name:chat-scroller"] button[data-slot="button"]',
-        textSelector: '',
-        conversationContainerSelector: '[style*="container-name:chat-scroller"]',
+        sites: ['www.meta.ai'],
+        conversationUrlPattern: '^www\\.meta\\.ai/prompt/[0-9a-f-]+(?:[/?#].*)?$',
+        userMessageSelector: '[data-message-type="user"]',
+        textSelector: '[data-slot="text"]',
+        conversationContainerSelector: 'div.box-border[style*="--composer-overlap"]',
         features: {
             timeline: true,
             questionList: true,
             notepad: true
         },
-    }
+    },
 ];

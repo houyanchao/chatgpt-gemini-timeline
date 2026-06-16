@@ -235,7 +235,12 @@ class CustomSiteFloatButton {
         }
 
         if (window.globalToastManager) {
-            window.globalToastManager.show('success', TimelineI18n.getMessage('mirrorSiteCopied') || '已复制到剪贴板');
+            const toastTarget = itemEl?.querySelector('.prompt-dropdown-item-content') || itemEl;
+            window.globalToastManager.success(
+                TimelineI18n.getMessage('mirrorSiteCopied') || '已复制到剪贴板',
+                toastTarget,
+                { position: 'top', gap: 8 }
+            );
         }
     }
 

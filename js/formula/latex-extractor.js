@@ -11,9 +11,25 @@
  * - 千问/Qwen (KaTeX MathML direct text + MathML)
  * - 维基百科 (MathML + annotation)
  * - MathJax (script[type="math/tex"])
+ * - Meta.ai (img[alt] in assistant-message .markdown-content)
  */
 
 class FormulaSourceParser {
+    /** @type {Map<string, boolean>} isValidLatex 结果缓存 */
+    static _validLatexCache = new Map();
+
+    static _VALID_LATEX_CACHE_MAX = 500;
+
+    /**
+     * Meta.ai 公式 img 候选（尚未校验 alt 是否为 LaTeX）
+     */
+    static isMetaAiFormulaCandidate(element) {
+        return element?.tagName === 'IMG' &&
+            element.hasAttribute('alt') &&
+            location.hostname.endsWith('meta.ai') &&
+            element.closest('[data-testid="assistant-message"] .markdown-content');
+    }
+
     /**
      * 从公式元素中解析 LaTeX 源码
      * 按优先级尝试多种方式，自动适配不同平台
@@ -112,7 +128,63 @@ class FormulaSourceParser {
             return formulaElement.getAttribute('data-latex').trim();
         }
 
+        // 方法12: Meta.ai 格式 - img[alt] 作为 LaTeX 源码
+        if (FormulaSourceParser.isMetaAiFormulaCandidate(formulaElement)) {
+            const alt = formulaElement.getAttribute('alt').trim();
+            if (FormulaSourceParser.isValidLatex(alt)) {
+                return FormulaSourceParser._stripMathDelimiters(alt);
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * 判断字符串是否为合法 LaTeX 数学公式
+     * @param {string} text - 待检测文本（可含 $...$ 等分隔符）
+     * @returns {boolean}
+     */
+    static isValidLatex(text) {
+        if (!text || typeof text !== 'string') return false;
+
+        const trimmed = text.trim();
+        const cached = FormulaSourceParser._validLatexCache.get(trimmed);
+        if (cached !== undefined) return cached;
+
+        const result = FormulaSourceParser._checkValidLatex(trimmed);
+        FormulaSourceParser._validLatexCache.set(trimmed, result);
+        if (FormulaSourceParser._validLatexCache.size > FormulaSourceParser._VALID_LATEX_CACHE_MAX) {
+            const oldest = FormulaSourceParser._validLatexCache.keys().next().value;
+            FormulaSourceParser._validLatexCache.delete(oldest);
+        }
+        return result;
+    }
+
+    /**
+     * @param {string} trimmed - 已 trim 的文本
+     */
+    static _checkValidLatex(trimmed) {
+        const latex = FormulaSourceParser._stripMathDelimiters(trimmed);
+        if (!latex) return false;
+
+        // 轻量启发式，过滤普通图片描述
+        if (!/\\[a-zA-Z]+|[\^_=+\-*/()]/.test(latex)) return false;
+
+        const engine = typeof temml !== 'undefined' ? temml : null;
+        if (!engine?.renderToString) return false;
+
+        const displayMode = /^\$\$|^\\\[|\\begin\{/.test(trimmed);
+
+        try {
+            engine.renderToString(latex, {
+                displayMode,
+                throwOnError: true,
+                trust: false
+            });
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**

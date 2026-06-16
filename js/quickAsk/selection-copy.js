@@ -19,19 +19,26 @@
 (function () {
     'use strict';
 
-    // 公式元素选择器：覆盖 KaTeX、豆包、维基、MathJax、Gemini、Grok 等
-    const FORMULA_SELECTOR = [
-        '.katex-display',
-        '.katex',
-        '.math-inline',
-        '.math-display',
-        '.mwe-math-element',
-        '.MathJax_Display',
-        '.MathJax_SVG',
-        '.MathJax',
-        '[data-mathml]',
-        '[copy-text]'
-    ].join(',');
+    // 公式元素选择器：覆盖 KaTeX、豆包、维基、MathJax、Gemini、Grok、Meta.ai 等
+    const FORMULA_SELECTOR = (() => {
+        const parts = [
+            '.katex-display',
+            '.katex',
+            '.math-inline',
+            '.math-display',
+            '.mwe-math-element',
+            '.MathJax_Display',
+            '.MathJax_SVG',
+            '.MathJax',
+            '[data-mathml]',
+            '[copy-text]',
+            'img[data-latex-source]'
+        ];
+        if (location.hostname.endsWith('meta.ai')) {
+            parts.push('[data-testid="assistant-message"] .markdown-content img[alt]');
+        }
+        return parts.join(',');
+    })();
 
     // 临时标记属性：在原 DOM 上短暂打标，cloneContents 后通过该属性回查
     // 使用前缀防止与页面冲突，try/finally 保证一定移除
