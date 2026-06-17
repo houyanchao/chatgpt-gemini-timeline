@@ -517,6 +517,19 @@ html[data-timeline-theme="dark"] [data-ait-time]::before {
 .ait-timeline-track::-webkit-scrollbar { width: 0; height: 0; }
 .ait-timeline-track { scrollbar-width: none; }
 
+/* Hide the host chat scrollbar while the timeline is active; scrolling still works. */
+.ait-host-scrollbar-hidden {
+    scrollbar-width: none !important;
+    scrollbar-gutter: auto !important;
+    -ms-overflow-style: none !important;
+}
+
+.ait-host-scrollbar-hidden::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+}
+
 /* ✅ 提问列表按钮 */
 .ait-question-list-btn {
     position: relative;

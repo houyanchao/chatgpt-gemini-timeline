@@ -21,6 +21,8 @@ class TimelineManager {
         }
         this.adapter = adapter;
         this.scrollContainer = null;
+        this.isScrollContainerFallback = false;
+        this.hostScrollbarElement = null;
         this.conversationContainer = null;
         this.markers = [];
         this.activeTurnId = null;
@@ -181,6 +183,7 @@ class TimelineManager {
 
         const elementsFound = await this.findCriticalElements();
         if (this._destroyed || !elementsFound) return false;
+        this.applyHostScrollContainerClass();
         
         // ✅ 同步深色模式状态到 html 元素
         this.syncDarkModeClass();
@@ -258,23 +261,28 @@ class TimelineManager {
         this.conversationContainer = this.adapter.findConversationContainer(firstTurn);
         if (!this.conversationContainer) return false;
 
-        let parent = this.conversationContainer;
+        const scrollInfo = this.resolveScrollContainer(this.conversationContainer);
+        this.scrollContainer = scrollInfo.container;
+        this.isScrollContainerFallback = scrollInfo.isFallback;
+
+        return this.scrollContainer !== null;
+    }
+
+    resolveScrollContainer(conversationContainer) {
+        let parent = conversationContainer;
         while (parent && parent !== document.body) {
             const style = window.getComputedStyle(parent);
             const overflowY = style.overflowY;
             if (overflowY === 'auto' || overflowY === 'scroll') {
-                this.scrollContainer = parent;
-                break;
+                return { container: parent, isFallback: false };
             }
             parent = parent.parentElement;
         }
-        
-        // 如果没找到滚动容器，使用 document 作为备用（通用方案）
-        if (!this.scrollContainer) {
-            this.scrollContainer = document.scrollingElement || document.documentElement || document.body;
-        }
-        
-        return this.scrollContainer !== null;
+
+        return {
+            container: document.scrollingElement || document.documentElement || document.body,
+            isFallback: true
+        };
     }
     
     injectTimelineUI() {
@@ -296,6 +304,7 @@ class TimelineManager {
         }
         this.ui.timelineBar = timelineBar;
         this.applyTimelineActiveColor();
+        this.applyTimelineBarBackground();
         
         // Apply site-specific position from adapter to wrapper
         const position = this.adapter.getTimelinePosition();
@@ -1574,6 +1583,7 @@ class TimelineManager {
         try { this.mutationObserver?.disconnect(); } catch {}
         try { this.intersectionObserver?.disconnect(); } catch {}
         this.cleanupScrollPadding(this.conversationContainer);
+        this.removeHostScrollContainerClass();
 
         this.conversationContainer = newConv;
         
@@ -1590,17 +1600,10 @@ class TimelineManager {
         this._currentPadding = 0;
 
         // Find (or re-find) scroll container
-        let parent = newConv;
-        let newScroll = null;
-        while (parent && parent !== document.body) {
-            const style = window.getComputedStyle(parent);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                newScroll = parent; break;
-            }
-            parent = parent.parentElement;
-        }
-        if (!newScroll) newScroll = document.scrollingElement || document.documentElement || document.body;
-        this.scrollContainer = newScroll;
+        const scrollInfo = this.resolveScrollContainer(newConv);
+        this.scrollContainer = scrollInfo.container;
+        this.isScrollContainerFallback = scrollInfo.isFallback;
+        this.applyHostScrollContainerClass();
         // Reattach scroll listener
         this.onScroll = () => this.scheduleScrollSync();
         this.scrollContainer.addEventListener('scroll', this.onScroll, { passive: true });
@@ -2095,6 +2098,34 @@ class TimelineManager {
             htmlElement.setAttribute('data-timeline-theme', 'light');
         }
     }
+
+    applyHostScrollContainerClass() {
+        this.removeHostScrollContainerClass();
+        if (!this.scrollContainer) return;
+
+        let shouldHide = false;
+        try {
+            shouldHide = this.adapter.shouldHideHostScrollbar?.(this.scrollContainer, {
+                isFallback: this.isScrollContainerFallback,
+                conversationContainer: this.conversationContainer
+            }) === true;
+        } catch {}
+
+        if (!shouldHide) return;
+
+        try {
+            this.scrollContainer.classList?.add('ait-host-scrollbar-hidden');
+            this.hostScrollbarElement = this.scrollContainer;
+        } catch {}
+    }
+
+    removeHostScrollContainerClass() {
+        try {
+            this.hostScrollbarElement?.classList?.remove('ait-host-scrollbar-hidden');
+            this.scrollContainer?.classList?.remove('ait-host-scrollbar-hidden');
+            this.hostScrollbarElement = null;
+        } catch {}
+    }
     
     /**
      * ✅ 优化：设置主题变化监听器
@@ -2139,6 +2170,7 @@ class TimelineManager {
         requestAnimationFrame(() => {
             // ✅ 同步深色模式类
             this.syncDarkModeClass();
+            this.applyTimelineBarBackground();
             
             // 重新缓存 CSS 变量
             this.cacheTooltipConfig();
@@ -3556,12 +3588,15 @@ class TimelineManager {
 
         // ✅ 清理底部空白元素。切换会话时旧容器可能仍留在 DOM 中，必须全局清理残留。
         this.cleanupScrollPadding();
+        this.removeHostScrollContainerClass();
         
         // Clear references
         this.ui = { timelineBar: null, track: null, trackContent: null };
         this.markers = [];
         this.activeTurnId = null;
         this.scrollContainer = null;
+        this.isScrollContainerFallback = false;
+        this.hostScrollbarElement = null;
         this.conversationContainer = null;
         this.onTimelineBarClick = null;
         this.onTimelineBarOver = null;
@@ -3710,6 +3745,33 @@ class TimelineManager {
         const platformId = this._currentPlatform?.id || 'default';
         const color = resolveTimelineActiveColor(platformId, this.timelineActiveColorByPlatform);
         this.ui.timelineBar.style.setProperty('--ait-timeline-dot-active-color', color);
+    }
+
+    /**
+     * ✅ 应用当前平台的时间轴背景色，仅配置了背景色的平台会覆盖默认变量
+     */
+    applyTimelineBarBackground() {
+        if (!this.ui.timelineBar) return;
+
+        const backgroundConfig = this.adapter.getTimelineBarBackground?.();
+        const background = this.resolveTimelineBarBackground(backgroundConfig);
+        if (background) {
+            this.ui.timelineBar.style.setProperty('--timeline-bar-bg', background);
+        } else {
+            this.ui.timelineBar.style.removeProperty('--timeline-bar-bg');
+        }
+    }
+
+    resolveTimelineBarBackground(backgroundConfig) {
+        if (!backgroundConfig) return null;
+        if (typeof backgroundConfig === 'string') return backgroundConfig;
+        if (typeof backgroundConfig !== 'object') return null;
+
+        const theme = document.documentElement?.getAttribute?.('data-timeline-theme');
+        const isDark = theme ? theme === 'dark' : this.adapter.detectDarkMode?.() === true;
+        return isDark
+            ? (backgroundConfig.dark || backgroundConfig.light || null)
+            : (backgroundConfig.light || backgroundConfig.dark || null);
     }
 
     /**

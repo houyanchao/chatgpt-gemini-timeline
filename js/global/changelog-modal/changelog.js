@@ -12,34 +12,34 @@
  */
 
 const CHANGELOG_DATA = {
-    id: '2026053101',
+    id: '2026061701',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
     features: [
         {
+            zh: '新增第三方 AI 对话站适配：meta.ai、z.ai、chatglm.cn 等站点现已支持时间轴、闪记等全部功能',
+            en: 'Third-party AI site support: timeline, quick notes, and every other feature now work on meta.ai, z.ai, chatglm.cn, and more'
+        },
+        {
+            zh: 'AI 回复完成提示音：回复结束后可播放提示音效，默认关闭，可在设置中按需开启',
+            en: 'Reply completion sound: optional notification when the AI finishes responding—off by default, enable it anytime in settings'
+        },
+        {
+            zh: '界面语言切换：支持跟随系统、中文、英文三种模式，按需切换扩展显示语言',
+            en: 'Language options: choose Follow system, Chinese, or English for the extension UI'
+        },
+        {
             zh: '适配所有 ChatGPT、Gemini 镜像网站：无需手动配置，在常见镜像站上也能直接使用时间轴、闪记等全部功能',
             en: 'Support all ChatGPT and Gemini mirror sites: timeline, quick notes and every other feature now work out of the box on common mirror sites—no setup needed'
-        },
-        {
-            zh: '阻止发送后自动跳到底部：向上翻看历史时发消息，页面不再被强制拉到底部，始终停留在当前阅读位置，AI 生成过程中也不会打断你',
-            en: 'Stay where you’re reading: send a message while scrolled up in the history and the page no longer jumps to the bottom—your reading position is kept, even while the AI is generating'
-        },
-        {
-            zh: '自定义平台适配：除原生支持的常用 AI 平台外，镜像站、公司内部 AI 站等也能自行接入，同样享受时间轴、闪记等功能',
-            en: 'Adapt any site: beyond the built-in mainstream AI platforms, you can now bring timeline, quick notes and more to mirror sites, internal company AI tools, and other custom pages'
         }
     ],
 
     improvements: [
         {
-            zh: '修复千问国际版（chat.qwen.ai）无法复制 LaTeX 公式的问题',
-            en: 'Fixed an issue where LaTeX formulas could not be copied on Qwen (international)'
-        },
-        {
-            zh: '修复 Gemini、ChatGPT 侧边栏对话历史列表中不显示「收藏到文件夹」的问题',
-            en: 'Fixed the missing “Save to folder” action in the conversation history list of the Gemini and ChatGPT sidebars'
+            zh: '修复 ChatGPT 对话框左侧提示词图标位置偏移的问题',
+            en: 'Fixed misaligned prompt icon on the left side of the ChatGPT chat input area'
         }
     ]
 };

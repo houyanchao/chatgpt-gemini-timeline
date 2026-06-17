@@ -719,6 +719,11 @@ function detectDarkMode() {
         if (document.documentElement?.classList?.contains('dark')) {
             return true;
         }
+
+        // 1b. 检查 html 元素的 light 类（智谱 Z.ai 等，显式浅色）
+        if (document.documentElement?.classList?.contains('light')) {
+            return false;
+        }
         
         // 2. 检查 body 元素的 dark 类（DeepSeek、Grok 等）
         if (document.body?.classList?.contains('dark')) {

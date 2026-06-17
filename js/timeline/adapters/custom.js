@@ -73,6 +73,10 @@ class CustomSiteAdapter extends SiteAdapter {
         };
     }
 
+    getTimelineBarBackground() {
+        return this.config.timelineBarBackground || null;
+    }
+
     getScrollOffset() {
         const offset = Number(this.config.scrollOffset);
         return Number.isFinite(offset) ? offset : 30;

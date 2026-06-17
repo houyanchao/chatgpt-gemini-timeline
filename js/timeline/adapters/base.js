@@ -167,6 +167,17 @@ class SiteAdapter {
     getScrollOffset() {
         return 30; // 默认偏移量
     }
+
+    /**
+     * Whether TimelineManager should hide the host page's native chat scrollbar.
+     * By default, only hide real internal scroll containers, not html/body fallback.
+     * @param {Element} scrollContainer - Resolved scroll container
+     * @param {Object} context - { isFallback, conversationContainer }
+     * @returns {boolean}
+     */
+    shouldHideHostScrollbar(scrollContainer, context = {}) {
+        return context.isFallback !== true;
+    }
     
     /**
      * Check if AI is currently generating a response
