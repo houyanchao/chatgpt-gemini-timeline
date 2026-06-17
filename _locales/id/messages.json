@@ -923,6 +923,9 @@
   "timelineAICompleteToastHint": {
     "message": "Tampilkan pengingat saat balasan AI selesai dan Anda tidak berada di posisi terbaru"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "Pertahankan posisi baca saat mengirim"
   },
@@ -973,5 +976,14 @@
   },
   "languageChangeFailed": {
     "message": "Gagal mengubah bahasa antarmuka"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

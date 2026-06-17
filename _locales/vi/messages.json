@@ -923,6 +923,9 @@
   "timelineAICompleteToastHint": {
     "message": "Hiển thị nhắc nhở khi AI trả lời xong và bạn không ở vị trí mới nhất"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "Giữ vị trí đọc khi gửi"
   },
@@ -973,5 +976,14 @@
   },
   "languageChangeFailed": {
     "message": "Không thể thay đổi ngôn ngữ giao diện"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

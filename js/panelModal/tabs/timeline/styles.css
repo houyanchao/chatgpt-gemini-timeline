@@ -238,6 +238,42 @@
     width: 430px;
 }
 
+.starred-platform-modal.timeline-ai-complete-reminder-modal {
+    width: 380px;
+}
+
+.timeline-ai-complete-setting-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.timeline-ai-complete-setting-item:hover {
+    background: #f9fafb;
+}
+
+.timeline-ai-complete-setting-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.timeline-ai-complete-setting-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.timeline-ai-complete-setting-hint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
 .timeline-theme-color-item {
     display: flex;
     align-items: center;

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.6.19",
+  "version": "4.6.20",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -236,6 +236,7 @@
     {
       "resources": [
         "icons/icon128.png",
+        "assets/sounds/done1.mp3",
         "images/logo.png",
         "images/logo/*.webp",
         "images/logo/*.svg",

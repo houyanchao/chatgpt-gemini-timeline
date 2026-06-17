@@ -1016,6 +1016,9 @@
   "timelineAICompleteToastHint": {
     "message": "Show a reminder when an AI reply finishes while you are not at the latest position"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "Keep reading position on send"
   },
@@ -1075,5 +1078,14 @@
   },
   "highlightConfirm": {
     "message": "Confirm"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

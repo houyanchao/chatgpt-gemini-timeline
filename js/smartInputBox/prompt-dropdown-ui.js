@@ -12,6 +12,7 @@
  * @param {Function} [options.onChatWidthClick] - () => void 点击对话宽度设置按钮
  * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
  * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
+ * @param {Function} [options.onAICompleteReminderClick] - () => void 点击回复完成提醒设置按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
@@ -24,6 +25,7 @@ function createPromptDropdownUI({
     onChatWidthClick,
     onSmartInputSettingsClick,
     onMirrorSiteClick,
+    onAICompleteReminderClick,
     onSettingsClick,
     showStoreDetailButton = true,
     tooltipPlacement = 'right'
@@ -201,7 +203,8 @@ function createPromptDropdownUI({
         container.appendChild(_promptDropdownCreateCommonSettings({
             onChatWidthClick,
             onSmartInputSettingsClick,
-            onMirrorSiteClick
+            onMirrorSiteClick,
+            onAICompleteReminderClick
         }));
         _promptDropdownBindTabs(container);
     }
@@ -225,7 +228,8 @@ function _promptDropdownBindTabs(container) {
 function _promptDropdownCreateCommonSettings({
     onChatWidthClick,
     onSmartInputSettingsClick,
-    onMirrorSiteClick
+    onMirrorSiteClick,
+    onAICompleteReminderClick
 }) {
     const panel = document.createElement('div');
     panel.className = 'prompt-dropdown-panel prompt-common-settings-panel';
@@ -293,12 +297,11 @@ function _promptDropdownCreateCommonSettings({
                     <div class="prompt-common-setting-title-row">
                         <div class="prompt-common-setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
                     </div>
-                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                    <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('timelineAICompleteReminderHint') || '设置回复完成后的弹窗提醒和提示音效'}</div>
                 </div>
-                <label class="ait-toggle-switch">
-                    <input type="checkbox" class="prompt-common-ai-complete-toast-toggle">
-                    <span class="ait-toggle-slider"></span>
-                </label>
+                <button class="prompt-common-setting-btn prompt-common-ai-complete-reminder-btn">
+                    ${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}
+                </button>
             </div>
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
@@ -349,24 +352,11 @@ function _promptDropdownCreateCommonSettings({
         if (onChatWidthClick) onChatWidthClick();
     });
 
-    const aiCompleteToggle = panel.querySelector('.prompt-common-ai-complete-toast-toggle');
-    if (aiCompleteToggle) {
-        chrome.storage.local.get('timelineAICompleteToastEnabled').then(result => {
-            aiCompleteToggle.checked = result.timelineAICompleteToastEnabled !== false;
-        }).catch(() => {
-            aiCompleteToggle.checked = true;
-        });
-        aiCompleteToggle.addEventListener('change', async (e) => {
-            try {
-                await chrome.storage.local.set({
-                    timelineAICompleteToastEnabled: e.target.checked
-                });
-            } catch (error) {
-                console.error('[PromptDropdown] Failed to save AI complete toast setting:', error);
-                aiCompleteToggle.checked = !aiCompleteToggle.checked;
-            }
-        });
-    }
+    const aiCompleteReminderBtn = panel.querySelector('.prompt-common-ai-complete-reminder-btn');
+    aiCompleteReminderBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onAICompleteReminderClick) onAICompleteReminderClick();
+    });
 
     const preventAutoScrollToggle = panel.querySelector('.prompt-common-prevent-auto-scroll-toggle');
     if (preventAutoScrollToggle) {

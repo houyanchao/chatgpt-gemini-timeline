@@ -66,6 +66,8 @@ class TimelineManager {
         this.arrowKeysNavigationEnabled = true;
         // ✅ AI 回复完成提醒启用状态（内存缓存，默认开启）
         this.aiCompleteToastEnabled = true;
+        // ✅ AI 回复完成音效启用状态（内存缓存，默认关闭）
+        this.aiCompleteSoundEnabled = false;
         // ✅ 平台设置（内存缓存）
         this.platformSettings = {};
         // ✅ 时间轴激活节点颜色设置（内存缓存）
@@ -162,6 +164,7 @@ class TimelineManager {
 
         // ✅ AI 回复完成提示使用的右上角定位锚点
         this.aiCompleteToastAnchor = null;
+        this.aiCompleteAudio = null;
     }
 
     getTimelineFeatures() {
@@ -198,6 +201,9 @@ class TimelineManager {
         if (this._destroyed) return false;
         // ✅ 加载 AI 回复完成提醒状态
         await this.loadAICompleteToastState();
+        if (this._destroyed) return false;
+        // ✅ 加载 AI 回复完成音效状态
+        await this.loadAICompleteSoundState();
         if (this._destroyed) return false;
         // ✅ 加载平台设置
         await this.loadPlatformSettings();
@@ -2010,6 +2016,11 @@ class TimelineManager {
                 if (changes.timelineAICompleteToastEnabled) {
                     this.aiCompleteToastEnabled = changes.timelineAICompleteToastEnabled.newValue !== false;
                 }
+
+                // ✅ 监听 AI 回复完成音效状态变化
+                if (changes.timelineAICompleteSoundEnabled) {
+                    this.aiCompleteSoundEnabled = changes.timelineAICompleteSoundEnabled.newValue === true;
+                }
                 
                 // ✅ 监听平台设置变化
                 if (changes.timelinePlatformSettings) {
@@ -3060,6 +3071,7 @@ class TimelineManager {
         const platformName = this._currentPlatform?.name || 'AI';
         const message = TimelineI18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
             `${platformName} 回复已完成`;
+
         const anchor = this.getAICompleteToastAnchor();
 
         window.globalToastManager.info(message, anchor, {
@@ -3071,6 +3083,8 @@ class TimelineManager {
             position: 'left',
             gap: 10
         });
+
+        this.playAICompleteSound();
     }
 
     getAICompleteToastAnchor() {
@@ -3092,6 +3106,21 @@ class TimelineManager {
         document.body.appendChild(anchor);
         this.aiCompleteToastAnchor = anchor;
         return anchor;
+    }
+
+    playAICompleteSound() {
+        if (!this.aiCompleteSoundEnabled) return;
+
+        try {
+            const soundUrl = chrome.runtime.getURL('assets/sounds/done1.mp3');
+            const audio = new Audio(soundUrl);
+            audio.volume = 0.45;
+            this.aiCompleteAudio = audio;
+            const playPromise = audio.play();
+            if (playPromise?.catch) {
+                playPromise.catch(() => {});
+            }
+        } catch {}
     }
 
     /**
@@ -3520,7 +3549,9 @@ class TimelineManager {
         // ✅ 清理切换按钮
         TimelineUtils.removeElementSafe(this.ui.toggleBtn);
         
-        // ✅ 清理 AI 完成提示定位锚点
+        if (this.aiCompleteAudio) {
+            try { this.aiCompleteAudio.pause(); } catch {}
+        }
         TimelineUtils.removeElementSafe(this.aiCompleteToastAnchor);
 
         // ✅ 清理底部空白元素。切换会话时旧容器可能仍留在 DOM 中，必须全局清理残留。
@@ -3548,6 +3579,7 @@ class TimelineManager {
         this.onKeyDown = null;
         this.pendingActiveId = null;
         this.aiCompleteToastAnchor = null;
+        this.aiCompleteAudio = null;
     }
 
     // --- Star/Highlight helpers ---
@@ -3626,6 +3658,20 @@ class TimelineManager {
             console.error('[Timeline] Failed to load AI complete toast state:', e);
             // 读取失败，默认开启
             this.aiCompleteToastEnabled = true;
+        }
+    }
+
+    /**
+     * ✅ 加载 AI 回复完成音效状态
+     */
+    async loadAICompleteSoundState() {
+        try {
+            const result = await chrome.storage.local.get('timelineAICompleteSoundEnabled');
+            // 默认关闭
+            this.aiCompleteSoundEnabled = result.timelineAICompleteSoundEnabled === true;
+        } catch (e) {
+            console.error('[Timeline] Failed to load AI complete sound state:', e);
+            this.aiCompleteSoundEnabled = false;
         }
     }
 

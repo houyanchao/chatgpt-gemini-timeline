@@ -923,6 +923,9 @@
   "timelineAICompleteToastHint": {
     "message": "जब AI का जवाब पूरा हो जाए और आप नवीनतम स्थिति पर न हों, तो रिमाइंडर दिखाएँ"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "भेजने पर पढ़ने की स्थिति बनाए रखें"
   },
@@ -973,5 +976,14 @@
   },
   "languageChangeFailed": {
     "message": "इंटरफ़ेस की भाषा बदली नहीं जा सकी"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

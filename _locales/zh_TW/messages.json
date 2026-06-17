@@ -980,6 +980,9 @@
   "timelineAICompleteToastHint": {
     "message": "AI 回覆完成且目前不在最新位置時顯示提醒"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "回覆完成提醒出現時播放短音效"
+  },
   "preventAutoScrollLabel": {
     "message": "阻止傳送後跳到底部"
   },
@@ -1030,5 +1033,14 @@
   },
   "languageChangeFailed": {
     "message": "介面語言切換失敗"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "設定回覆完成後的彈窗提醒和提示音效"
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "彈出提醒"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "提示音效"
   }
 }

@@ -974,6 +974,9 @@
   "timelineAICompleteToastHint": {
     "message": "AI の返信が完了し、最新位置にいないときに通知を表示します"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "送信時に読書位置を維持"
   },
@@ -1024,5 +1027,14 @@
   },
   "languageChangeFailed": {
     "message": "インターフェース言語を変更できませんでした"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

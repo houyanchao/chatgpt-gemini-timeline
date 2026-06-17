@@ -57,12 +57,9 @@ class TimelineSettingsTab extends BaseTab {
                 <div class="setting-item">
                     <div class="setting-info">
                         <div class="setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
-                        <div class="setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('timelineAICompleteReminderHint') || '设置回复完成后的弹窗提醒和提示音效'}</div>
                     </div>
-                    <label class="ait-toggle-switch">
-                        <input type="checkbox" id="ai-complete-toast-toggle">
-                        <span class="ait-toggle-slider"></span>
-                    </label>
+                    <button class="starred-manage-btn ai-complete-reminder-manage-btn">${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}</button>
                 </div>
             </div>
             ${divider}
@@ -148,6 +145,11 @@ class TimelineSettingsTab extends BaseTab {
                 .catch(e => console.error('[TimelineSettingsTab] Failed to show theme color modal:', e));
         });
 
+        this.addEventListener(scrollArea.querySelector('.ai-complete-reminder-manage-btn'), 'click', () => {
+            void TimelineSettingsTab.showAICompleteReminderModal()
+                .catch(e => console.error('[TimelineSettingsTab] Failed to show AI complete reminder modal:', e));
+        });
+
         return container;
     }
     
@@ -189,28 +191,6 @@ class TimelineSettingsTab extends BaseTab {
             });
         }
         
-        // 1. 处理 AI 回复完成提醒开关（默认开启）
-        const aiCompleteToastCheckbox = document.getElementById('ai-complete-toast-toggle');
-        if (aiCompleteToastCheckbox) {
-            try {
-                const result = await chrome.storage.local.get('timelineAICompleteToastEnabled');
-                aiCompleteToastCheckbox.checked = result.timelineAICompleteToastEnabled !== false;
-            } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to load AI complete toast state:', e);
-                aiCompleteToastCheckbox.checked = true;
-            }
-
-            this.addEventListener(aiCompleteToastCheckbox, 'change', async (e) => {
-                try {
-                    const enabled = e.target.checked;
-                    await chrome.storage.local.set({ timelineAICompleteToastEnabled: enabled });
-                } catch (e) {
-                    console.error('[TimelineSettingsTab] Failed to save AI complete toast state:', e);
-                    aiCompleteToastCheckbox.checked = !aiCompleteToastCheckbox.checked;
-                }
-            });
-        }
-
         // 处理「阻止发送后跳到底部」开关（默认开启）
         const preventAutoScrollCheckbox = document.getElementById('prevent-auto-scroll-toggle');
         if (preventAutoScrollCheckbox) {
@@ -328,6 +308,74 @@ class TimelineSettingsTab extends BaseTab {
         }
         
         
+    }
+
+    static async showAICompleteReminderModal() {
+        const result = await chrome.storage.local.get([
+            'timelineAICompleteToastEnabled',
+            'timelineAICompleteSoundEnabled'
+        ]);
+        const toastEnabled = result.timelineAICompleteToastEnabled !== false;
+        const soundEnabled = result.timelineAICompleteSoundEnabled === true;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'starred-platform-modal-overlay';
+        overlay.innerHTML = `
+            <div class="starred-platform-modal timeline-ai-complete-reminder-modal">
+                <div class="starred-platform-modal-header">
+                    <span>${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</span>
+                    <button class="starred-platform-modal-close">✕</button>
+                </div>
+                <div class="starred-platform-modal-body">
+                    <div class="timeline-ai-complete-setting-item">
+                        <div class="timeline-ai-complete-setting-info">
+                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteToastOptionTitle') || '弹出提醒'}</div>
+                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                        </div>
+                        <label class="ait-toggle-switch">
+                            <input type="checkbox" data-ai-complete-setting="toast" ${toastEnabled ? 'checked' : ''}>
+                            <span class="ait-toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="timeline-ai-complete-setting-item">
+                        <div class="timeline-ai-complete-setting-info">
+                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteSoundOptionTitle') || '提示音效'}</div>
+                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteSoundHint') || '弹出提醒时播放短音效'}</div>
+                        </div>
+                        <label class="ait-toggle-switch">
+                            <input type="checkbox" data-ai-complete-setting="sound" ${soundEnabled ? 'checked' : ''}>
+                            <span class="ait-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.remove();
+        overlay.querySelector('.starred-platform-modal-close').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+        const toastToggle = overlay.querySelector('input[data-ai-complete-setting="toast"]');
+        const soundToggle = overlay.querySelector('input[data-ai-complete-setting="sound"]');
+
+        toastToggle?.addEventListener('change', async () => {
+            try {
+                await chrome.storage.local.set({ timelineAICompleteToastEnabled: toastToggle.checked });
+            } catch (e) {
+                console.error('[TimelineSettingsTab] Failed to save AI complete toast state:', e);
+                toastToggle.checked = !toastToggle.checked;
+            }
+        });
+
+        soundToggle?.addEventListener('change', async () => {
+            try {
+                await chrome.storage.local.set({ timelineAICompleteSoundEnabled: soundToggle.checked });
+            } catch (e) {
+                console.error('[TimelineSettingsTab] Failed to save AI complete sound state:', e);
+                soundToggle.checked = !soundToggle.checked;
+            }
+        });
     }
 
     async _showPlatformManageModal() {

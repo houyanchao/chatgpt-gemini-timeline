@@ -1016,6 +1016,9 @@
   "timelineAICompleteToastHint": {
     "message": "AI 回复完成且当前不在最新位置时显示提醒"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "回复完成提醒出现时播放短音效"
+  },
   "preventAutoScrollLabel": {
     "message": "阻止发送后跳到底部"
   },
@@ -1075,5 +1078,14 @@
   },
   "highlightConfirm": {
     "message": "确定"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "设置回复完成后的弹窗提醒和提示音效"
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "弹出提醒"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "提示音效"
   }
 }

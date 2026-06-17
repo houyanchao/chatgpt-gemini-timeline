@@ -579,6 +579,12 @@ class PromptButtonManager {
                 this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('mirror-site');
             },
+            onAICompleteReminderClick: () => {
+                this._hidePromptDropdown();
+                if (typeof TimelineSettingsTab !== 'undefined') {
+                    void TimelineSettingsTab.showAICompleteReminderModal?.();
+                }
+            },
             onSettingsClick: () => {
                 this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('timeline');

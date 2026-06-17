@@ -923,6 +923,9 @@
   "timelineAICompleteToastHint": {
     "message": "Muestra un aviso cuando la respuesta de la IA termina y no estás en la posición más reciente"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "Mantener la posición de lectura al enviar"
   },
@@ -973,5 +976,14 @@
   },
   "languageChangeFailed": {
     "message": "No se pudo cambiar el idioma de la interfaz"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

@@ -974,6 +974,9 @@
   "timelineAICompleteToastHint": {
     "message": "AI 답변이 완료되었고 최신 위치에 있지 않을 때 알림을 표시합니다"
   },
+  "timelineAICompleteSoundHint": {
+    "message": "Play a short sound when the reply completion toast appears."
+  },
   "preventAutoScrollLabel": {
     "message": "전송 시 읽던 위치 유지"
   },
@@ -1024,5 +1027,14 @@
   },
   "languageChangeFailed": {
     "message": "인터페이스 언어를 변경하지 못했습니다"
+  },
+  "timelineAICompleteReminderHint": {
+    "message": "Set the completion toast and sound notification."
+  },
+  "timelineAICompleteToastOptionTitle": {
+    "message": "Toast reminder"
+  },
+  "timelineAICompleteSoundOptionTitle": {
+    "message": "Sound notification"
   }
 }

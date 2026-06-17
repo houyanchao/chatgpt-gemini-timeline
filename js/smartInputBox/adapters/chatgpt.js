@@ -29,11 +29,11 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
     
     /**
      * 获取定位参考元素
-     * 使用 .bg-token-bg-primary 祖先元素作为定位参考
+     * 使用输入框最近的 form 祖先元素作为定位参考
      * @param {HTMLElement} inputElement - 输入框元素
      */
     getPositionReferenceElement(inputElement) {
-        return inputElement?.closest('.bg-token-bg-primary') || inputElement;
+        return inputElement?.closest('form') || inputElement;
     }
     
     /**
