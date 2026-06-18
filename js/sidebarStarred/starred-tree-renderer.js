@@ -13,7 +13,7 @@
  *     getSearchQuery: () => this.getState('searchQuery'),
  *     ...
  * });
- * renderer.renderTree(tree);
+ * renderer.renderTree(tree, { themeAdaptive: false });
  */
 
 class StarredTreeRenderer {
@@ -70,20 +70,25 @@ class StarredTreeRenderer {
 
         const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ||
             (navigator.userAgentData && navigator.userAgentData.platform === 'macOS');
-        const gTop = isMac ? '#6CC4F8' : '#FFD666';
-        const gBot = isMac ? '#3B9FE7' : '#E5A520';
+        const folderIconVariant = isMac ? 'mac' : 'default';
         const id = this.opts.scene === 'sidebar' ? 'ss' : 'st';
-        this._folderSvgClosed = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><defs><linearGradient id="${id}-fc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${gTop}"/><stop offset="100%" stop-color="${gBot}"/></linearGradient></defs><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#${id}-fc)"/></svg>`;
-        this._folderSvgOpen  = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none"><defs><linearGradient id="${id}-fo" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${gTop}"/><stop offset="100%" stop-color="${gBot}"/></linearGradient></defs><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="url(#${id}-fo)" stroke-width="2" fill="none"/></svg>`;
+        this._folderSvgClosed = `<svg class="ait-folder-svg ait-folder-svg-${folderIconVariant}" viewBox="0 0 24 24" width="16" height="16" fill="none"><defs><linearGradient id="${id}-fc" x1="0" y1="0" x2="0" y2="1"><stop class="ait-folder-gradient-top" offset="0%"/><stop class="ait-folder-gradient-bottom" offset="100%"/></linearGradient></defs><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" fill="url(#${id}-fc)"/></svg>`;
+        this._folderSvgOpen  = `<svg class="ait-folder-svg ait-folder-svg-${folderIconVariant}" viewBox="0 0 24 24" width="16" height="16" fill="none"><defs><linearGradient id="${id}-fo" x1="0" y1="0" x2="0" y2="1"><stop class="ait-folder-gradient-top" offset="0%"/><stop class="ait-folder-gradient-bottom" offset="100%"/></linearGradient></defs><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" stroke="url(#${id}-fo)" stroke-width="2" fill="none"/></svg>`;
     }
 
     // ==================== 树渲染 ====================
 
-    async renderTree(tree) {
+    /**
+     * @param {Object} tree
+     * @param {Object} [renderOptions]
+     * @param {boolean} [renderOptions.themeAdaptive=false] - 是否启用文件夹 light/dark 主题适配
+     */
+    async renderTree(tree, renderOptions = {}) {
         const renderVersion = ++this._renderVersion;
         const list = this.opts.getListContainer();
         if (!list) return;
         this._activeRenderList = list;
+        list.classList.toggle('ait-folder-theme-adaptive', renderOptions.themeAdaptive === true);
 
         if (this._delegateContainer !== list) {
             this._unbindContainerDelegation();

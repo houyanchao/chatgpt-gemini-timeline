@@ -229,7 +229,7 @@ class SidebarStarredManager {
         if (this.isDestroyed || !this.container) return;
         const tree = await this.folderManager.getStarredByFolder();
         if (this.isDestroyed || !this.container) return;
-        await this.treeRenderer.renderTree(tree);
+        await this.treeRenderer.renderTree(tree, { themeAdaptive: true });
         
         const hasContent = tree.folders.length > 0 || tree.uncategorized.length > 0;
         if (this.searchBtn) {

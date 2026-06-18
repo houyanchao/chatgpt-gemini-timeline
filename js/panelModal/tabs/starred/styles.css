@@ -268,20 +268,20 @@
 }
 
 .timeline-starred-item:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--ait-starred-item-hover-bg, rgba(0, 0, 0, 0.06));
 }
 
 /* 页面级收藏：激活时整行背景高亮（保持原样） */
 .timeline-starred-item.active:not(.ait-star-node) {
-    background: #D3E3FD;
+    background: var(--ait-starred-item-active-bg, #D3E3FD);
 }
 
 .timeline-starred-item.active:not(.ait-star-node) .timeline-starred-item-name {
-    color: #0842A0;
+    color: var(--ait-starred-item-active-color, #0842A0);
 }
 
 .timeline-starred-item.active:not(.ait-star-node):hover {
-    background: #C4D7F8;
+    background: var(--ait-starred-item-active-hover-bg, #C4D7F8);
 }
 
 /* 提问节点收藏：激活时不整行高亮，仅在文字前显示一个三角角标 */
@@ -290,7 +290,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    color: #0842A0;
+    color: var(--ait-starred-item-active-marker-color, #0842A0);
     margin-right: -4px;
 }
 
@@ -322,7 +322,7 @@
 
 /* Logo 内置 SVG（如闪记 notepad 笔记）—— 使用 currentColor，统一为次级灰，与 .timeline-starred-item-more 对齐 */
 .timeline-starred-item-logo svg {
-    color: #6b7280;
+    color: var(--ait-starred-item-icon-color, #6b7280);
 }
 
 /* Logo 首字母（备用方案）*/
@@ -332,8 +332,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #e5e7eb;
-    color: #6b7280;
+    background: var(--ait-starred-item-initial-bg, #e5e7eb);
+    color: var(--ait-starred-item-initial-color, #6b7280);
     font-size: 12px;
     font-weight: 600;
     border-radius: 4px;
@@ -347,7 +347,7 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1.5;
-    color: #444746;
+    color: var(--ait-starred-item-name-color, #444746);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -357,7 +357,7 @@
 
 
 .timeline-starred-item-name:hover {
-    color: #1f2937;
+    color: var(--ait-starred-item-name-hover-color, #1f2937);
 }
 
 
@@ -394,18 +394,18 @@
 .timeline-starred-item-edit svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-starred-item-action-color, #6b7280);
 }
 
 
 .timeline-starred-item-edit:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ait-starred-item-action-hover-bg, rgba(0, 0, 0, 0.05));
     transform: scale(1.1);
 }
 
 
 .timeline-starred-item-edit:hover svg {
-    color: #374151;
+    color: var(--ait-starred-item-action-hover-color, #374151);
 }
 
 
@@ -460,18 +460,18 @@
 .timeline-starred-item-copy svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-starred-item-action-color, #6b7280);
 }
 
 
 .timeline-starred-item-copy:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ait-starred-item-action-hover-bg, rgba(0, 0, 0, 0.05));
     transform: scale(1.1);
 }
 
 
 .timeline-starred-item-copy:hover svg {
-    color: #374151;
+    color: var(--ait-starred-item-action-hover-color, #374151);
 }
 
 
@@ -497,18 +497,18 @@
 .timeline-starred-item-link svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-starred-item-action-color, #6b7280);
 }
 
 
 .timeline-starred-item-link:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ait-starred-item-action-hover-bg, rgba(0, 0, 0, 0.05));
     transform: scale(1.1);
 }
 
 
 .timeline-starred-item-link:hover svg {
-    color: #374151;
+    color: var(--ait-starred-item-action-hover-color, #374151);
 }
 
 
@@ -524,6 +524,71 @@
 /* 注：二级文件夹不需要额外的 margin-left，因为 folder-content 已经有 padding-left: 24px */
 /* 这样二级文件夹会与同级收藏项对齐 */
 
+.ait-folder-theme-adaptive {
+    --ait-starred-item-hover-bg: rgba(0, 0, 0, 0.06);
+    --ait-starred-item-active-bg: #D3E3FD;
+    --ait-starred-item-active-hover-bg: #C4D7F8;
+    --ait-starred-item-active-color: #0842A0;
+    --ait-starred-item-active-marker-color: #0842A0;
+    --ait-starred-item-name-color: #444746;
+    --ait-starred-item-name-hover-color: #1f2937;
+    --ait-starred-item-icon-color: #6b7280;
+    --ait-starred-item-initial-bg: #e5e7eb;
+    --ait-starred-item-initial-color: #6b7280;
+    --ait-starred-item-action-color: #6b7280;
+    --ait-starred-item-action-hover-bg: rgba(0, 0, 0, 0.05);
+    --ait-starred-item-action-hover-color: #374151;
+    --ait-starred-item-drop-line-color: #3b82f6;
+    --ait-folder-header-hover-bg: rgba(0, 0, 0, 0.06);
+    --ait-folder-toggle-color: #444746;
+    --ait-folder-icon-color: #FFA726;
+    --ait-folder-name-color: #444746;
+    --ait-folder-count-color: #9ca3af;
+    --ait-folder-action-color: #6b7280;
+    --ait-folder-action-hover-bg: rgba(0, 0, 0, 0.05);
+    --ait-folder-action-hover-color: #374151;
+    --ait-folder-drag-over-bg: rgba(59, 130, 246, 0.08);
+    --ait-folder-drag-over-border: rgba(59, 130, 246, 0.3);
+    --ait-folder-drop-line-color: #3b82f6;
+}
+
+html[data-timeline-theme="dark"] .ait-folder-theme-adaptive,
+html.dark .ait-folder-theme-adaptive,
+body.dark .ait-folder-theme-adaptive,
+body.dark-theme .ait-folder-theme-adaptive,
+html[data-theme*="dark"] .ait-folder-theme-adaptive,
+html[yb-theme-mode*="dark"] .ait-folder-theme-adaptive,
+body[yb-theme-mode*="dark"] .ait-folder-theme-adaptive,
+html[style*="color-scheme: dark"] .ait-folder-theme-adaptive {
+    --ait-starred-item-hover-bg: rgba(255, 255, 255, 0.06);
+    --ait-starred-item-active-bg: rgba(66, 133, 244, 0.18);
+    --ait-starred-item-active-hover-bg: rgba(66, 133, 244, 0.25);
+    --ait-starred-item-active-color: #8ab4f8;
+    --ait-starred-item-active-marker-color: #8ab4f8;
+    --ait-starred-item-name-color: #e8eaed;
+    --ait-starred-item-name-hover-color: #ffffff;
+    --ait-starred-item-icon-color: #9aa0a6;
+    --ait-starred-item-initial-bg: #3c4043;
+    --ait-starred-item-initial-color: #bdc1c6;
+    --ait-starred-item-action-color: #9aa0a6;
+    --ait-starred-item-action-hover-bg: rgba(255, 255, 255, 0.08);
+    --ait-starred-item-action-hover-color: #e8eaed;
+    --ait-starred-item-drop-line-color: #60a5fa;
+    --ait-folder-header-hover-bg: rgba(255, 255, 255, 0.06);
+    --ait-folder-toggle-color: #9aa0a6;
+    --ait-folder-icon-color: #9aa0a6;
+    --ait-folder-name-color: #e8eaed;
+    --ait-folder-count-color: #8b929a;
+    --ait-folder-action-color: #9aa0a6;
+    --ait-folder-action-hover-bg: rgba(255, 255, 255, 0.08);
+    --ait-folder-action-hover-color: #e8eaed;
+    --ait-folder-gradient-top: #93c5fd;
+    --ait-folder-gradient-bottom: #60a5fa;
+    --ait-folder-drag-over-bg: rgba(96, 165, 250, 0.1);
+    --ait-folder-drag-over-border: rgba(96, 165, 250, 0.3);
+    --ait-folder-drop-line-color: #60a5fa;
+}
+
 /* 文件夹头部 */
 .ait-folder-header {
     display: flex;
@@ -538,7 +603,7 @@
 
 
 .ait-folder-header:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--ait-folder-header-hover-bg, rgba(0, 0, 0, 0.06));
 }
 
 
@@ -553,7 +618,7 @@
     user-select: none;
     flex-shrink: 0;
     transition: transform 0.2s ease;
-    color: #444746;
+    color: var(--ait-folder-toggle-color, #444746);
 }
 
 .ait-folder-toggle svg {
@@ -590,18 +655,34 @@
 .ait-folder-icon svg {
     width: 100%;
     height: 100%;
-    color: #FFA726;
+    color: var(--ait-folder-icon-color, #FFA726);
+}
+
+.ait-folder-svg-mac .ait-folder-gradient-top {
+    stop-color: var(--ait-folder-gradient-top, #6CC4F8);
+}
+
+.ait-folder-svg-mac .ait-folder-gradient-bottom {
+    stop-color: var(--ait-folder-gradient-bottom, #3B9FE7);
+}
+
+.ait-folder-svg-default .ait-folder-gradient-top {
+    stop-color: var(--ait-folder-gradient-top, #FFD666);
+}
+
+.ait-folder-svg-default .ait-folder-gradient-bottom {
+    stop-color: var(--ait-folder-gradient-bottom, #E5A520);
 }
 
 .ait-folder-name {
     font-size: 14px;
     font-weight: 500;
-    color: #444746;
+    color: var(--ait-folder-name-color, #444746);
 }
 
 .ait-folder-count {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--ait-folder-count-color, #9ca3af);
 }
 
 /* 文件夹操作按钮 */
@@ -633,17 +714,17 @@
 .ait-folder-action-btn svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-folder-action-color, #6b7280);
 }
 
 
 .ait-folder-action-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--ait-folder-action-hover-bg, rgba(0, 0, 0, 0.05));
 }
 
 
 .ait-folder-action-btn:hover svg {
-    color: #374151;
+    color: var(--ait-folder-action-hover-color, #374151);
 }
 
 
@@ -698,18 +779,18 @@
 .timeline-starred-item-move svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-starred-item-action-color, #6b7280);
 }
 
 
 .timeline-starred-item-move:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ait-starred-item-action-hover-bg, rgba(0, 0, 0, 0.05));
     transform: scale(1.1);
 }
 
 
 .timeline-starred-item-move:hover svg {
-    color: #374151;
+    color: var(--ait-starred-item-action-hover-color, #374151);
 }
 
 
@@ -734,17 +815,17 @@
 .timeline-starred-item-more svg {
     width: 16px;
     height: 16px;
-    color: #6b7280;
+    color: var(--ait-starred-item-action-color, #6b7280);
 }
 
 
 .timeline-starred-item-more:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ait-starred-item-action-hover-bg, rgba(0, 0, 0, 0.05));
 }
 
 
 .timeline-starred-item-more:hover svg {
-    color: #374151;
+    color: var(--ait-starred-item-action-hover-color, #374151);
 }
 
 
@@ -759,9 +840,9 @@
 .starred-tab-container .ait-folder-header { position: relative; }
 
 .starred-tab-container .ait-folder-item.ait-drag-over {
-    background: rgba(59, 130, 246, 0.08);
+    background: var(--ait-folder-drag-over-bg, rgba(59, 130, 246, 0.08));
     border-radius: 8px;
-    box-shadow: inset 0 0 0 1.5px rgba(59, 130, 246, 0.3);
+    box-shadow: inset 0 0 0 1.5px var(--ait-folder-drag-over-border, rgba(59, 130, 246, 0.3));
 }
 
 .starred-tab-container .ait-folder-item.ait-drop-before > .ait-folder-header::before,
@@ -771,7 +852,7 @@
     left: 4px;
     right: 4px;
     height: 2px;
-    background: #3b82f6;
+    background: var(--ait-folder-drop-line-color, #3b82f6);
     border-radius: 1px;
     pointer-events: none;
 }
@@ -787,7 +868,7 @@
     left: -1px;
     width: 8px;
     height: 8px;
-    background: #3b82f6;
+    background: var(--ait-starred-item-drop-line-color, #3b82f6);
     border-radius: 50%;
     pointer-events: none;
     z-index: 6;
@@ -799,7 +880,7 @@
     left: 8px;
     right: 0;
     height: 2px;
-    background: #3b82f6;
+    background: var(--ait-starred-item-drop-line-color, #3b82f6);
     border-radius: 0 1px 1px 0;
     pointer-events: none;
     z-index: 5;
@@ -812,7 +893,7 @@
     left: -1px;
     width: 8px;
     height: 8px;
-    background: #3b82f6;
+    background: var(--ait-starred-item-drop-line-color, #3b82f6);
     border-radius: 50%;
     pointer-events: none;
     z-index: 6;
@@ -824,7 +905,7 @@
     left: 8px;
     right: 0;
     height: 2px;
-    background: #3b82f6;
+    background: var(--ait-starred-item-drop-line-color, #3b82f6);
     border-radius: 0 1px 1px 0;
     pointer-events: none;
     z-index: 5;

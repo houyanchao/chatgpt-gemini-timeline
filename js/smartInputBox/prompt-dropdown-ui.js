@@ -327,7 +327,7 @@ function _promptDropdownCreateCommonSettings({
                         : (TimelineI18n.getMessage('chatWidthUnsupported') || '当前平台暂不支持调节对话宽度')
                     }</div>
                 </div>
-                <button class="prompt-common-setting-btn" ${supported ? '' : 'disabled'}>
+                <button class="prompt-common-setting-btn prompt-common-chat-width-btn" ${supported ? '' : 'disabled'}>
                     ${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}
                 </button>
             </div>
@@ -345,7 +345,7 @@ function _promptDropdownCreateCommonSettings({
         </div>
     `;
 
-    const chatWidthBtn = panel.querySelector('.prompt-common-setting-btn');
+    const chatWidthBtn = panel.querySelector('.prompt-common-chat-width-btn');
     chatWidthBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
         if (chatWidthBtn.disabled) return;
