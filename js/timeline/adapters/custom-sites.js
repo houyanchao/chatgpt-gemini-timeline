@@ -33,6 +33,8 @@
  * - turnIdAttribute: optional stable id attribute on the user turn.
  * - timelineTop/timelineRight/timelineBottom/scrollOffset: optional timeline
  *   positioning and scroll tuning.
+ * - timelineZIndex: optional timeline wrapper z-index for sites with high
+ *   stacking contexts.
  * - timelineBarBackground: optional timeline bar background. Use
  *   { light, dark } when the platform has different light/dark themes.
  * - aiGeneratingSelector/aiGeneratingMode: optional reply-generation detector.
@@ -70,6 +72,38 @@ globalThis.CUSTOM_SITE_INFO = [
         userMessageSelector: '[data-message-type="user"]',
         textSelector: '[data-slot="text"]',
         conversationContainerSelector: 'div.box-border[style*="--composer-overlap"]',
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
+        sites: ['venice.ai'],
+        conversationUrlPattern: '^venice\\.ai/chat/classic/[A-Za-z0-9_-]+(?:[/?#].*)?$',
+        userMessageSelector: '[data-message-id]:has([data-testid="user-message"])',
+        textSelector: '[data-testid="user-message"]',
+        turnIdAttribute: 'data-message-id',
+        sidebarContainerSelector: '[aria-hidden="true"] [data-viewport-type="window"], [aria-hidden="true"] [data-virtuoso-scroller="true"]',
+        sidebarCurrentConversationSelector: 'a[data-active][href^="/chat/classic/"]',
+        sidebarConversationTitleSelector: 'a[data-active][href^="/chat/classic/"][aria-label]',
+        timelineBarBackground: {
+            light: 'rgba(244, 244, 242, 0.88)',
+            dark: 'rgba(34, 34, 34, 0.88)'
+        },
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
+        sites: ['chat2.gptcat.cc'],
+        conversationUrlPattern: '^chat2\\.gptcat\\.cc/(?:[^#]*)?#/chat(?:[/?].*)?$',
+        userMessageSelector: '[modelname="我"]:has(.break-words.whitespace-pre-wrap)',
+        textSelector: '.break-words.whitespace-pre-wrap',
+        conversationContainerSelector: '#scrollRef',
+        timelineZIndex: 60,
         features: {
             timeline: true,
             questionList: true,

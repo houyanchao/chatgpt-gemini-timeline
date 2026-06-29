@@ -303,6 +303,7 @@ class TimelineManager {
         this.ui.timelineBar = timelineBar;
         this.applyTimelineActiveColor();
         this.applyTimelineBarBackground();
+        this.applyTimelineZIndex();
         
         // Apply site-specific position from adapter to wrapper
         const position = this.adapter.getTimelinePosition();
@@ -323,6 +324,7 @@ class TimelineManager {
                 // 使用 max() 函数确保即使 calc 结果为负数，也会有最小高度
                 timelineBar.style.height = `max(200px, calc(100vh - ${position.top} - ${position.bottom}))`;
             }
+
         }
         // Track + content
         let track = this.ui.timelineBar.querySelector('.ait-timeline-track');
@@ -3722,6 +3724,20 @@ class TimelineManager {
             this.ui.timelineBar.style.setProperty('--timeline-bar-bg', background);
         } else {
             this.ui.timelineBar.style.removeProperty('--timeline-bar-bg');
+        }
+    }
+
+    /**
+     * ✅ 应用当前平台的时间轴层级，仅配置了 z-index 的平台会覆盖默认值
+     */
+    applyTimelineZIndex() {
+        if (!this.ui.wrapper) return;
+
+        const zIndex = this.adapter.getTimelineZIndex?.();
+        if (zIndex !== null && zIndex !== undefined && zIndex !== '') {
+            this.ui.wrapper.style.zIndex = String(zIndex);
+        } else {
+            this.ui.wrapper.style.removeProperty('z-index');
         }
     }
 

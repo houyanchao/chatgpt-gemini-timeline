@@ -170,13 +170,13 @@ class SiteAdapter {
 
     /**
      * Whether TimelineManager should hide the host page's native chat scrollbar.
-     * By default, only hide real internal scroll containers, not html/body fallback.
+     * Default to false so Timeline does not alter the page's native scroll UI.
      * @param {Element} scrollContainer - Resolved scroll container
      * @param {Object} context - { isFallback, conversationContainer }
      * @returns {boolean}
      */
     shouldHideHostScrollbar(scrollContainer, context = {}) {
-        return context.isFallback !== true;
+        return false;
     }
     
     /**
