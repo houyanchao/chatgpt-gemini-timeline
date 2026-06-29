@@ -969,13 +969,13 @@
     "message": "$1 の返信が完了しました。"
   },
   "timelineAICompleteToastTitle": {
-    "message": "返信完了リマインダー"
+    "message": "AI 返信完了リマインダー"
   },
   "timelineAICompleteToastHint": {
-    "message": "AI の返信が完了し、最新位置にいないときに通知を表示します"
+    "message": "AI の返信完了後、ページ右上にポップアップ通知を表示します"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "AI の返信完了後の音声通知"
   },
   "preventAutoScrollLabel": {
     "message": "送信時に読書位置を維持"
@@ -1029,12 +1029,12 @@
     "message": "インターフェース言語を変更できませんでした"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "AI の返信完了後のポップアップ通知と音声通知。"
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "ポップアップ通知"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "音声通知"
   }
 }

@@ -918,13 +918,13 @@
     "message": "$1 đã trả lời xong."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Nhắc khi trả lời xong"
+    "message": "Nhắc khi AI trả lời xong"
   },
   "timelineAICompleteToastHint": {
-    "message": "Hiển thị nhắc nhở khi AI trả lời xong và bạn không ở vị trí mới nhất"
+    "message": "Hiển thị nhắc nhở bật lên ở góc trên bên phải trang sau khi AI trả lời xong"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Nhắc nhở bằng âm thanh sau khi AI trả lời xong"
   },
   "preventAutoScrollLabel": {
     "message": "Giữ vị trí đọc khi gửi"
@@ -978,12 +978,12 @@
     "message": "Không thể thay đổi ngôn ngữ giao diện"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Nhắc nhở bật lên và âm thanh sau khi AI trả lời xong."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Nhắc nhở bật lên"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Nhắc nhở bằng âm thanh"
   }
 }

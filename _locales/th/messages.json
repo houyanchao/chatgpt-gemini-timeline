@@ -918,13 +918,13 @@
     "message": "การตอบกลับของ $1 เสร็จสมบูรณ์แล้ว"
   },
   "timelineAICompleteToastTitle": {
-    "message": "แจ้งเตือนเมื่อตอบเสร็จ"
+    "message": "แจ้งเตือนเมื่อ AI ตอบเสร็จ"
   },
   "timelineAICompleteToastHint": {
-    "message": "แสดงการแจ้งเตือนเมื่อ AI ตอบเสร็จและคุณไม่ได้อยู่ที่ตำแหน่งล่าสุด"
+    "message": "แสดงการแจ้งเตือนแบบป๊อปอัปที่มุมขวาบนของหน้าเมื่อ AI ตอบเสร็จ"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "การแจ้งเตือนด้วยเสียงเมื่อ AI ตอบเสร็จ"
   },
   "preventAutoScrollLabel": {
     "message": "คงตำแหน่งการอ่านเมื่อส่ง"
@@ -978,12 +978,12 @@
     "message": "ไม่สามารถเปลี่ยนภาษาของอินเทอร์เฟซได้"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "การแจ้งเตือนแบบป๊อปอัปและเสียงเมื่อ AI ตอบเสร็จ"
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "การแจ้งเตือนแบบป๊อปอัป"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "การแจ้งเตือนด้วยเสียง"
   }
 }

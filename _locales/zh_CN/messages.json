@@ -1011,13 +1011,13 @@
     "message": "$1 回复已完成"
   },
   "timelineAICompleteToastTitle": {
-    "message": "回复完成提醒"
+    "message": "AI 回复完成提醒"
   },
   "timelineAICompleteToastHint": {
-    "message": "AI 回复完成且当前不在最新位置时显示提醒"
+    "message": "AI 回复完成后，在页面右上角弹窗提醒"
   },
   "timelineAICompleteSoundHint": {
-    "message": "回复完成提醒出现时播放短音效"
+    "message": "AI 回复完成后，声音提醒"
   },
   "preventAutoScrollLabel": {
     "message": "阻止发送后跳到底部"
@@ -1080,12 +1080,12 @@
     "message": "确定"
   },
   "timelineAICompleteReminderHint": {
-    "message": "设置回复完成后的弹窗提醒和提示音效"
+    "message": "AI 回复完成后，弹窗提醒和声音提醒"
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "弹出提醒"
+    "message": "弹窗提醒"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "提示音效"
+    "message": "声音提醒"
   }
 }

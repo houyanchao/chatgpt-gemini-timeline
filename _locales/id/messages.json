@@ -918,13 +918,13 @@
     "message": "Balasan $1 selesai."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Pengingat balasan selesai"
+    "message": "Pengingat balasan AI selesai"
   },
   "timelineAICompleteToastHint": {
-    "message": "Tampilkan pengingat saat balasan AI selesai dan Anda tidak berada di posisi terbaru"
+    "message": "Tampilkan pengingat popup di kanan atas halaman setelah balasan AI selesai"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Pengingat suara setelah balasan AI selesai"
   },
   "preventAutoScrollLabel": {
     "message": "Pertahankan posisi baca saat mengirim"
@@ -978,12 +978,12 @@
     "message": "Gagal mengubah bahasa antarmuka"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Pengingat popup dan suara setelah balasan AI selesai."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Pengingat popup"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Pengingat suara"
   }
 }

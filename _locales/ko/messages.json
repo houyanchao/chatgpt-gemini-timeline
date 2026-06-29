@@ -969,13 +969,13 @@
     "message": "$1 답변이 완료되었습니다."
   },
   "timelineAICompleteToastTitle": {
-    "message": "답변 완료 알림"
+    "message": "AI 답변 완료 알림"
   },
   "timelineAICompleteToastHint": {
-    "message": "AI 답변이 완료되었고 최신 위치에 있지 않을 때 알림을 표시합니다"
+    "message": "AI 답변 완료 후 페이지 오른쪽 상단에 팝업 알림을 표시합니다"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "AI 답변 완료 후 소리 알림"
   },
   "preventAutoScrollLabel": {
     "message": "전송 시 읽던 위치 유지"
@@ -1029,12 +1029,12 @@
     "message": "인터페이스 언어를 변경하지 못했습니다"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "AI 답변 완료 후 팝업 및 소리 알림."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "팝업 알림"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "소리 알림"
   }
 }

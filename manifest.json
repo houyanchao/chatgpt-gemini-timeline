@@ -45,6 +45,7 @@
         "js/global/ai-state-monitor/index.js",
         "js/global/tooltip-manager/index.js",
         "js/global/toast-manager/index.js",
+        "js/global/ai-complete-reminder-toast/index.js",
         "js/global/input-modal/index.js",
         "js/sidebarStarred/folder-edit-modal/index.js",
         "js/sidebarStarred/adapters/base.js",

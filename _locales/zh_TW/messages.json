@@ -975,13 +975,13 @@
     "message": "$1 回覆已完成"
   },
   "timelineAICompleteToastTitle": {
-    "message": "回覆完成提醒"
+    "message": "AI 回覆完成提醒"
   },
   "timelineAICompleteToastHint": {
-    "message": "AI 回覆完成且目前不在最新位置時顯示提醒"
+    "message": "AI 回覆完成後，在頁面右上角彈窗提醒"
   },
   "timelineAICompleteSoundHint": {
-    "message": "回覆完成提醒出現時播放短音效"
+    "message": "AI 回覆完成後，聲音提醒"
   },
   "preventAutoScrollLabel": {
     "message": "阻止傳送後跳到底部"
@@ -1035,12 +1035,12 @@
     "message": "介面語言切換失敗"
   },
   "timelineAICompleteReminderHint": {
-    "message": "設定回覆完成後的彈窗提醒和提示音效"
+    "message": "AI 回覆完成後，彈窗提醒和聲音提醒"
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "彈出提醒"
+    "message": "彈窗提醒"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "提示音效"
+    "message": "聲音提醒"
   }
 }

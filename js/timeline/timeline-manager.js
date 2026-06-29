@@ -3085,11 +3085,10 @@ class TimelineManager {
     }
 
     maybeShowAICompleteNotLatestToast() {
-        if (!this.aiCompleteToastEnabled) return;
+        if (!this.aiCompleteToastEnabled && !this.aiCompleteSoundEnabled) return;
         if (!this.isPlatformEnabled()) return;
         if (!this.markers || this.markers.length <= 1) return;
         if (this.ui.wrapper && this.ui.wrapper.style.display === 'none') return;
-        if (!window.globalToastManager) return;
 
         try {
             this._recalcMarkerPositions();
@@ -3100,44 +3099,11 @@ class TimelineManager {
         const activeIndex = activeId ? this.markers.findIndex(m => m.id === activeId) : -1;
         if (activeIndex < 0 || activeIndex >= this.markers.length - 1) return;
 
-        const platformName = this._currentPlatform?.name || 'AI';
-        const message = TimelineI18n.getMessage('timelineAICompleteNotLatestToast', platformName) ||
-            `${platformName} 回复已完成`;
-
-        const anchor = this.getAICompleteToastAnchor();
-
-        window.globalToastManager.info(message, anchor, {
-            duration: 3500,
-            iconType: 'check',
-            color: false,
-            className: 'ait-ai-complete-toast',
-            useClassStyles: true,
-            position: 'left',
-            gap: 10
-        });
-
-        this.playAICompleteSound();
-    }
-
-    getAICompleteToastAnchor() {
-        if (this.aiCompleteToastAnchor?.isConnected) {
-            return this.aiCompleteToastAnchor;
+        if (this.aiCompleteToastEnabled) {
+            window.AICompleteReminderToast?.show(this._currentPlatform?.name || 'AI');
         }
 
-        const anchor = document.createElement('div');
-        anchor.className = 'ait-timeline-ai-complete-toast-anchor';
-        anchor.style.cssText = [
-            'position: fixed',
-            'top: 72px',
-            'right: 26px',
-            'width: 1px',
-            'height: 1px',
-            'pointer-events: none',
-            'z-index: 2147483647'
-        ].join(';');
-        document.body.appendChild(anchor);
-        this.aiCompleteToastAnchor = anchor;
-        return anchor;
+        this.playAICompleteSound();
     }
 
     playAICompleteSound() {

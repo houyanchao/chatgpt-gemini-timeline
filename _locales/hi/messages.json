@@ -918,13 +918,13 @@
     "message": "$1 का जवाब पूरा हो गया है।"
   },
   "timelineAICompleteToastTitle": {
-    "message": "जवाब पूरा होने की याद दिलाएँ"
+    "message": "AI जवाब पूरा होने का रिमाइंडर"
   },
   "timelineAICompleteToastHint": {
-    "message": "जब AI का जवाब पूरा हो जाए और आप नवीनतम स्थिति पर न हों, तो रिमाइंडर दिखाएँ"
+    "message": "AI का जवाब पूरा होने के बाद पेज के ऊपर दाईं ओर पॉपअप रिमाइंडर दिखाएँ"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "AI का जवाब पूरा होने के बाद ध्वनि रिमाइंडर"
   },
   "preventAutoScrollLabel": {
     "message": "भेजने पर पढ़ने की स्थिति बनाए रखें"
@@ -978,12 +978,12 @@
     "message": "इंटरफ़ेस की भाषा बदली नहीं जा सकी"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "AI का जवाब पूरा होने पर पॉपअप और ध्वनि रिमाइंडर।"
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "पॉपअप रिमाइंडर"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "ध्वनि रिमाइंडर"
   }
 }

@@ -942,13 +942,13 @@
     "message": "$1 reply is complete."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Reply completion reminder"
+    "message": "AI reply completion reminder"
   },
   "timelineAICompleteToastHint": {
-    "message": "Show a reminder when an AI reply finishes while you are not at the latest position"
+    "message": "Show a popup reminder at the top right of the page after an AI reply finishes"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Sound reminder after an AI reply finishes"
   },
   "preventAutoScrollLabel": {
     "message": "Keep reading position on send"
@@ -1002,12 +1002,12 @@
     "message": "Failed to change interface language"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Popup and sound reminders after an AI reply finishes."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Popup reminder"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Sound reminder"
   }
 }

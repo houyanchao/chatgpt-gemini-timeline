@@ -918,13 +918,13 @@
     "message": "A resposta do $1 foi concluída."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Aviso de resposta concluída"
+    "message": "Aviso de resposta da IA concluída"
   },
   "timelineAICompleteToastHint": {
-    "message": "Mostrar um aviso quando a resposta da IA terminar e não estiver na posição mais recente"
+    "message": "Mostrar um lembrete pop-up no canto superior direito da página quando uma resposta da IA terminar"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Lembrete sonoro quando uma resposta da IA terminar"
   },
   "preventAutoScrollLabel": {
     "message": "Manter a posição de leitura ao enviar"
@@ -978,12 +978,12 @@
     "message": "Não foi possível alterar o idioma da interface"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Lembretes pop-up e sonoros quando uma resposta da IA terminar."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Lembrete pop-up"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Lembrete sonoro"
   }
 }

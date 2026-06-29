@@ -918,13 +918,13 @@
     "message": "Ответ $1 завершён."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Напоминание о завершении ответа"
+    "message": "Напоминание о завершении ответа ИИ"
   },
   "timelineAICompleteToastHint": {
-    "message": "Показывать напоминание, когда ответ ИИ завершён, а вы не на последней позиции"
+    "message": "Показывать всплывающее напоминание в правом верхнем углу страницы после завершения ответа ИИ"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Звуковое напоминание после завершения ответа ИИ"
   },
   "preventAutoScrollLabel": {
     "message": "Сохранять позицию чтения при отправке"
@@ -978,12 +978,12 @@
     "message": "Не удалось изменить язык интерфейса"
   },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Всплывающие и звуковые напоминания после завершения ответа ИИ."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Всплывающее напоминание"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Звуковое напоминание"
   }
 }

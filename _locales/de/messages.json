@@ -918,13 +918,13 @@
     "message": "$1 Antwort ist abgeschlossen."
   },
   "timelineAICompleteToastTitle": {
-    "message": "Antwort-Ende-Erinnerung"
+    "message": "KI-Antwort-Ende-Erinnerung"
   },
   "timelineAICompleteToastHint": {
-    "message": "Zeigt eine Erinnerung an, wenn die KI-Antwort fertig ist und du nicht an der neuesten Position bist"
+    "message": "Zeigt nach Abschluss der KI-Antwort oben rechts auf der Seite ein Popup an"
   },
   "timelineAICompleteSoundHint": {
-    "message": "Play a short sound when the reply completion toast appears."
+    "message": "Sound-Erinnerung nach Abschluss der KI-Antwort"
   },
   "preventAutoScrollLabel": {
     "message": "Leseposition beim Senden beibehalten"
@@ -977,13 +977,115 @@
   "languageChangeFailed": {
     "message": "Die Oberflächensprache konnte nicht geändert werden"
   },
+  "smartEnterModeDoubleEnter": {
+    "message": "Schnell zweimal Enter"
+  },
+  "smartEnterModeDoubleEnterDesc": {
+    "message": "Einmal Enter für eine neue Zeile drücken, zweimal schnell drücken zum Senden"
+  },
+  "smartEnterModeCtrlEnter": {
+    "message": "zum Senden"
+  },
+  "smartEnterModeCtrlEnterDesc": {
+    "message": "Enter für neue Zeile, {ctrl} + Enter zum Senden"
+  },
+  "smartEnterModeShiftEnter": {
+    "message": "zum Senden"
+  },
+  "smartEnterModeShiftEnterDesc": {
+    "message": "Enter für neue Zeile, Shift + Enter zum Senden"
+  },
+  "smartEnterToastCtrlEnter": {
+    "message": "Enter: neue Zeile, {ctrl}+Enter: senden"
+  },
+  "smartEnterToastShiftEnter": {
+    "message": "Enter: neue Zeile, Shift+Enter: senden"
+  },
+  "mvupkt": {
+    "message": "Nach oben verschieben"
+  },
+  "mvdnkt": {
+    "message": "Nach unten verschieben"
+  },
+  "pntotp": {
+    "message": "Anheften"
+  },
+  "runnerTabTitle": {
+    "message": "Code-Runner"
+  },
+  "runnerExecute": {
+    "message": "Ausführen"
+  },
+  "runnerClear": {
+    "message": "Leeren"
+  },
+  "runnerCodeEditor": {
+    "message": "Code-Editor"
+  },
+  "runnerOutput": {
+    "message": "Ausgabe"
+  },
+  "runnerHint": {
+    "message": "Gib hier deinen Code ein, async/await wird unterstützt"
+  },
+  "exportBtn": {
+    "message": "Daten exportieren"
+  },
+  "importTitle": {
+    "message": "Daten importieren"
+  },
+  "importHint": {
+    "message": "Daten aus einer JSON-Datei importieren; Überschreiben oder Zusammenführen wird unterstützt."
+  },
+  "importBtn": {
+    "message": "Datei zum Importieren auswählen"
+  },
+  "importModeMerge": {
+    "message": "Zusammenführen"
+  },
+  "importModeMergeDesc": {
+    "message": "Bestehende Daten behalten und mit importierten Daten zusammenführen"
+  },
+  "importModeOverwrite": {
+    "message": "Überschreiben"
+  },
+  "importModeOverwriteDesc": {
+    "message": "Bestehende Daten löschen und durch importierte Daten ersetzen"
+  },
+  "exportingData": {
+    "message": "Exportieren..."
+  },
+  "exportSuccess": {
+    "message": "Export erfolgreich"
+  },
+  "exportFailed": {
+    "message": "Export fehlgeschlagen"
+  },
+  "importingData": {
+    "message": "Importieren..."
+  },
+  "quickAskTitle": {
+    "message": "Nachfrage"
+  },
+  "quickAskHint": {
+    "message": "Nach dem Auswählen von Text auf der Seite erscheint eine Nachfrage-Schaltfläche, um ihn schnell in das Eingabefeld zu zitieren"
+  },
+  "formulaCopyMathMLWord": {
+    "message": "MathML-Formel kopieren (Word)"
+  },
+  "highlightSettings": {
+    "message": "Einstellungen"
+  },
+  "highlightConfirm": {
+    "message": "Bestätigen"
+  },
   "timelineAICompleteReminderHint": {
-    "message": "Set the completion toast and sound notification."
+    "message": "Popup- und Sound-Erinnerungen nach Abschluss einer KI-Antwort."
   },
   "timelineAICompleteToastOptionTitle": {
-    "message": "Toast reminder"
+    "message": "Popup-Erinnerung"
   },
   "timelineAICompleteSoundOptionTitle": {
-    "message": "Sound notification"
+    "message": "Sound-Erinnerung"
   }
 }

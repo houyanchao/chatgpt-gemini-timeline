@@ -56,8 +56,8 @@ class TimelineSettingsTab extends BaseTab {
             <div class="setting-section">
                 <div class="setting-item">
                     <div class="setting-info">
-                        <div class="setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</div>
-                        <div class="setting-hint">${TimelineI18n.getMessage('timelineAICompleteReminderHint') || '设置回复完成后的弹窗提醒和提示音效'}</div>
+                        <div class="setting-label">${TimelineI18n.getMessage('timelineAICompleteToastTitle') || 'AI 回复完成提醒'}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('timelineAICompleteReminderHint') || 'AI 回复完成后，弹窗提醒和声音提醒'}</div>
                     </div>
                     <button class="starred-manage-btn ai-complete-reminder-manage-btn">${TimelineI18n.getMessage('sidebarStarredManage') || '设置'}</button>
                 </div>
@@ -323,14 +323,14 @@ class TimelineSettingsTab extends BaseTab {
         overlay.innerHTML = `
             <div class="starred-platform-modal timeline-ai-complete-reminder-modal">
                 <div class="starred-platform-modal-header">
-                    <span>${TimelineI18n.getMessage('timelineAICompleteToastTitle') || '回复完成提醒'}</span>
+                    <span>${TimelineI18n.getMessage('timelineAICompleteToastTitle') || 'AI 回复完成提醒'}</span>
                     <button class="starred-platform-modal-close">✕</button>
                 </div>
                 <div class="starred-platform-modal-body">
                     <div class="timeline-ai-complete-setting-item">
                         <div class="timeline-ai-complete-setting-info">
-                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteToastOptionTitle') || '弹出提醒'}</div>
-                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成且当前不在最新位置时显示提醒'}</div>
+                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteToastOptionTitle') || '弹窗提醒'}</div>
+                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteToastHint') || 'AI 回复完成后，在页面右上角弹窗提醒'}</div>
                         </div>
                         <label class="ait-toggle-switch">
                             <input type="checkbox" data-ai-complete-setting="toast" ${toastEnabled ? 'checked' : ''}>
@@ -339,8 +339,8 @@ class TimelineSettingsTab extends BaseTab {
                     </div>
                     <div class="timeline-ai-complete-setting-item">
                         <div class="timeline-ai-complete-setting-info">
-                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteSoundOptionTitle') || '提示音效'}</div>
-                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteSoundHint') || '弹出提醒时播放短音效'}</div>
+                            <div class="timeline-ai-complete-setting-label">${TimelineI18n.getMessage('timelineAICompleteSoundOptionTitle') || '声音提醒'}</div>
+                            <div class="timeline-ai-complete-setting-hint">${TimelineI18n.getMessage('timelineAICompleteSoundHint') || 'AI 回复完成后，声音提醒'}</div>
                         </div>
                         <label class="ait-toggle-switch">
                             <input type="checkbox" data-ai-complete-setting="sound" ${soundEnabled ? 'checked' : ''}>
@@ -362,6 +362,9 @@ class TimelineSettingsTab extends BaseTab {
         toastToggle?.addEventListener('change', async () => {
             try {
                 await chrome.storage.local.set({ timelineAICompleteToastEnabled: toastToggle.checked });
+                if (toastToggle.checked) {
+                    TimelineSettingsTab.showAICompleteToastPreview();
+                }
             } catch (e) {
                 console.error('[TimelineSettingsTab] Failed to save AI complete toast state:', e);
                 toastToggle.checked = !toastToggle.checked;
@@ -370,12 +373,31 @@ class TimelineSettingsTab extends BaseTab {
 
         soundToggle?.addEventListener('change', async () => {
             try {
+                if (soundToggle.checked) {
+                    TimelineSettingsTab.playAICompleteSoundPreview();
+                }
                 await chrome.storage.local.set({ timelineAICompleteSoundEnabled: soundToggle.checked });
             } catch (e) {
                 console.error('[TimelineSettingsTab] Failed to save AI complete sound state:', e);
                 soundToggle.checked = !soundToggle.checked;
             }
         });
+    }
+
+    static showAICompleteToastPreview() {
+        window.AICompleteReminderToast?.show('AI');
+    }
+
+    static playAICompleteSoundPreview() {
+        try {
+            const soundUrl = chrome.runtime.getURL('assets/sounds/done1.mp3');
+            const audio = new Audio(soundUrl);
+            audio.volume = 0.45;
+            const playPromise = audio.play();
+            if (playPromise?.catch) {
+                playPromise.catch(() => {});
+            }
+        } catch {}
     }
 
     async _showPlatformManageModal() {
