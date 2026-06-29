@@ -49,10 +49,15 @@
         return true;
     };
 
+    const removeAnchor = () => {
+        document.querySelectorAll(`.${ANCHOR_CLASS}`).forEach(anchor => anchor.remove());
+    };
+
     window.AICompleteReminderToast = {
         show,
         getAnchor,
         getMessage,
-        getOptions
+        getOptions,
+        removeAnchor
     };
 })();

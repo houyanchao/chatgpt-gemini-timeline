@@ -164,8 +164,6 @@ class TimelineManager {
         // ✅ 健康检查定时器
         this.healthCheckInterval = null;
 
-        // ✅ AI 回复完成提示使用的右上角定位锚点
-        this.aiCompleteToastAnchor = null;
         this.aiCompleteAudio = null;
     }
 
@@ -3550,7 +3548,7 @@ class TimelineManager {
         if (this.aiCompleteAudio) {
             try { this.aiCompleteAudio.pause(); } catch {}
         }
-        TimelineUtils.removeElementSafe(this.aiCompleteToastAnchor);
+        window.AICompleteReminderToast?.removeAnchor?.();
 
         // ✅ 清理底部空白元素。切换会话时旧容器可能仍留在 DOM 中，必须全局清理残留。
         this.cleanupScrollPadding();
@@ -3579,7 +3577,6 @@ class TimelineManager {
         // ✅ 清理键盘导航引用
         this.onKeyDown = null;
         this.pendingActiveId = null;
-        this.aiCompleteToastAnchor = null;
         this.aiCompleteAudio = null;
     }
 
