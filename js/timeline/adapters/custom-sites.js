@@ -43,6 +43,21 @@
  */
 globalThis.CUSTOM_SITE_INFO = [
     {
+        sites: ['copilot.microsoft.com'],
+        conversationUrlPattern: '^copilot\\.microsoft\\.com/chats/[A-Za-z0-9_-]+(?:[/?#].*)?$',
+        userMessageSelector: '[role="article"][id$="-user-message"]:has([data-content="user-message"])',
+        textSelector: '[data-content="user-message"]',
+        timelineBarBackground: {
+            light: 'rgba(232, 232, 228, 0.9)',
+            dark: 'rgba(45, 45, 48, 0.95)'
+        },
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
         sites: ['aistudio.xiaomimimo.com'],
         conversationUrlPattern: '^aistudio\\.xiaomimimo\\.com/(?:[^#]*)?#/chat/[A-Za-z0-9_-]+(?:[/?].*)?$',
         userMessageSelector: '#message-list .relative.flex.w-full.mx-auto:has(> .group.flex-row-reverse)',
