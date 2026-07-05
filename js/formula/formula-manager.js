@@ -25,6 +25,28 @@ function applyFormulaFormat(formula, formatId) {
     return template.replace('%s', formula);
 }
 
+function normalizeLatexForCopy(latex) {
+  if (!latex || typeof latex !== 'string') return latex;
+
+  let s = latex
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .trim();
+
+  if (!s.includes('\n')) return s;
+
+  // 文本类命令里，换行替换为空格，避免单词粘连
+  if (/\\(?:text|mbox|mathrm|operatorname)\s*\{/.test(s)) {
+    return s
+      .replace(/[ \t]*\n+[ \t]*/g, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
+
+  // 普通数学公式里，换行通常只是 KaTeX/ChatGPT 输出的排版噪音
+  return s.replace(/[ \t]*\n+[ \t]*/g, '');
+}
+
 // ==================== FormulaManager 类 ====================
 
 class FormulaManager {
@@ -365,7 +387,8 @@ class FormulaManager {
             }
             const result = await chrome.storage.local.get('formulaFormat');
             const formatId = result.formulaFormat || 'none';
-            const formatted = applyFormulaFormat(latexCode, formatId);
+            const normalizedLatex = normalizeLatexForCopy(latexCode);
+            const formatted = applyFormulaFormat(normalizedLatex, formatId);
             await navigator.clipboard.writeText(formatted);
             this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
