@@ -371,7 +371,6 @@ function _promptDropdownCreateCommonSettings({
                     preventAutoScrollEnabled: e.target.checked
                 });
             } catch (error) {
-                console.error('[PromptDropdown] Failed to save prevent-auto-scroll setting:', error);
                 preventAutoScrollToggle.checked = !preventAutoScrollToggle.checked;
             }
         });
@@ -390,7 +389,6 @@ function _promptDropdownCreateCommonSettings({
                     geminiWatermarkRemoverEnabled: e.target.checked
                 });
             } catch (error) {
-                console.error('[PromptDropdown] Failed to save Gemini watermark remover setting:', error);
                 geminiWatermarkToggle.checked = !geminiWatermarkToggle.checked;
             }
         });

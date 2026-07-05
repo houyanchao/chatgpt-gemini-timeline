@@ -57,7 +57,6 @@ class FolderManager {
         folders.push(newFolder);
         await this.storage.set('folders', folders);
         
-        console.log('[FolderManager] Created folder:', newFolder);
         return newFolder;
     }
     
@@ -79,7 +78,6 @@ class FolderManager {
         if (newIcon !== undefined) folder.icon = newIcon;
         await this.storage.set('folders', folders);
         
-        console.log('[FolderManager] Updated folder:', folderId, newName, newIcon);
     }
     
     /**
@@ -120,7 +118,6 @@ class FolderManager {
             });
         });
         
-        console.log('[FolderManager] Deleted folder:', folderId, 'and', childFolderIds.length, 'children', deleteItems ? '(items deleted)' : '(items moved)');
     }
     
     /**
@@ -140,7 +137,6 @@ class FolderManager {
         // 更新 folderId 字段
         await StarStorageManager.update(key, { folderId: targetFolderId });
         
-        console.log('[FolderManager] Moved starred:', turnId, 'to folder:', targetFolderId);
     }
     
     /**
@@ -374,7 +370,6 @@ class FolderManager {
         }
 
         await this.storage.set('folders', folders);
-        console.log('[FolderManager] Reordered folder:', folderId, position, targetFolderId);
     }
 
     /**
@@ -415,7 +410,6 @@ class FolderManager {
         oldSiblings.forEach((f, i) => { f.order = i; });
 
         await this.storage.set('folders', folders);
-        console.log('[FolderManager] Moved folder to parent:', folderId, '->', newParentId);
         return { ok: true };
     }
 

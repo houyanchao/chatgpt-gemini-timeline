@@ -210,7 +210,6 @@ class BaseSidebarStarredAdapter {
             await StarStorageManager.remove(key);
             window.globalToastManager?.success(TimelineI18n.getMessage('pzmvkx') || 'Unstarred');
         } catch (err) {
-            console.error('[SidebarStarredAdapter] Unstar failed:', err);
         }
     }
 
@@ -245,7 +244,6 @@ class BaseSidebarStarredAdapter {
 
             window.globalToastManager?.success(TimelineI18n.getMessage('nativeMenuStarSuccess') || 'Starred');
         } catch (err) {
-            console.error('[SidebarStarredAdapter] Star failed:', err);
         }
     }
 }

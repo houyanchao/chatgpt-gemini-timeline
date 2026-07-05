@@ -1,14 +1,21 @@
 /**
  * ChatGPT Sidebar Starred Adapter
  *
- * ChatGPT 侧边栏 DOM 结构：
- *   nav > ... > #history 的父元素
- *     ├── .ait-sidebar-starred       ← 收藏区域（插入位置）
- *     └── #history 的父元素          ← 聊天历史（参考锚点）
+ * ChatGPT 侧边栏 DOM 结构（scrollport = nav.group/scrollport）：
+ *   nav.group/scrollport
+ *     ├── (sticky 头部 / 搜索 / 文件库 / 项目 / 应用 / 更多 等导航项)
+ *     ├── .ait-sidebar-starred                        ← 收藏区域（插入到此，压在所有对话分组之上）
+ *     ├── div.group/sidebar-expando-section「已置顶」  ← 置顶分组（可能不存在）
+ *     └── div.group/sidebar-expando-section「最近」    ← 展开时内含 #history
+ *
+ * ⚠️ 分组可折叠：折叠「最近」时 ChatGPT 会卸载 #history（连同对话列表），但
+ *   .group/sidebar-expando-section 分组容器本身在折叠态仍保留。因此定位锚点用分组容器，
+ *   不用 #history（否则折叠时 findInsertionPoint 返回 null，会导致收藏区被移除而消失）。
  *
  * 策略：
- *   findSidebarContainer → #history 父元素的父元素
- *   findInsertionPoint   → insertBefore(#history 的父元素)
+ *   findSidebarContainer → 第一个 expando-section 的父元素（即 scrollport）
+ *   findInsertionPoint   → insertBefore(scrollport 内第一个 expando-section)
+ *     即插在「已置顶」之前；无置顶时即插在「最近」之前，始终位于置顶与历史记录上方。
  */
 
 class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
@@ -17,12 +24,22 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     }
 
     findSidebarContainer() {
+        // 分组容器在折叠态也保留，用它反查 scrollport；#history 折叠时会被卸载，仅作兜底
+        const section = document.querySelector('.group\\/sidebar-expando-section');
+        if (section?.parentElement) return section.parentElement;
         const history = document.getElementById('history');
-        if (history?.parentElement?.parentElement) return history.parentElement.parentElement;
-        return null;
+        return history?.parentElement?.parentElement || null;
     }
 
     findInsertionPoint() {
+        // 分组容器（已置顶/最近）在展开与折叠状态都存在、class 稳定；不依赖 #history（折叠时被卸载）。
+        // 插到第一个分组之前：有置顶时是「已置顶」，无置顶时即「最近」，始终位于置顶与历史记录之上。
+        const sections = document.querySelectorAll('.group\\/sidebar-expando-section');
+        if (sections.length && sections[0].parentElement) {
+            return { parent: sections[0].parentElement, reference: sections[0], position: 'before' };
+        }
+
+        // 兜底：无分组容器（结构大改）时退回到 #history 父容器之前
         const history = document.getElementById('history');
         if (history?.parentElement?.parentElement) {
             return { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };

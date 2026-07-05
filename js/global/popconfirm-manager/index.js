@@ -48,7 +48,6 @@ class GlobalPopconfirmManager {
             
             // 参数校验
             if (!options.title && !options.content) {
-                console.error('[PopconfirmManager] Missing title or content');
                 resolve(false);
                 return;
             }
@@ -234,7 +233,6 @@ class GlobalPopconfirmManager {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[PopconfirmManager]', ...args);
         }
     }
     

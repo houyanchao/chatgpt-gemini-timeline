@@ -338,7 +338,6 @@ async function fetchImageAsBase64(url) {
             reader.readAsDataURL(blob);
         });
     } catch (error) {
-        console.error('[AI Chat Timeline Background] Fetch failed:', error);
         return { success: false, error: error.message };
     }
 }

@@ -71,7 +71,6 @@
                 this._applyConfig(r);
                 this._configReady = true;
             } catch (e) {
-                console.warn('[SelectionCopy] init config failed:', e);
                 this._configReady = true; // 用默认值
             }
 
@@ -93,7 +92,6 @@
                     }
                 });
             } catch (e) {
-                console.warn('[SelectionCopy] storage listener failed:', e);
             }
         }
 
@@ -305,7 +303,6 @@
                 const raw = FormulaSourceParser.parseLatex(el);
                 return raw ? raw.trim() : null;
             } catch (e) {
-                console.warn('[SelectionCopy] parseLatex failed:', e);
                 return null;
             }
         }
@@ -316,7 +313,6 @@
                 const raw = FormulaSourceParser.parseMathML(el);
                 return raw ? raw.trim() : null;
             } catch (e) {
-                console.warn('[SelectionCopy] parseMathML failed:', e);
                 return null;
             }
         }
@@ -406,7 +402,6 @@
                 }
                 return true;
             } catch (e) {
-                console.error('[SelectionCopy] clipboard write failed:', e);
                 // 退路：用 execCommand 模拟一次（部分老环境）
                 return this._fallbackCopy(plain);
             }
@@ -423,7 +418,6 @@
                 ta.remove();
                 return ok;
             } catch (e) {
-                console.error('[SelectionCopy] fallback copy failed:', e);
                 return false;
             }
         }

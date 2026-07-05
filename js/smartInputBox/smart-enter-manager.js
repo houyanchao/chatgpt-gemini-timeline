@@ -89,7 +89,6 @@ class SmartEnterManager {
         try {
             // 检查 PromptButtonManager 是否已加载
             if (typeof PromptButtonManager === 'undefined') {
-                console.error('[SmartInputBox] PromptButtonManager not loaded');
                 return;
             }
             
@@ -98,7 +97,6 @@ class SmartEnterManager {
             await this.promptButtonManager.init();
             
         } catch (e) {
-            console.error('[SmartInputBox] Failed to init prompt button:', e);
         }
     }
     
@@ -111,7 +109,6 @@ class SmartEnterManager {
             this.platformSettings = result.smartInputPlatformSettings || {};
             this.smartEnterMode = result.smartEnterMode || SMART_ENTER_MODES.DOUBLE_ENTER;
         } catch (e) {
-            console.error('[SmartInputBox] Failed to load platform settings:', e);
             this.platformSettings = {};
             this.smartEnterMode = SMART_ENTER_MODES.DOUBLE_ENTER;
         }
@@ -187,7 +184,6 @@ class SmartEnterManager {
                 }
             }
         } catch (e) {
-            console.error('[SmartInputBox] Failed to attach to input:', e);
         }
     }
     
@@ -223,7 +219,6 @@ class SmartEnterManager {
                 });
             }
         } catch (e) {
-            console.error('[SmartInputBox] Failed to start observer:', e);
         }
     }
     
@@ -254,7 +249,7 @@ class SmartEnterManager {
                 
                 // 情况2: 找到了输入框，但还没有被绑定 (可能是新生成的)
                 if (!this.attachedElements.has(currentInput)) {
-                    // console.log('[SmartInputBox] Detected new input element, rebinding...');
+                    // log('[SmartInputBox] Detected new input element, rebinding...');
                     this._attachListener(currentInput);
                 }
                 
@@ -464,7 +459,6 @@ class SmartEnterManager {
                 };
             }
         } catch (e) {
-            console.error('[SmartInputBox] Failed to save selection:', e);
         }
     }
     
@@ -503,7 +497,6 @@ class SmartEnterManager {
             // 显示Toast提示
             this._showNewlineToast(inputElement);
         } catch (e) {
-            console.error('[SmartInputBox] Failed to insert at saved position:', e);
             this._insertNewline(inputElement);
             this._showNewlineToast(inputElement);
         }
@@ -558,7 +551,6 @@ class SmartEnterManager {
             // 增加提示次数
             await chrome.storage.local.set({ smartEnterToastCount: count + 1 });
         } catch (e) {
-            console.error('[SmartInputBox] Failed to show toast:', e);
         }
     }
     
@@ -645,7 +637,6 @@ class SmartEnterManager {
                 inputElement.dispatchEvent(new Event('change', { bubbles: true }));
             }
         } catch (e) {
-            console.error('[SmartInputBox] Failed to insert newline:', e);
         }
     }
     
@@ -687,7 +678,6 @@ class SmartEnterManager {
                 this.state.allowNextEnter = false;
             }, 50);
         } catch (e) {
-            console.error('[SmartInputBox] Failed to trigger send:', e);
         }
     }
     
@@ -738,7 +728,6 @@ class SmartEnterManager {
                 this._detachListener(input);
             }
         } catch (e) {
-            console.error('[SmartInputBox] Failed to detach listener on destroy:', e);
         }
         
         // ✅ 销毁提示词按钮
@@ -747,7 +736,6 @@ class SmartEnterManager {
                 this.promptButtonManager.destroy();
                 this.promptButtonManager = null;
             } catch (e) {
-                console.error('[SmartInputBox] Failed to destroy prompt button:', e);
             }
         }
         

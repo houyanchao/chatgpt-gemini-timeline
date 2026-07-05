@@ -37,5 +37,4 @@ async function initializeGuide() {
 }
 
 initializeGuide().catch(error => {
-    console.error('[Guide] Failed to initialize:', error);
 });

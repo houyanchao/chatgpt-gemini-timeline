@@ -209,7 +209,6 @@ class DOMObserverManager {
             this._bodyObserverHasCharacterData = needsCharacterData;
             this._log(`[Body] Observer started (characterData: ${needsCharacterData})`);
         } catch (e) {
-            console.error('[DOMObserverManager] Failed to start body observer:', e);
         }
     }
 
@@ -326,7 +325,6 @@ class DOMObserverManager {
             try {
                 callback(relevantData);
             } catch (e) {
-                console.error(`[DOMObserverManager] Error in subscriber "${id}":`, e);
             }
         };
 
@@ -426,7 +424,6 @@ class DOMObserverManager {
                 try {
                     subscriber.callback();
                 } catch (e) {
-                    console.error(`[DOMObserverManager] Error in theme subscriber "${id}":`, e);
                 }
             }
         };
@@ -452,7 +449,6 @@ class DOMObserverManager {
             });
             this._log('[Theme] Observer started (html + body)');
         } catch (e) {
-            console.error('[DOMObserverManager] Failed to start theme observer:', e);
         }
     }
 
@@ -503,7 +499,6 @@ class DOMObserverManager {
             try {
                 observer.observe(container, observerOptions);
             } catch (e) {
-                console.error(`[DOMObserverManager] Failed to observe container:`, e);
                 return () => {};
             }
 
@@ -573,7 +568,6 @@ class DOMObserverManager {
                 try {
                     callback(mutationData);
                 } catch (e) {
-                    console.error(`[DOMObserverManager] Error in container subscriber "${id}":`, e);
                 }
             };
 
@@ -708,7 +702,6 @@ class DOMObserverManager {
      */
     _log(...args) {
         if (this._debug) {
-            console.log('[DOMObserverManager]', ...args);
         }
     }
 }

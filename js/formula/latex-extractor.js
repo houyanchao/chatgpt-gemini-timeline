@@ -310,7 +310,7 @@ class FormulaSourceParser {
             });
             return FormulaSourceParser.stripMathMLWrapper(output);
         } catch (e) {
-            console.warn('[FormulaSourceParser] LaTeX → MathML conversion error:', e);
+            // warn('[FormulaSourceParser] LaTeX → MathML conversion error:', e);
             return null;
         }
     }

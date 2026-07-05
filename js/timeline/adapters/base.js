@@ -30,6 +30,16 @@ class SiteAdapter {
     }
 
     /**
+     * Get CSS selector for assistant (AI) message elements.
+     * 默认返回空字符串表示未实现；子类按需覆盖（目前仅供 conversationExport 等
+     * 需要定位 AI 回复元素的功能复用，timeline 自身不依赖该方法）。
+     * @returns {string}
+     */
+    getAssistantMessageSelector() {
+        return '';
+    }
+
+    /**
      * Generate unique ID for a message (using index)
      * @param {Element} element - Message DOM element
      * @param {number} index - Message index in the list

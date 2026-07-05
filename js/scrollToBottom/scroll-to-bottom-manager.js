@@ -490,7 +490,6 @@ class ScrollToBottomManager {
             scrollToBottomManager = new ScrollToBottomManager(adapter);
             await scrollToBottomManager.init();
         } catch (e) {
-            console.error('[ScrollToBottom] Failed to initialize:', e);
             scrollToBottomManager = null;
         } finally {
             initInFlight = false;

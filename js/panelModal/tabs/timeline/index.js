@@ -137,17 +137,17 @@ class TimelineSettingsTab extends BaseTab {
 
         this.addEventListener(bottomSection.querySelector('.starred-manage-btn'), 'click', () => {
             void this._showPlatformManageModal()
-                .catch(e => console.error('[TimelineSettingsTab] Failed to show platform modal:', e));
+                .catch(e => void 0);
         });
 
         this.addEventListener(scrollArea.querySelector('.timeline-theme-color-manage-btn'), 'click', () => {
             void this._showThemeColorModal()
-                .catch(e => console.error('[TimelineSettingsTab] Failed to show theme color modal:', e));
+                .catch(e => void 0);
         });
 
         this.addEventListener(scrollArea.querySelector('.ai-complete-reminder-manage-btn'), 'click', () => {
             void TimelineSettingsTab.showAICompleteReminderModal()
-                .catch(e => console.error('[TimelineSettingsTab] Failed to show AI complete reminder modal:', e));
+                .catch(e => void 0);
         });
 
         return container;
@@ -168,7 +168,6 @@ class TimelineSettingsTab extends BaseTab {
                 // 默认值为 true（开启）
                 chatTimeLabelCheckbox.checked = result.chatTimeLabelEnabled !== false;
             } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to load chat time label state:', e);
                 chatTimeLabelCheckbox.checked = true;
             }
             
@@ -185,7 +184,6 @@ class TimelineSettingsTab extends BaseTab {
                         window.chatTimeRecorder.updateLabelVisibility(enabled);
                     }
                 } catch (e) {
-                    console.error('[TimelineSettingsTab] Failed to save chat time label state:', e);
                     chatTimeLabelCheckbox.checked = !chatTimeLabelCheckbox.checked;
                 }
             });
@@ -198,7 +196,6 @@ class TimelineSettingsTab extends BaseTab {
                 const result = await chrome.storage.local.get('preventAutoScrollEnabled');
                 preventAutoScrollCheckbox.checked = result.preventAutoScrollEnabled !== false;
             } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to load prevent-auto-scroll state:', e);
                 preventAutoScrollCheckbox.checked = true;
             }
 
@@ -207,7 +204,6 @@ class TimelineSettingsTab extends BaseTab {
                     const enabled = e.target.checked;
                     await chrome.storage.local.set({ preventAutoScrollEnabled: enabled });
                 } catch (e) {
-                    console.error('[TimelineSettingsTab] Failed to save prevent-auto-scroll state:', e);
                     preventAutoScrollCheckbox.checked = !preventAutoScrollCheckbox.checked;
                 }
             });
@@ -286,7 +282,6 @@ class TimelineSettingsTab extends BaseTab {
                 // 默认值为 true（开启）
                 checkbox.checked = result.arrowKeysNavigationEnabled !== false;
             } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to load state:', e);
                 // 读取失败，默认开启
                 checkbox.checked = true;
             }
@@ -299,7 +294,6 @@ class TimelineSettingsTab extends BaseTab {
                     // 保存到 Storage
                     await chrome.storage.local.set({ arrowKeysNavigationEnabled: enabled });
                 } catch (e) {
-                    console.error('[TimelineSettingsTab] Failed to save state:', e);
                     
                     // 保存失败，恢复checkbox状态
                     checkbox.checked = !checkbox.checked;
@@ -366,7 +360,6 @@ class TimelineSettingsTab extends BaseTab {
                     TimelineSettingsTab.showAICompleteToastPreview();
                 }
             } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to save AI complete toast state:', e);
                 toastToggle.checked = !toastToggle.checked;
             }
         });
@@ -378,7 +371,6 @@ class TimelineSettingsTab extends BaseTab {
                 }
                 await chrome.storage.local.set({ timelineAICompleteSoundEnabled: soundToggle.checked });
             } catch (e) {
-                console.error('[TimelineSettingsTab] Failed to save AI complete sound state:', e);
                 soundToggle.checked = !soundToggle.checked;
             }
         });
@@ -535,7 +527,6 @@ class TimelineSettingsTab extends BaseTab {
                     await chrome.storage.local.set({ timelineActiveColorByPlatform: cur });
                     setSelectedColor(platformId, colorId);
                 } catch (e) {
-                    console.error('[TimelineSettingsTab] Failed to save active color:', e);
                 }
             });
         });

@@ -71,7 +71,6 @@
                 }
             }
         } catch (error) {
-            console.error('[SidebarStarred] Initialize failed:', error);
             destroyManager();
         } finally {
             initInFlight = false;
@@ -97,7 +96,6 @@
                     initWithRetry(retryIndex + 1);
                 }
             } catch (error) {
-                console.error('[SidebarStarred] Retry failed:', error);
             }
         }, RETRY_DELAYS[retryIndex]);
     }
@@ -142,7 +140,6 @@
                 initWithRetry();
             }
         } catch (error) {
-            console.error('[SidebarStarred] Bootstrap failed:', error);
         } finally {
             bootstrapInFlight = false;
         }

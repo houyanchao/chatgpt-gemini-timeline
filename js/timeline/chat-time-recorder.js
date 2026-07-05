@@ -92,7 +92,6 @@ class ChatTimeRecorder {
         } catch (e) {
             // 上下文失效时静默处理
             if (!e.message?.includes('Extension context invalidated')) {
-                console.error('[ChatTimeRecorder] Failed to update lastVisit:', e);
             }
         }
         
@@ -169,7 +168,6 @@ class ChatTimeRecorder {
             }
         } catch (e) {
             if (!e.message?.includes('Extension context invalidated')) {
-                console.error('[ChatTimeRecorder] Failed to check recorded nodes:', e);
             }
             return;
         }
@@ -250,7 +248,6 @@ class ChatTimeRecorder {
             }
         } catch (e) {
             if (!e.message?.includes('Extension context invalidated')) {
-                console.error('[ChatTimeRecorder] Failed to migrate node ID:', e);
             }
         }
     }
@@ -284,7 +281,6 @@ class ChatTimeRecorder {
             }
         } catch (e) {
             if (!e.message?.includes('Extension context invalidated')) {
-                console.error('[ChatTimeRecorder] Failed to record node times:', e);
             }
         }
     }
@@ -343,7 +339,6 @@ class ChatTimeRecorder {
             nodeTimestamps = data.nodes || {};
         } catch (e) {
             if (!e.message?.includes('Extension context invalidated')) {
-                console.error('[ChatTimeRecorder] Failed to load node times:', e);
             }
             return;
         }
@@ -439,7 +434,6 @@ class ChatTimeRecorder {
                     await ChatTimeStorageManager.updateLastVisit(conversationKey);
                 } catch (e) {
                     if (!e.message?.includes('Extension context invalidated')) {
-                        console.error('[ChatTimeRecorder] Failed to update lastVisit:', e);
                     }
                 }
             }

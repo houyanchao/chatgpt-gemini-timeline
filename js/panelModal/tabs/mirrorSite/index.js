@@ -188,7 +188,6 @@ class MirrorSiteTab extends BaseTab {
             const nativeSites = await this._getNativeSupportedSites();
             container.innerHTML = this._renderNativeSupportedSites(nativeSites);
         } catch (e) {
-            console.error('[MirrorSiteTab] Failed to render native supported sites:', e);
             container.innerHTML = '';
         }
     }
@@ -234,7 +233,7 @@ class MirrorSiteTab extends BaseTab {
         shell.querySelector('[data-action="close"]')?.addEventListener('click', () => this._closeWizard());
         shell.querySelector('[data-action="go"]')?.addEventListener('click', () => {
             void this._handleUrlGo()
-                .catch(e => console.error('[MirrorSiteTab] Failed to handle URL:', e));
+                .catch(e => void 0);
         });
         if (window.panelModal?.isVisible) {
             this._keepWizardOnUnmount = true;
@@ -522,7 +521,6 @@ const PageDetector = (() => {
             const response = await chrome.runtime.sendMessage({ type: 'AIT_IS_ACTIVE_FOCUSED_TAB' });
             if (response?.success) return !!response.active;
         } catch (error) {
-            console.warn('[MirrorSite] Failed to check active tab:', error);
         }
 
         return document.hasFocus();
@@ -566,7 +564,6 @@ const PageDetector = (() => {
                 try {
                     demoInfo = buildDemoInfo(el);
                 } catch (error) {
-                    console.error('[MirrorSite] Failed to build demo info:', error);
                     demoInfo = buildErrorDemoInfo(error);
                 }
                 showFeedbackModal(demoInfo);
@@ -608,4 +605,4 @@ const PageDetector = (() => {
 
 TimelineI18n.ready()
     .then(() => PageDetector.init())
-    .catch(error => console.error('[MirrorSite] Failed to initialize page detector:', error));
+    .catch(error => void 0);

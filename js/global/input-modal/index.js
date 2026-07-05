@@ -24,9 +24,9 @@
  * });
  * 
  * if (result) {
- *     console.log('用户输入:', result);
+ *     log('用户输入:', result);
  * } else {
- *     console.log('用户取消了');
+ *     log('用户取消了');
  * }
  */
 
@@ -74,7 +74,6 @@ class GlobalInputModal {
 
             // 参数校验
             if (!options.title) {
-                console.error('[InputModal] Missing required parameter: title');
                 return null;
             }
             
@@ -100,7 +99,6 @@ class GlobalInputModal {
             return await this._showModal(config);
             
         } catch (error) {
-            console.error('[InputModal] Show failed:', error);
             return null;
         }
     }
@@ -285,7 +283,6 @@ class GlobalInputModal {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[InputModal]', ...args);
         }
     }
     
@@ -300,7 +297,6 @@ class GlobalInputModal {
             window.addEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners attached');
         } catch (error) {
-            console.error('[InputModal] Failed to attach URL listeners:', error);
         }
     }
     
@@ -312,7 +308,6 @@ class GlobalInputModal {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners detached');
         } catch (error) {
-            console.error('[InputModal] Failed to detach URL listeners:', error);
         }
     }
     

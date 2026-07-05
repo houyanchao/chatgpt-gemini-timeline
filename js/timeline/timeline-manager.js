@@ -710,6 +710,24 @@ class TimelineManager {
                 svg.setAttribute('fill', isStarred ? 'rgb(255, 125, 3)' : 'none');
                 svg.setAttribute('stroke', isStarred ? 'rgb(255, 125, 3)' : 'currentColor');
             }
+            const starLabel = TimelineI18n.getMessage('qwxpzm') || '收藏';
+            starChatBtn.setAttribute('aria-label', starLabel);
+            starChatBtn.style.minWidth = '36px';
+            starChatBtn.style.width = 'auto';
+            starChatBtn.style.padding = '0 10px';
+            starChatBtn.style.gap = '6px';
+            starChatBtn.style.color = 'inherit';
+            starChatBtn.style.fontSize = '14px';
+            starChatBtn.style.fontWeight = '500';
+            starChatBtn.style.lineHeight = '1';
+            starChatBtn.style.whiteSpace = 'nowrap';
+            let label = starChatBtn.querySelector('.ait-timeline-star-chat-btn-label');
+            if (!label) {
+                label = document.createElement('span');
+                label.className = 'ait-timeline-star-chat-btn-label';
+                starChatBtn.appendChild(label);
+            }
+            label.textContent = starLabel;
             // 保存引用
             this.ui.starChatBtn = starChatBtn;
             return;
@@ -721,18 +739,22 @@ class TimelineManager {
         
         // 4. 检查收藏状态并设置图标
         const isStarred = await this.isChatStarred();
+        const starLabel = TimelineI18n.getMessage('qwxpzm') || '收藏';
+        starChatBtn.setAttribute('aria-label', starLabel);
         starChatBtn.innerHTML = `
             <svg width="18" height="18" viewBox="0 0 24 24" fill="${isStarred ? 'rgb(255, 125, 3)' : 'none'}" stroke="${isStarred ? 'rgb(255, 125, 3)' : 'currentColor'}" stroke-width="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
+            <span class="ait-timeline-star-chat-btn-label">${starLabel}</span>
         `;
         
         // 5. 设置基础样式（适配原生UI）
         const isDeepSeek = this.adapter.constructor.name === 'DeepSeekAdapter';
         starChatBtn.style.cssText = `
-            width: 36px;
+            min-width: 36px;
+            width: auto;
             height: 36px;
-            padding: 0;
+            padding: 0 10px;
             background: transparent;
             border: none;
             border-radius: 8px;
@@ -740,6 +762,12 @@ class TimelineManager {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+            color: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
             transition: background-color 0.2s;
             ${isDeepSeek ? 'position: absolute; top: 14px; right: 56px; z-index: 1000;' : 'position: relative;'}
         `;
@@ -782,7 +810,6 @@ class TimelineManager {
     _setupStarChatBtnClickEvent() {
         const edm = window.eventDelegateManager;
         if (!edm) {
-            console.warn('[TimelineManager] eventDelegateManager not available for star chat btn');
             return;
         }
         
@@ -824,7 +851,6 @@ class TimelineManager {
      */
     async showEditDialog(currentText) {
         if (!window.globalInputModal) {
-            console.error('[TimelineManager] globalInputModal not available');
             return null;
         }
         
@@ -867,7 +893,6 @@ class TimelineManager {
             } else {
                 // 未收藏，显示输入主题弹窗（带文件夹选择器）
                 if (!window.starInputModal) {
-                    console.error('[TimelineManager] starInputModal not available');
                     return { success: false, action: null };
                 }
                 
@@ -905,7 +930,6 @@ class TimelineManager {
                 return { success: true, action: 'star' };
             }
         } catch (e) {
-            console.error('Failed to toggle chat star:', e);
             return { success: false, action: null };
         }
     }
@@ -915,7 +939,6 @@ class TimelineManager {
      */
     async showThemeInputDialog() {
         if (!window.globalInputModal) {
-            console.error('[TimelineManager] globalInputModal not available');
             return null;
         }
         
@@ -2071,7 +2094,6 @@ class TimelineManager {
         // PanelModal 已在脚本加载时自动初始化，这里只注册需要 timeline 的 tabs
         if (typeof registerTimelineTabs === 'function') {
             Promise.resolve(registerTimelineTabs(this)).catch(error => {
-                console.error('[TimelineManager] Failed to register panel tabs:', error);
             });
         }
         
@@ -2600,7 +2622,6 @@ class TimelineManager {
      * 保留此方法签名以避免可能的调用错误
      */
     _showTooltipImmediate(dot) {
-        console.warn('[TimelineManager] _showTooltipImmediate is deprecated, use GlobalTooltipManager instead');
         // 降级：使用全局管理器
         if (typeof window.globalTooltipManager !== 'undefined' && dot) {
             const id = dot.dataset.targetTurnId;
@@ -2634,14 +2655,12 @@ class TimelineManager {
      * ✅ 已废弃：完全使用 GlobalTooltipManager
      */
     placeTooltipAt(dot, placement, width, height) {
-        console.warn('[TimelineManager] placeTooltipAt is deprecated, use GlobalTooltipManager instead');
     }
     
     /**
      * ✅ 已废弃：完全使用 GlobalTooltipManager
      */
     refreshTooltipForDot(dot) {
-        console.warn('[TimelineManager] refreshTooltipForDot is deprecated, use GlobalTooltipManager instead');
     }
     
     /**
@@ -3389,14 +3408,6 @@ class TimelineManager {
         };
         
         try {
-            // console.log('[Timeline] 📢 timeline:activeChange detail:', {
-            //     currentIndex,
-            //     previousIndex,
-            //     totalCount,
-            //     isFirst,
-            //     isLast,
-            //     direction
-            // });
             window.dispatchEvent(new CustomEvent('timeline:activeChange', {
                 detail: {
                     currentIndex,       // 当前选中节点索引（0-based）
@@ -3640,7 +3651,6 @@ class TimelineManager {
             // 默认开启（!== false）
             this.arrowKeysNavigationEnabled = result.arrowKeysNavigationEnabled !== false;
         } catch (e) {
-            console.error('[Timeline] Failed to load arrow keys navigation state:', e);
             // 读取失败，默认开启
             this.arrowKeysNavigationEnabled = true;
         }
@@ -3655,7 +3665,6 @@ class TimelineManager {
             // 默认开启（!== false）
             this.aiCompleteToastEnabled = result.timelineAICompleteToastEnabled !== false;
         } catch (e) {
-            console.error('[Timeline] Failed to load AI complete toast state:', e);
             // 读取失败，默认开启
             this.aiCompleteToastEnabled = true;
         }
@@ -3670,7 +3679,6 @@ class TimelineManager {
             // 默认关闭
             this.aiCompleteSoundEnabled = result.timelineAICompleteSoundEnabled === true;
         } catch (e) {
-            console.error('[Timeline] Failed to load AI complete sound state:', e);
             this.aiCompleteSoundEnabled = false;
         }
     }
@@ -3683,7 +3691,6 @@ class TimelineManager {
             const result = await chrome.storage.local.get('timelinePlatformSettings');
             this.platformSettings = result.timelinePlatformSettings || {};
         } catch (e) {
-            console.error('[Timeline] Failed to load platform settings:', e);
             this.platformSettings = {};
         }
     }
@@ -3696,7 +3703,6 @@ class TimelineManager {
             const result = await chrome.storage.local.get('timelineActiveColorByPlatform');
             this.timelineActiveColorByPlatform = result.timelineActiveColorByPlatform || {};
         } catch (e) {
-            console.error('[Timeline] Failed to load active color settings:', e);
             this.timelineActiveColorByPlatform = {};
         }
     }
@@ -3970,7 +3976,6 @@ class TimelineManager {
         } else {
             // 添加收藏 - 显示弹窗输入主题和选择文件夹
             if (!window.starInputModal) {
-                console.error('[TimelineManager] starInputModal not available');
                 return { success: false, action: null };
             }
             
@@ -4112,7 +4117,6 @@ class TimelineManager {
                 // 显示复制成功提示
                 this.showCopyFeedback(targetElement);
             } catch (e) {
-                console.error('复制失败:', e);
             }
         }
     }
@@ -4329,7 +4333,6 @@ class TimelineManager {
             this.renderPinMarkers();
             return true;
         } catch (e) {
-            console.error('Failed to toggle pin:', e);
             return false;
         }
     }

@@ -516,14 +516,14 @@ class StarredTreeRenderer {
                         }
                         this._toastAtFolder(target.folderEl, 'dragMoveSuccess', 'Moved');
                         this.opts.onAfterAction();
-                    }).catch(err => console.error('[StarredTreeRenderer] Item reorder failed:', err));
+                    }).catch(err => void 0);
                 } else if (target?.type === 'folder') {
                     const actualId = target.folderId === '__default__' ? null : target.folderId;
                     if (actualId !== _itemCD.sourceFolderId) {
                         this.folderManager.moveStarredToFolder(_itemCD.turnId, actualId).then(() => {
                             this._toastAtFolder(target.folderEl, 'dragMoveSuccess', 'Moved');
                             this.opts.onAfterAction();
-                        }).catch(err => console.error('[StarredTreeRenderer] Item move failed:', err));
+                        }).catch(err => void 0);
                     }
                 } else {
                     const listContainer = this.opts.getListContainer();
@@ -670,7 +670,6 @@ class StarredTreeRenderer {
                     this._toast('success', 'dragMoveSuccess', 'Moved');
                     await this.opts.onAfterAction();
                 } catch (err) {
-                    console.error('[StarredTreeRenderer] Drag move failed:', err);
                 }
 
             } else if (this._dragState.type === 'folder') {
@@ -694,7 +693,6 @@ class StarredTreeRenderer {
                         this._toastAtFolder(folderEl, 'dragMoveSuccess', 'Moved');
                         await this.opts.onAfterAction();
                     } catch (err) {
-                        console.error('[StarredTreeRenderer] Folder reorder failed:', err);
                     }
                 }
             }
@@ -914,7 +912,6 @@ class StarredTreeRenderer {
             this._toast('success', 'xzvkpm', 'Created');
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Create folder failed:', error);
             if (error.message) this._toast('error', '', error.message);
         }
     }
@@ -950,7 +947,6 @@ class StarredTreeRenderer {
             this._toast('success', 'folderUpdated', 'Updated');
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Edit folder failed:', error);
         }
     }
 
@@ -986,7 +982,6 @@ class StarredTreeRenderer {
             this._toast('success', 'kvpzmx', 'Deleted');
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Delete folder failed:', error);
             this._toast('error', 'mxkvzp', 'Delete failed');
         }
     }
@@ -996,7 +991,6 @@ class StarredTreeRenderer {
             await this.folderManager.togglePinFolder(folderId);
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Toggle pin folder failed:', error);
         }
     }
 
@@ -1005,7 +999,6 @@ class StarredTreeRenderer {
             await this.folderManager.togglePinStarred(turnId);
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Toggle pin starred failed:', error);
         }
     }
 
@@ -1034,7 +1027,6 @@ class StarredTreeRenderer {
                 }
             }
         } catch (error) {
-            console.error('[StarredTreeRenderer] Edit starred failed:', error);
         }
     }
 
@@ -1079,7 +1071,6 @@ class StarredTreeRenderer {
             }
             await this.opts.onAfterAction();
         } catch (error) {
-            console.error('[StarredTreeRenderer] Unstar failed:', error);
         }
     }
 
@@ -1276,7 +1267,6 @@ class StarredTreeRenderer {
             this._toastAtFolder(folderEl, 'nativeMenuStarSuccess', 'Starred');
             await this.opts.onAfterAction();
         } catch (err) {
-            console.error('[StarredTreeRenderer] External drop failed:', err);
         }
     }
 

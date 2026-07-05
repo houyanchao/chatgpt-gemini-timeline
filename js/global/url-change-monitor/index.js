@@ -14,8 +14,8 @@
  * ```javascript
  * // 监听 URL 变化
  * window.addEventListener('url:change', (e) => {
- *     console.log('URL changed:', e.detail.url);
- *     console.log('Previous URL:', e.detail.oldUrl);
+ *     log('URL changed:', e.detail.url);
+ *     log('Previous URL:', e.detail.oldUrl);
  * });
  *
  * // 同步查询当前 URL

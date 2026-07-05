@@ -180,7 +180,7 @@
                         .then((found) => {
                             if (found) stop();
                         })
-                        .catch(error => console.error('[MirrorSiteDetector] Failed to detect mirror site:', error));
+                        .catch(error => void 0);
                 }, DETECT_DEBOUNCE_MS);
             });
 
@@ -193,7 +193,7 @@
 
             observer.observe(document.body, { childList: true, subtree: true });
             setTimeout(stop, DETECT_TIMEOUT_MS);
-        }).catch(error => console.error('[MirrorSiteDetector] Failed to initialize detection:', error));
+        }).catch(error => void 0);
     }
 
     window.MirrorSiteDetector = {

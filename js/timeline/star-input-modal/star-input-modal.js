@@ -22,8 +22,8 @@
  * });
  * 
  * if (result) {
- *     console.log('标题:', result.value);
- *     console.log('文件夹:', result.folderId);
+ *     log('标题:', result.value);
+ *     log('文件夹:', result.folderId);
  * }
  */
 
@@ -72,12 +72,10 @@ class StarInputModal {
 
             // 参数校验
             if (!options.title) {
-                console.error('[StarInputModal] Missing required parameter: title');
                 return null;
             }
             
             if (!options.folderManager) {
-                console.error('[StarInputModal] Missing required parameter: folderManager');
                 return null;
             }
             
@@ -104,7 +102,6 @@ class StarInputModal {
             return await this._showModal(config);
             
         } catch (error) {
-            console.error('[StarInputModal] Show failed:', error);
             return null;
         }
     }
@@ -451,7 +448,6 @@ class StarInputModal {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[StarInputModal]', ...args);
         }
     }
     
@@ -465,7 +461,6 @@ class StarInputModal {
             window.addEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners attached');
         } catch (error) {
-            console.error('[StarInputModal] Failed to attach URL listeners:', error);
         }
     }
     
@@ -477,7 +472,6 @@ class StarInputModal {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners detached');
         } catch (error) {
-            console.error('[StarInputModal] Failed to detach URL listeners:', error);
         }
     }
     
@@ -530,7 +524,6 @@ class StarInputModal {
             window.globalToastManager?.success(TimelineI18n.getMessage('xzvkpm') || 'Created');
             return newFolder;
         } catch (error) {
-            console.error('[StarInputModal] Failed to create folder:', error);
             if (error.message) window.globalToastManager?.error(error.message);
             return null;
         }

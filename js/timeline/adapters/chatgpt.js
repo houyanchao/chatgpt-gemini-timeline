@@ -21,6 +21,10 @@ class ChatGPTAdapter extends SiteAdapter {
         return '[data-turn="user"][data-turn-id]';
     }
 
+    getAssistantMessageSelector() {
+        return '[data-turn="assistant"][data-turn-id]';
+    }
+
     /**
      * 从 DOM 元素中提取 nodeId
      * 直接从元素的 data-turn-id 属性读取 ID
@@ -132,7 +136,6 @@ class ChatGPTAdapter extends SiteAdapter {
             document.removeEventListener('timeline-fiber-result', handler);
             if (!ChatGPTAdapter._bridgeWarned) {
                 ChatGPTAdapter._bridgeWarned = true;
-                console.warn('[ChatGPTAdapter] fiber bridge unavailable, falling back to DOM extraction. Check that fiber-bridge-chatgpt.js is loaded in MAIN world.');
             }
         }
         return cache;

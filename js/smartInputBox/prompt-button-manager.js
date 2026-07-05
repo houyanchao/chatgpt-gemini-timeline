@@ -83,7 +83,6 @@ class PromptButtonManager {
             const result = await chrome.storage.local.get('prompts');
             this.prompts = result.prompts || [];
         } catch (e) {
-            console.error('[PromptButton] Failed to load prompts:', e);
             this.prompts = [];
         }
     }
@@ -519,7 +518,6 @@ class PromptButtonManager {
      * 处理点击
      */
     _handleClick() {
-        console.log('[PromptButton] Button clicked');
         
         if (!this.buttonElement) {
             return;
@@ -689,7 +687,6 @@ class PromptButtonManager {
                 this._defaultInsertText(prompt.content);
             }
         } catch (e) {
-            console.error('[PromptButton] Failed to insert prompt:', e);
         }
     }
     

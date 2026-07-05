@@ -762,7 +762,7 @@ function detectDarkMode() {
         return false;
     } catch (error) {
         // 发生任何错误时，返回 false（默认浅色模式）
-        console.warn('[detectDarkMode] error:', error);
+        // warn('[detectDarkMode] error:', error);
         return false;
     }
 }

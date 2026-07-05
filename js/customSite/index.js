@@ -13,7 +13,6 @@
     }
 
     if (typeof isCurrentCustomTimelineSite === 'function' && isCurrentCustomTimelineSite()) {
-        console.log('[CustomSite] Detected custom timeline site, initializing float button');
         const floatButton = new CustomSiteFloatButton();
         await floatButton.init();
         window._customSiteFloatButton = floatButton;

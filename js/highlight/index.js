@@ -401,7 +401,6 @@
         try {
             await manager.highlightSerialized(serialized);
         } catch (e) {
-            console.error('[Highlight] confirmHighlight failed:', e);
         }
 
         popoverEl.classList.remove('visible');
@@ -601,7 +600,6 @@
                 );
             }
         } catch (e) {
-            console.error('[Highlight] copy failed:', e);
             window.globalToastManager?.error?.(
                 TimelineI18n.getMessage('kpzmvx') || '复制失败',
                 null,
@@ -789,7 +787,6 @@
             };
 
         } catch (error) {
-            console.error('[Highlight] Initialization failed:', error);
         }
     }
 

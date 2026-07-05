@@ -79,7 +79,7 @@ class PromptTab extends BaseTab {
 
         this.addEventListener(bottomSection.querySelector('.starred-manage-btn'), 'click', () => {
             void this._showPlatformManageModal()
-                .catch(e => console.error('[PromptTab] Failed to show platform modal:', e));
+                .catch(e => void 0);
         });
 
         return container;
@@ -113,7 +113,6 @@ class PromptTab extends BaseTab {
             const result = await chrome.storage.local.get('prompts');
             this.setState('prompts', result.prompts || []);
         } catch (e) {
-            console.error('[PromptTab] Failed to load prompts:', e);
             this.setState('prompts', []);
         }
     }
@@ -126,7 +125,6 @@ class PromptTab extends BaseTab {
             const prompts = this.getState('prompts') || [];
             await chrome.storage.local.set({ prompts: prompts });
         } catch (e) {
-            console.error('[PromptTab] Failed to save prompts:', e);
         }
     }
     
@@ -167,7 +165,6 @@ class PromptTab extends BaseTab {
                     .map(site => ({ id: site.id, name: site.name }))
             ];
         } catch (e) {
-            console.error('[PromptTab] Failed to load platform info:', e);
             this._platformInfoById = new Map();
             this._smartInputPlatforms = [allPlatformOption];
         } finally {
@@ -268,7 +265,7 @@ class PromptTab extends BaseTab {
         if (addBtn) {
             this.addEventListener(addBtn, 'click', () => {
                 void this.showPromptModal()
-                    .catch(e => console.error('[PromptTab] Failed to show prompt modal:', e));
+                    .catch(e => void 0);
             });
         }
     }
@@ -283,7 +280,7 @@ class PromptTab extends BaseTab {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
                 void this.togglePin(id)
-                    .catch(err => console.error('[PromptTab] Failed to toggle pin:', err));
+                    .catch(err => void 0);
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-pin', 'button', btn, TimelineI18n.getMessage('pntotp') || '置顶');
@@ -299,7 +296,7 @@ class PromptTab extends BaseTab {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
                 void this.hsksuywm(id)
-                    .catch(err => console.error('[PromptTab] Failed to edit prompt:', err));
+                    .catch(err => void 0);
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-edit', 'button', btn, TimelineI18n.getMessage('vkpxzm') || '编辑');
@@ -315,7 +312,7 @@ class PromptTab extends BaseTab {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
                 void this.deletePrompt(id)
-                    .catch(err => console.error('[PromptTab] Failed to delete prompt:', err));
+                    .catch(err => void 0);
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-delete', 'button', btn, TimelineI18n.getMessage('mzxvkp') || '删除');
@@ -331,7 +328,7 @@ class PromptTab extends BaseTab {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
                 void this.movePrompt(id, 'up')
-                    .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
+                    .catch(err => void 0);
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-move-up', 'button', btn, TimelineI18n.getMessage('mvupkt') || '上移');
@@ -347,7 +344,7 @@ class PromptTab extends BaseTab {
             this.addEventListener(btn, 'click', (e) => {
                 const id = btn.getAttribute('data-id');
                 void this.movePrompt(id, 'down')
-                    .catch(err => console.error('[PromptTab] Failed to move prompt:', err));
+                    .catch(err => void 0);
             });
             this.addEventListener(btn, 'mouseenter', () => {
                 window.globalTooltipManager?.show('prompt-move-down', 'button', btn, TimelineI18n.getMessage('mvdnkt') || '下移');
@@ -586,7 +583,7 @@ class PromptTab extends BaseTab {
         cancelBtn.addEventListener('click', closeModal);
         confirmBtn.addEventListener('click', () => {
             void savePrompt()
-                .catch(e => console.error('[PromptTab] Failed to save prompt:', e));
+                .catch(e => void 0);
         });
     }
     

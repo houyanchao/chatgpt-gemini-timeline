@@ -131,12 +131,10 @@ class GlobalToastManager {
         try {
             // 参数校验
             if (!type || !this.config.types[type]) {
-                console.error('[ToastManager] Invalid type:', type);
                 return;
             }
             
             if (!message) {
-                console.error('[ToastManager] Missing message');
                 return;
             }
             
@@ -172,7 +170,6 @@ class GlobalToastManager {
             this._log('Toast shown:', { type, message, config: finalConfig });
             
         } catch (error) {
-            console.error('[ToastManager] Show failed:', error);
         }
     }
     
@@ -470,7 +467,6 @@ class GlobalToastManager {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[ToastManager]', ...args);
         }
     }
     
@@ -485,7 +481,6 @@ class GlobalToastManager {
             window.addEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners attached');
         } catch (error) {
-            console.error('[ToastManager] Failed to attach URL listeners:', error);
         }
     }
     
@@ -497,7 +492,6 @@ class GlobalToastManager {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners detached');
         } catch (error) {
-            console.error('[ToastManager] Failed to detach URL listeners:', error);
         }
     }
     

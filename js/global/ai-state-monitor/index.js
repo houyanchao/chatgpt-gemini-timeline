@@ -20,9 +20,9 @@
  * // 监听状态变化
  * window.addEventListener('ai:stateChange', (e) => {
  *     if (e.detail.generating) {
- *         console.log('AI 开始输出');
+ *         log('AI 开始输出');
  *     } else {
- *         console.log('AI 输出结束');
+ *         log('AI 输出结束');
  *     }
  * });
  * 

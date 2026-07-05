@@ -104,7 +104,6 @@ class FormulaTab extends BaseTab {
                 radio.checked = radio.value === currentFormat;
             });
         } catch (e) {
-            console.error('[FormulaTab] Failed to load state:', e);
             latexToggle.checked = true;
             mathmlToggle.checked = true;
         }
@@ -117,7 +116,6 @@ class FormulaTab extends BaseTab {
                     formatSection.style.display = enabled ? 'block' : 'none';
                 }
             } catch (e) {
-                console.error('[FormulaTab] Failed to save state:', e);
                 latexToggle.checked = !latexToggle.checked;
             }
         });
@@ -127,7 +125,6 @@ class FormulaTab extends BaseTab {
                 const enabled = e.target.checked;
                 await chrome.storage.local.set({ formulaMathMLEnabled: enabled });
             } catch (e) {
-                console.error('[FormulaTab] Failed to save state:', e);
                 mathmlToggle.checked = !mathmlToggle.checked;
             }
         });
@@ -137,7 +134,6 @@ class FormulaTab extends BaseTab {
                 try {
                     await chrome.storage.local.set({ formulaFormat: e.target.value });
                 } catch (e) {
-                    console.error('[FormulaTab] Failed to save format:', e);
                 }
             });
         });

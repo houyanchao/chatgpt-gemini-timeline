@@ -1,0 +1,441 @@
+/**
+ * Conversation Export - 导出弹窗样式
+ *
+ * 对应 JS: ./export-modal.js
+ * 深色模式通过 overlay 上的 .ce-dark 类切换（由 JS 依据 detectDarkMode 设置）。
+ *
+ * @requires ../../styles/variables.css
+ */
+
+/* ============================================
+   Overlay
+   ============================================ */
+
+.ce-export-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2147483648;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+}
+
+.ce-export-overlay.visible {
+    opacity: 1;
+}
+
+/* ============================================
+   Dialog
+   ============================================ */
+
+.ce-export-modal {
+    background: #ffffff;
+    color: #1f2937;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+    width: 92%;
+    max-width: 520px;
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: ceExportSlideIn 0.24s ease;
+}
+
+.ce-dark .ce-export-modal {
+    background: #262629;
+    color: #e5e7eb;
+}
+
+@keyframes ceExportSlideIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================
+   Header
+   ============================================ */
+
+.ce-export-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid #ececf0;
+    flex-shrink: 0;
+}
+
+.ce-dark .ce-export-header {
+    border-bottom-color: #3a3a3e;
+}
+
+.ce-export-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.ce-export-close {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.ce-export-close:hover {
+    background: rgba(127, 127, 127, 0.14);
+    color: inherit;
+}
+
+/* ============================================
+   Loading
+   ============================================ */
+
+.ce-export-loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 56px 24px;
+}
+
+.ce-export-spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid rgba(127, 127, 127, 0.25);
+    border-top-color: #6128ff;
+    animation: ceExportSpin 0.8s linear infinite;
+}
+
+.ce-dark .ce-export-spinner {
+    border-top-color: #8b5cf6;
+}
+
+@keyframes ceExportSpin {
+    to { transform: rotate(360deg); }
+}
+
+.ce-export-loading-text {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.ce-dark .ce-export-loading-text {
+    color: #9ca3af;
+}
+
+.ce-export-loading-cancel {
+    margin-top: 4px;
+    padding: 6px 14px;
+    border: 1px solid #d1d5db;
+    background: transparent;
+    color: inherit;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.ce-export-loading-cancel:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+
+.ce-dark .ce-export-loading-cancel {
+    border-color: #4b4b50;
+}
+
+/* ============================================
+   Content
+   ============================================ */
+
+.ce-export-content {
+    padding: 8px 22px 4px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.ce-export-section {
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0f3;
+}
+
+.ce-dark .ce-export-section {
+    border-bottom-color: #343438;
+}
+
+.ce-export-section:last-child {
+    border-bottom: none;
+}
+
+.ce-export-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.ce-dark .ce-export-section-title {
+    color: #9ca3af;
+}
+
+/* Radio / checkbox groups */
+.ce-export-radio-group,
+.ce-export-check-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+}
+
+.ce-export-format-group {
+    gap: 10px 16px;
+}
+
+.ce-export-radio,
+.ce-export-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ce-export-radio input,
+.ce-export-check input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #6128ff;
+    margin: 0;
+}
+
+.ce-dark .ce-export-radio input,
+.ce-dark .ce-export-check input {
+    accent-color: #8b5cf6;
+}
+
+/* Select */
+.ce-export-select {
+    width: 100%;
+    max-width: 220px;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2937;
+    cursor: pointer;
+    outline: none;
+}
+
+.ce-dark .ce-export-select {
+    background: #1c1c1f;
+    border-color: #4b4b50;
+    color: #e5e7eb;
+}
+
+.ce-export-select:focus {
+    border-color: #6128ff;
+}
+
+/* ============================================
+   Conversation list
+   ============================================ */
+
+.ce-export-select-all {
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.ce-export-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid #ececf0;
+    border-radius: 10px;
+}
+
+.ce-dark .ce-export-list {
+    border-color: #3a3a3e;
+}
+
+.ce-export-list-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f3f6;
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+
+.ce-export-list-item:last-child {
+    border-bottom: none;
+}
+
+.ce-export-list-item:hover {
+    background: rgba(127, 127, 127, 0.06);
+}
+
+.ce-dark .ce-export-list-item {
+    border-bottom-color: #343438;
+}
+
+.ce-export-list-check {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: #6128ff;
+}
+
+.ce-dark .ce-export-list-check {
+    accent-color: #8b5cf6;
+}
+
+.ce-export-list-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.ce-export-list-order {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 3px;
+}
+
+.ce-dark .ce-export-list-order {
+    color: #9ca3af;
+}
+
+.ce-export-list-preview {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #374151;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ce-dark .ce-export-list-preview {
+    color: #d1d5db;
+}
+
+.ce-export-list-assistant {
+    color: #6b7280;
+}
+
+.ce-dark .ce-export-list-assistant {
+    color: #9ca3af;
+}
+
+/* Disabled state (range = whole conversation) */
+.ce-export-list-section.ce-disabled .ce-export-list,
+.ce-export-list-section.ce-disabled .ce-export-select-all {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+
+.ce-export-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 22px;
+    border-top: 1px solid #ececf0;
+    flex-shrink: 0;
+}
+
+.ce-dark .ce-export-footer {
+    border-top-color: #3a3a3e;
+}
+
+.ce-export-btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    transition: background-color 0.15s, opacity 0.15s, transform 0.1s;
+}
+
+.ce-export-btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.ce-export-btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.ce-dark .ce-export-btn-cancel {
+    background: #3a3a3e;
+    color: #d1d5db;
+}
+
+.ce-dark .ce-export-btn-cancel:hover {
+    background: #46464b;
+}
+
+.ce-export-btn-confirm {
+    background: #6128ff;
+    color: #ffffff;
+}
+
+.ce-export-btn-confirm:hover {
+    background: #5420e0;
+}
+
+.ce-dark .ce-export-btn-confirm {
+    background: #8b5cf6;
+}
+
+.ce-dark .ce-export-btn-confirm:hover {
+    background: #7c4ef0;
+}
+
+.ce-export-btn-confirm:active {
+    transform: scale(0.97);
+}
+
+.ce-export-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+
+@media (max-width: 480px) {
+    .ce-export-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .ce-export-header,
+    .ce-export-content,
+    .ce-export-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}

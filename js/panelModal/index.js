@@ -51,7 +51,6 @@ class PanelModal {
         // 监听 URL 变化（自动关闭）
         this._attachUrlListeners();
         
-        console.log('[PanelModal] Initialized successfully');
     }
     
     createDOM() {
@@ -224,7 +223,6 @@ class PanelModal {
                 await TimelineI18n.setLanguage(e.target.value);
                 location.reload();
             } catch (error) {
-                console.error('[PanelModal] Failed to change language:', error);
                 this.languageSelect.value = previousLanguage;
                 this._refreshLanguageValue();
                 this.languageSelect.disabled = false;
@@ -301,7 +299,6 @@ class PanelModal {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[PanelModal] Failed to attach URL listeners:', error);
         }
     }
     
@@ -312,7 +309,6 @@ class PanelModal {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[PanelModal] Failed to detach URL listeners:', error);
         }
     }
     
@@ -337,7 +333,6 @@ class PanelModal {
      */
     registerTab(tab) {
         if (!tab || !tab.id) {
-            console.error('[PanelModal] Invalid tab:', tab);
             return;
         }
         
@@ -411,7 +406,6 @@ class PanelModal {
 
             // 如果指定的 tab 不存在，fallback 到当前 tab 或第一个可用的 tab
             if (targetTabId && !this.tabs.has(targetTabId)) {
-                console.warn(`[PanelModal] Tab "${targetTabId}" not available, falling back`);
                 targetTabId = null;
             }
 
@@ -422,7 +416,6 @@ class PanelModal {
             }
 
             if (!targetTabId) {
-                console.warn('[PanelModal] No tabs registered');
                 return;
             }
 
@@ -442,7 +435,6 @@ class PanelModal {
                 this.hide();
             }
         } catch (error) {
-            console.error('[PanelModal] Failed to show panel:', error);
             this.hide();
         }
     }
@@ -454,7 +446,6 @@ class PanelModal {
     async switchTab(tabId) {
         const tab = this.tabs.get(tabId);
         if (!tab) {
-            console.error(`[PanelModal] Tab "${tabId}" not found`);
             return false;
         }
         
@@ -471,7 +462,6 @@ class PanelModal {
                 try {
                     currentTab.unmounted();
                 } catch (error) {
-                    console.error(`[PanelModal] Failed to unmount tab "${this.currentTabId}":`, error);
                 }
             }
             
@@ -510,7 +500,6 @@ class PanelModal {
             try {
                 await tab.mounted();
             } catch (error) {
-                console.error(`[PanelModal] Failed to mount tab "${tabId}":`, error);
             }
         }
 
@@ -540,7 +529,6 @@ class PanelModal {
                 try {
                     tab.unmounted();
                 } catch (error) {
-                    console.error(`[PanelModal] Failed to unmount tab "${this.currentTabId}":`, error);
                 }
             }
             
@@ -555,7 +543,6 @@ class PanelModal {
         this.content.innerHTML = '';
         this.currentTabId = null;
         
-        console.log('[PanelModal] Panel hidden and destroyed');
     }
     
     /**
@@ -582,7 +569,6 @@ class PanelModal {
         this.languageSelect = null;
         this.shareBtn = null;
         
-        console.log('[PanelModal] Destroyed');
     }
 }
 

@@ -66,7 +66,7 @@ class ChangelogModal {
                 [this.STORAGE_KEY]: CHANGELOG_DATA.id
             });
         } catch (e) {
-            console.warn('[ChangelogModal] markAsRead error:', e);
+            // warn('[ChangelogModal] markAsRead error:', e);
         }
     }
 

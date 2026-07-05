@@ -22,18 +22,15 @@
 
         // 避免重复初始化
         if (globalFormulaManager) {
-            console.log('[Formula] Already initialized');
             return;
         }
         
         // 检查依赖
         if (typeof FormulaManager === 'undefined') {
-            console.error('[Formula] FormulaManager is not loaded');
             return;
         }
         
         if (typeof FormulaSourceParser === 'undefined') {
-            console.error('[Formula] FormulaSourceParser is not loaded');
             return;
         }
         
@@ -42,9 +39,7 @@
             globalFormulaManager = new FormulaManager();
             await globalFormulaManager.init();
             
-            console.log('[Formula] Initialized successfully');
         } catch (error) {
-            console.error('[Formula] Initialization failed:', error);
         }
     }
     
@@ -56,9 +51,7 @@
             try {
                 globalFormulaManager.destroy();
                 globalFormulaManager = null;
-                console.log('[Formula] Destroyed successfully');
             } catch (error) {
-                console.error('[Formula] Destroy failed:', error);
             }
         }
     }
@@ -76,15 +69,12 @@
                 
                 if (isEnabled) {
                     if (!globalFormulaManager) {
-                        console.log('[Formula] Feature enabled, initializing...');
                         initFormulaModule();
                     } else {
-                        console.log('[Formula] Feature re-enabled, rescanning...');
                         globalFormulaManager.rescan();
                     }
                 } else {
                     if (globalFormulaManager) {
-                        console.log('[Formula] Feature disabled, destroying...');
                         destroyFormulaModule();
                     }
                 }

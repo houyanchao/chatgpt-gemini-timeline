@@ -29,7 +29,11 @@
         "https://chatgpt.com/*",
         "https://chat.openai.com/*"
       ],
-      "js": ["js/timeline/fiber-bridge-chatgpt.js"],
+      "js": [
+        "js/mainWorld/chatgpt-fiber-core.js",
+        "js/timeline/fiber-bridge-chatgpt.js",
+        "js/conversationExport/bridges/chatgpt-fiber-bridge.js"
+      ],
       "world": "MAIN",
       "run_at": "document_idle"
     },
@@ -183,7 +187,20 @@
         "js/sidebarStarred/index.js",
         "js/customSite/custom-site-utils.js",
         "js/customSite/custom-site-float-button.js",
-        "js/customSite/index.js"
+        "js/customSite/index.js",
+        "js/conversationExport/libs/mathjax-config.js",
+        "js/conversationExport/libs/mathjax-tex-svg.js",
+        "js/conversationExport/constants.js",
+        "js/conversationExport/dom-to-markdown.js",
+        "js/conversationExport/adapters/base.js",
+        "js/conversationExport/adapters/gemini.js",
+        "js/conversationExport/adapters/chatgpt.js",
+        "js/conversationExport/adapters/registry.js",
+        "js/conversationExport/exporters.js",
+        "js/conversationExport/png-exporter.js",
+        "js/conversationExport/export-modal.js",
+        "js/conversationExport/export-manager.js",
+        "js/conversationExport/index.js"
       ],
       "css": [
         "styles/variables.css",
@@ -227,7 +244,8 @@
         "js/panelModal/tabs/highlight/styles.css",
         "js/panelModal/tabs/chatWidth/styles.css",
         "js/mermaid/styles.css",
-        "js/customSite/custom-site.css"
+        "js/customSite/custom-site.css",
+        "js/conversationExport/styles.css"
       ],
       "run_at": "document_idle"
     }

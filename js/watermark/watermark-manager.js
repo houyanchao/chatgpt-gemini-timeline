@@ -186,7 +186,6 @@ class GeminiWatermarkRemover {
             try {
                 this._showDownloadMenu(button, controls);
             } catch (err) {
-                console.error('[GeminiWatermarkRemover] download menu failed, falling back to native download:', err);
                 this._downloadOriginal(button);
             }
         };
@@ -325,7 +324,6 @@ class GeminiWatermarkRemover {
 
             this._downloadBlob(blob);
         } catch (err) {
-            console.error('[GeminiWatermarkRemover] process failed:', err);
             toast?.error(this._t('geminiWatermarkErrorGeneric', '去水印失败'));
         } finally {
             this._processing = false;
@@ -492,7 +490,6 @@ class GeminiWatermarkRemover {
             remover = new GeminiWatermarkRemover();
             await remover.init();
         } catch (e) {
-            console.error('[GeminiWatermarkRemover] Failed to initialize:', e);
         }
     }
 

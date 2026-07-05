@@ -28,7 +28,7 @@
                 this.locale = SUPPORTED_LOCALES.has(storedLocale) ? storedLocale : AUTO_LOCALE;
                 await this._loadSelectedMessages();
             } catch (error) {
-                console.warn('[TimelineI18n] Failed to initialize, using browser language:', error);
+                // warn('[TimelineI18n] Failed to initialize, using browser language:', error);
                 this.locale = AUTO_LOCALE;
             }
         }

@@ -90,7 +90,7 @@
         if (location.href === currentUrl) return;
         currentUrl = location.href;
         void updateQuickAskState()
-            .catch(error => console.error('[QuickAsk] Failed to update state after URL change:', error));
+            .catch(error => void 0);
     }
     
     // 监听 URL 变化（SPA 路由切换，由 UrlChangeMonitor 统一管理）
@@ -120,7 +120,6 @@
             
             // 检查依赖
             if (typeof QuickAskManager === 'undefined') {
-                console.error('[QuickAsk] QuickAskManager not loaded');
                 return;
             }
             
@@ -142,7 +141,7 @@
                 chrome.storage.onChanged.addListener((changes, areaName) => {
                     if (areaName === 'local' && changes.quickAskEnabled !== undefined) {
                         void updateQuickAskState()
-                            .catch(error => console.error('[QuickAsk] Failed to update state after settings change:', error));
+                            .catch(error => void 0);
                     }
                 });
             }
@@ -164,7 +163,6 @@
             };
             
         } catch (error) {
-            console.error('[QuickAsk] Initialization failed:', error);
         } finally {
             initInFlight = false;
         }

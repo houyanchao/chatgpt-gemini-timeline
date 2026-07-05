@@ -42,7 +42,6 @@ const ContainerFinder = {
                     }
                 }
             } catch (e) {
-                console.warn('[ContainerFinder] 查找共同祖先失败:', e);
             }
         }
         

@@ -398,7 +398,6 @@
                 settleUserNavigation: (options) => instance.settleUserNavigation(options)
             };
         } catch (error) {
-            console.error('[PreventAutoScroll] init failed:', error);
             cleanup();
         } finally {
             initInFlight = false;

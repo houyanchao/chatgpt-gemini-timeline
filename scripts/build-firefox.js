@@ -77,13 +77,10 @@ function build() {
     const zipName = `AIChatTimeline-v${version}-firefox.zip`;
     const zipPath = path.join(ROOT, zipName);
 
-    console.log(`[Firefox Build] Version: ${version}`);
-    console.log(`[Firefox Build] Gecko ID: ${geckoId}`);
 
     // 生成 Firefox manifest
     const firefoxManifest = generateFirefoxManifest(geckoId);
     fs.writeFileSync(FIREFOX_MANIFEST_PATH, JSON.stringify(firefoxManifest, null, 2) + '\n');
-    console.log('[Firefox Build] Generated manifest.firefox.json');
 
     // 临时替换 manifest.json
     const originalManifest = fs.readFileSync(MANIFEST_PATH, 'utf-8');
@@ -111,17 +108,14 @@ function build() {
 
         const stats = fs.statSync(zipPath);
         const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
-        console.log(`[Firefox Build] Packaged: ${zipName} (${sizeMB}MB)`);
     } finally {
         // 恢复原始 manifest.json
         fs.writeFileSync(MANIFEST_PATH, originalManifest);
-        console.log('[Firefox Build] Restored original manifest.json');
     }
 
     // 清理临时文件
     if (fs.existsSync(FIREFOX_MANIFEST_PATH)) fs.unlinkSync(FIREFOX_MANIFEST_PATH);
 
-    console.log('[Firefox Build] Done!');
 }
 
 build();

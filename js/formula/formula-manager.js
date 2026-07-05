@@ -71,7 +71,6 @@ class FormulaManager {
         // ✅ 检查功能是否启用
         const enabled = await this.checkIfEnabled();
         if (!enabled) {
-            console.log('[FormulaManager] Feature is disabled, skip initialization');
             return;
         }
         
@@ -108,7 +107,6 @@ class FormulaManager {
             const mathmlOn = result.formulaMathMLEnabled === true;
             return latexOn || mathmlOn;
         } catch (e) {
-            console.error('[FormulaManager] Failed to check if enabled:', e);
             // 出错默认开启
             return true;
         }
@@ -250,7 +248,6 @@ class FormulaManager {
                     { placement: 'top' }
                 );
             } catch (error) {
-                console.error('[FormulaManager] Failed to show tooltip via global manager:', error);
                 this.showTooltip(formulaElement);
             }
         } else {
@@ -369,7 +366,6 @@ class FormulaManager {
             await navigator.clipboard.writeText(formatted);
             this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
-            console.error('复制 LaTeX 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
         }
     }
@@ -396,7 +392,6 @@ class FormulaManager {
             }
             this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
-            console.error('复制 MathML 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
         }
     }
@@ -424,7 +419,6 @@ class FormulaManager {
             }
             this.showCopyFeedback(TimelineI18n.getMessage('xpzmvk'), formulaElement, false);
         } catch (err) {
-            console.error('复制 MathML(Word) 失败:', err);
             this.showCopyFeedback('⚠ 复制失败', formulaElement, true);
         }
     }
@@ -685,7 +679,6 @@ class FormulaManager {
      * 用于功能重新开启时，识别在关闭期间生成的新公式
      */
     rescan() {
-        console.log('[FormulaManager] Rescanning all formulas...');
         this.scanAndAttachFormulas();
     }
 
@@ -747,7 +740,6 @@ class FormulaManager {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[FormulaManager] Failed to attach URL listeners:', error);
         }
     }
     
@@ -758,7 +750,6 @@ class FormulaManager {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[FormulaManager] Failed to detach URL listeners:', error);
         }
     }
     

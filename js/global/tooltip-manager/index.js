@@ -177,7 +177,6 @@ class GlobalTooltipManager {
             }, typeConfig.showDelay);
             
         } catch (error) {
-            console.error('[TooltipManager] Show failed:', error);
             this.forceHideAll();
         }
     }
@@ -213,7 +212,6 @@ class GlobalTooltipManager {
                 }, delay);
             }
         } catch (error) {
-            console.error('[TooltipManager] Hide failed:', error);
             this._hideImmediate();
         }
     }
@@ -806,27 +804,22 @@ class GlobalTooltipManager {
      */
     _validateParams(id, type, target, content) {
         if (!id) {
-            console.error('[TooltipManager] Missing id');
             return false;
         }
         
         if (!type || !this.config.types[type]) {
-            console.error('[TooltipManager] Invalid type:', type);
             return false;
         }
         
         if (!target || !(target instanceof HTMLElement)) {
-            console.error('[TooltipManager] Invalid target');
             return false;
         }
         
         if (!target.isConnected) {
-            console.warn('[TooltipManager] Target not in DOM');
             return false;
         }
         
         if (!content) {
-            console.error('[TooltipManager] Missing content');
             return false;
         }
         
@@ -872,7 +865,6 @@ class GlobalTooltipManager {
                 });
             });
         } catch (error) {
-            console.error('[TooltipManager] Cleanup orphans failed:', error);
         }
     }
     
@@ -988,7 +980,6 @@ class GlobalTooltipManager {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[TooltipManager]', ...args);
         }
     }
     
@@ -1012,7 +1003,6 @@ class GlobalTooltipManager {
             window.addEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners attached');
         } catch (error) {
-            console.error('[TooltipManager] Failed to attach URL listeners:', error);
         }
     }
     
@@ -1024,7 +1014,6 @@ class GlobalTooltipManager {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners detached');
         } catch (error) {
-            console.error('[TooltipManager] Failed to detach URL listeners:', error);
         }
     }
     

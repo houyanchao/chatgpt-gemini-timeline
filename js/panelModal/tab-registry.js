@@ -52,7 +52,6 @@ async function registerAllTabs() {
     await TimelineI18n.ready();
 
     if (!window.panelModal) {
-        console.error('[TabRegistry] PanelModal not initialized');
         return;
     }
     

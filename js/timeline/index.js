@@ -57,7 +57,6 @@ async function isPlatformEnabled() {
         // 默认启用（!== false）
         return settings[platform.id] !== false;
     } catch (e) {
-        console.error('[Timeline] Failed to check platform enabled:', e);
         return true; // 出错默认启用
     }
 }
@@ -134,7 +133,7 @@ function cleanupGlobalObservers() {
 
 function destroyTimelineInstance() {
     if (timelineManagerInstance) {
-        try { timelineManagerInstance.destroy(); } catch (e) { console.warn('[AIT] destroy error:', e); }
+        try { timelineManagerInstance.destroy(); } catch (e) { void 0; }
         timelineManagerInstance = null;
     }
 
@@ -177,7 +176,6 @@ async function initializeTimeline(version = initVersion) {
                 return false;
             }
         } catch (err) {
-            console.error('[Timeline] Failed to initialize timeline:', err);
             if (timelineManagerInstance === manager) {
                 timelineManagerInstance = null;
             }
@@ -221,7 +219,7 @@ async function handleUrlChange() {
     if (await isConversationRoute()) {
         const currentVersion = initVersion;
         void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-            .catch(e => console.error('[Timeline] Failed to init after URL change:', e));
+            .catch(e => void 0);
     }
     // 如果不是对话 URL，只清理（上面已经做了）
 }
@@ -259,14 +257,14 @@ function setupPlatformSettingsListener() {
                             initVersion++;
                             const currentVersion = initVersion;
                             void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                                .catch(e => console.error('[Timeline] Failed to init after settings change:', e));
+                                .catch(e => void 0);
                         }
                     } else {
                         // 从启用到禁用：销毁时间轴
                         destroyTimelineInstance();
                     }
                 }
-            })().catch(e => console.error('[Timeline] Failed to handle platform settings change:', e));
+            })().catch(e => void 0);
         }
     });
 }
@@ -293,7 +291,7 @@ async function bootstrapTimeline() {
                 initVersion++;
                 const currentVersion = initVersion;
                 void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                    .catch(e => console.error('[Timeline] Failed to init during bootstrap:', e));
+                    .catch(e => void 0);
             }
             
             attachRouteListenersOnce();
@@ -326,7 +324,7 @@ async function bootstrapTimeline() {
                                 unsubscribeInitial = null;
                             }
                         }
-                    })().catch(e => console.error('[Timeline] Failed to init from DOM observer:', e));
+                    })().catch(e => void 0);
                 },
                 debounce: 150  // 150ms 防抖
             });
@@ -334,4 +332,4 @@ async function bootstrapTimeline() {
     }
 }
 
-bootstrapTimeline().catch(e => console.error('[Timeline] Failed to bootstrap:', e));
+bootstrapTimeline().catch(e => void 0);

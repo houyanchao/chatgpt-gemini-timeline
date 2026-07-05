@@ -136,7 +136,6 @@ class SmartInputBoxTab extends BaseTab {
                 </div>
             `).join('');
         } catch (e) {
-            console.error('[SmartInputBoxTab] Failed to render platform list:', e);
         }
     }
     
@@ -167,7 +166,6 @@ class SmartInputBoxTab extends BaseTab {
                     }
                 }
             } catch (e) {
-                console.error('[SmartInputBoxTab] Failed to save quick ask setting:', e);
                 quickAskToggle.checked = !quickAskToggle.checked;
             }
         });
@@ -192,7 +190,6 @@ class SmartInputBoxTab extends BaseTab {
                 const enabled = e.target.checked;
                 await chrome.storage.local.set({ scrollToBottomEnabled: enabled });
             } catch (e) {
-                console.error('[SmartInputBoxTab] Failed to save scroll to bottom setting:', e);
                 scrollToBottomToggle.checked = !scrollToBottomToggle.checked;
             }
         });
@@ -222,7 +219,6 @@ class SmartInputBoxTab extends BaseTab {
                     await chrome.storage.local.set({ smartEnterMode: mode, smartEnterToastCount: 0 });
                     this._updateTriggerText(trigger, mode);
                 } catch (err) {
-                    console.error('[SmartInputBoxTab] Failed to save enter mode:', err);
                 }
             };
             
@@ -269,13 +265,11 @@ class SmartInputBoxTab extends BaseTab {
                         settings[platformId] = enabled;
                         await chrome.storage.local.set({ smartInputPlatformSettings: settings });
                     } catch (e) {
-                        console.error('[SmartInputBoxTab] Failed to save platform setting:', e);
                         toggle.checked = !toggle.checked;
                     }
                 });
             });
         } catch (e) {
-            console.error('[SmartInputBoxTab] Failed to load platform settings:', e);
         }
     }
     

@@ -92,7 +92,6 @@ class SmartEnterAdapterRegistry {
                     return adapter;
                 }
             } catch (e) {
-                console.error('[SmartEnterRegistry] Adapter check failed:', e);
             }
         }
         return null;

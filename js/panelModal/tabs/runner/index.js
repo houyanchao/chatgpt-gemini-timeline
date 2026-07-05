@@ -69,7 +69,6 @@ class RunnerTab extends BaseTab {
                 // 默认值为 true（开启）
                 toggle.checked = result[lang.storageKey] !== false;
             } catch (e) {
-                console.error(`[RunnerTab] Failed to load ${lang.id} state:`, e);
                 toggle.checked = true;
             }
             
@@ -104,9 +103,7 @@ class RunnerTab extends BaseTab {
                 this._handleMermaidToggle(enabled);
             }
             
-            console.log(`[RunnerTab] ${lang.id} runner enabled:`, enabled);
         } catch (e) {
-            console.error(`[RunnerTab] Failed to save ${lang.id} state:`, e);
             // 保存失败，恢复 checkbox 状态
             toggle.checked = !toggle.checked;
         }
@@ -242,7 +239,6 @@ class RunnerTab extends BaseTab {
         
         // 移除已处理标记（让下次开启时可以重新扫描）
         // 注意：这里不能简单移除所有标记，需要让代码重新检测
-        console.log(`[RunnerTab] Removed ${language} Run buttons`);
     }
     
     /**
@@ -273,7 +269,6 @@ class RunnerTab extends BaseTab {
         const processedElements = document.querySelectorAll('[data-runner-initialized]');
         processedElements.forEach(el => el.removeAttribute('data-runner-initialized'));
         
-        console.log('[RunnerTab] Removed all Run buttons and containers');
     }
     
     /**

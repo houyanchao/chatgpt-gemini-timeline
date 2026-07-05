@@ -262,7 +262,6 @@ const StorageAdapter = {
                 });
             });
         } catch (e) {
-            console.error('[StorageAdapter] Migration failed:', e);
         }
     },
 

@@ -41,7 +41,6 @@ class QuickAskManager {
         this._createButton();
         this._bindEvents();
         this.isEnabled = true;
-        console.log('[QuickAsk] 初始化完成');
     }
     
     /**
@@ -57,7 +56,6 @@ class QuickAskManager {
         this._createButton();
         this._bindEvents();
         this.isEnabled = true;
-        console.log('[QuickAsk] 已启用');
     }
     
     /**
@@ -120,7 +118,6 @@ class QuickAskManager {
         }
         
         this.isEnabled = false;
-        console.log('[QuickAsk] 已禁用');
     }
     
     /**
@@ -598,7 +595,6 @@ class QuickAskManager {
                 );
             }
         } catch (e) {
-            console.error('[QuickAsk] copy failed:', e);
             window.globalToastManager?.error?.(
                 TimelineI18n.getMessage('kpzmvx') || '复制失败',
                 null,
@@ -615,7 +611,6 @@ class QuickAskManager {
         const inputElement = this._findInputElement();
         
         if (!inputElement) {
-            console.warn('[QuickAsk] 未找到输入框');
             return;
         }
         
@@ -749,7 +744,6 @@ class QuickAskManager {
                         inputElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                         inputElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
                     } catch (domError) {
-                        console.error('[QuickAsk] DOM manipulation failed:', domError);
                     }
                 }
             }
@@ -809,7 +803,6 @@ class QuickAskManager {
                 }
             }
         } catch (e) {
-            console.debug('[QuickAsk] adapter selector failed', e);
         }
         return null;
     }

@@ -72,7 +72,7 @@ class StarredTab extends BaseTab {
         this.addEventListener(addFolderBtn, 'mouseleave', () => { window.globalTooltipManager.hide(); });
         this.addEventListener(addFolderBtn, 'click', () => {
             void this.treeRenderer.handleCreateFolder()
-                .catch(e => console.error('[StarredTab] Failed to create folder:', e));
+                .catch(e => void 0);
         });
         toolbar.appendChild(addFolderBtn);
 
@@ -86,7 +86,7 @@ class StarredTab extends BaseTab {
         this.addEventListener(searchInput, 'input', (e) => {
             this.setState('searchQuery', e.target.value.trim().toLowerCase());
             void this.updateList()
-                .catch(err => console.error('[StarredTab] Failed to update list:', err));
+                .catch(err => void 0);
         });
         this.addEventListener(searchInput, 'keydown', (e) => {
             if (e.key === 'Escape') {
@@ -94,7 +94,7 @@ class StarredTab extends BaseTab {
                 if (input) input.value = '';
                 this.setState('searchQuery', '');
                 void this.updateList()
-                    .catch(err => console.error('[StarredTab] Failed to update list:', err));
+                    .catch(err => void 0);
             }
         });
         this.setDomRef('searchInput', searchInput);
@@ -148,7 +148,7 @@ class StarredTab extends BaseTab {
             const hideToggle = hideToggleSection.querySelector('#hide-starred-from-list-toggle');
             StorageAdapter.get('hideStarredFromNativeList').then(val => {
                 hideToggle.checked = !!val;
-            }).catch(e => console.error('[StarredTab] Failed to load hide starred setting:', e));
+            }).catch(e => void 0);
             this.addEventListener(hideToggle, 'change', async () => {
                 await StorageAdapter.set('hideStarredFromNativeList', hideToggle.checked);
             });
@@ -169,7 +169,7 @@ class StarredTab extends BaseTab {
             const manageBtn = manageSection.querySelector('.starred-manage-btn');
             this.addEventListener(manageBtn, 'click', () => {
                 void this._showPlatformManageModal(sidebarPlatforms)
-                    .catch(e => console.error('[StarredTab] Failed to show platform modal:', e));
+                    .catch(e => void 0);
             });
         }
     }

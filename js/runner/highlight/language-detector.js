@@ -38,7 +38,6 @@
         }
 
         if (typeof hljs === 'undefined') {
-            console.warn('[LanguageDetector] Highlight.js not loaded');
             return null;
         }
 
@@ -57,7 +56,6 @@
             
             return null;
         } catch (error) {
-            console.error('[LanguageDetector] Detection failed:', error);
             return null;
         }
     }

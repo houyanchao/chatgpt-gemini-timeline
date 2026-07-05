@@ -161,7 +161,6 @@ class ChatWidthManager {
                 await chrome.storage.local.set({ chatWidthScale: scale });
             }
         } catch (e) {
-            console.error('[ChatWidthManager] save failed:', e);
         }
     }
 
@@ -424,7 +423,6 @@ window.ChatWidthManager = ChatWidthManager;
             if (!(await getCurrentPlatform())) return;
             await ChatWidthManager.getInstance().init();
         } catch (error) {
-            console.error('[ChatWidthManager] init failed:', error);
         } finally {
             initInFlight = false;
         }

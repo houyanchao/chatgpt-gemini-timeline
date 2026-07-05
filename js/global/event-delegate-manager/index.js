@@ -7,7 +7,7 @@
  * 
  * 使用方式：
  * window.eventDelegateManager.on('click', '.my-button', (e, target) => {
- *     console.log('Button clicked:', target);
+ *     log('Button clicked:', target);
  * });
  */
 
@@ -93,7 +93,6 @@ class EventDelegateManager {
                 try {
                     handler(e, matchedElement);
                 } catch (error) {
-                    console.error('[EventDelegateManager] Handler error:', error);
                 }
             }
         }
@@ -104,7 +103,6 @@ class EventDelegateManager {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[EventDelegateManager]', ...args);
         }
     }
 }

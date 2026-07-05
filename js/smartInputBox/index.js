@@ -38,19 +38,16 @@
 
             // 检查依赖是否加载
             if (typeof SmartEnterAdapterRegistry === 'undefined') {
-                console.error('[SmartInputBox] SmartEnterAdapterRegistry not loaded');
                 return;
             }
             
             if (typeof SmartEnterManager === 'undefined') {
-                console.error('[SmartInputBox] SmartEnterManager not loaded');
                 return;
             }
             
             // 获取当前页面的适配器
             const registry = window.smartEnterAdapterRegistry;
             if (!registry) {
-                console.error('[SmartInputBox] Registry not initialized');
                 return;
             }
             
@@ -79,7 +76,6 @@
             window.smartEnterManager = manager;
             
         } catch (error) {
-            console.error('[SmartInputBox] Initialization failed:', error);
         } finally {
             initInFlight = false;
         }

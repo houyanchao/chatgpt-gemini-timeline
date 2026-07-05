@@ -109,7 +109,6 @@ class GlobalDropdownManager {
             this._log('Dropdown shown:', { id, position, items });
             
         } catch (error) {
-            console.error('[DropdownManager] Show failed:', error);
             this.hide();
         }
     }
@@ -224,7 +223,6 @@ class GlobalDropdownManager {
                                       relatedTarget.closest('.global-dropdown-submenu'));
             
             if (isMovingToSubmenu) {
-                console.log('[DropdownManager] Overlay -> submenu, keeping open');
                 return;
             }
             
@@ -233,12 +231,10 @@ class GlobalDropdownManager {
                                       relatedTarget.closest('.global-dropdown:not(.global-dropdown-submenu)');
             
             if (isMovingToMainMenu) {
-                console.log('[DropdownManager] Overlay -> main menu, keeping open');
                 return;
             }
             
             // 移出菜单区域，关闭子菜单
-            console.log('[DropdownManager] Overlay -> outside, hiding submenu');
             this._hideAllSubmenus(true);
         });
         
@@ -276,7 +272,6 @@ class GlobalDropdownManager {
         
         // ✨ 主菜单的鼠标事件
         this.dropdown.addEventListener('mouseleave', (e) => {
-            console.log('[DropdownManager] Main dropdown mouseleave');
             
             // 检查是否移动到子菜单或遮罩层（间隙）
             const relatedTarget = e.relatedTarget;
@@ -291,12 +286,10 @@ class GlobalDropdownManager {
                                      relatedTarget.classList?.contains('global-dropdown-overlay');
             
             if (isMovingToSubmenu || isMovingToOverlay) {
-                console.log('[DropdownManager] Moving to submenu or gap, keeping open');
                 return;
             }
             
             // 移出主菜单区域，关闭所有子菜单
-            console.log('[DropdownManager] Moving away from main menu, hiding all submenus');
             this._hideAllSubmenus(true);
         });
         
@@ -364,11 +357,9 @@ class GlobalDropdownManager {
             itemEl.addEventListener('mouseenter', (e) => {
                 if (hasSubmenu) {
                     // 有子菜单：显示子菜单
-                    console.log('[DropdownManager] Item mouseenter (has submenu, level ' + level + '):', item.label);
                     this._showSubmenu(item, itemEl, level);
                 } else {
                     // 没有子菜单：关闭比当前层级更深的子菜单
-                    console.log('[DropdownManager] Item mouseenter (no submenu, level ' + level + '):', item.label);
                     this._hideSubmenusFromLevel(level + 1);
                 }
             });
@@ -485,17 +476,15 @@ class GlobalDropdownManager {
      */
     _validateParams(options) {
         if (!options.trigger || !(options.trigger instanceof HTMLElement)) {
-            console.error('[DropdownManager] Invalid trigger element');
             return false;
         }
         
         if (!options.trigger.isConnected) {
-            console.warn('[DropdownManager] Trigger not in DOM');
+            // warn('[DropdownManager] Trigger not in DOM');
             return false;
         }
         
         if (!Array.isArray(options.items) || options.items.length === 0) {
-            console.error('[DropdownManager] Invalid or empty items array');
             return false;
         }
         
@@ -507,7 +496,6 @@ class GlobalDropdownManager {
      */
     _log(...args) {
         if (this.config.debug) {
-            console.log('[DropdownManager]', ...args);
         }
     }
     
@@ -632,17 +620,8 @@ class GlobalDropdownManager {
     _showSubmenu(item, parentElement, level = 0) {
         const submenuLevel = level + 1; // 子菜单的层级
         
-        console.log('[DropdownManager] _showSubmenu called', {
-            label: item.label,
-            parentLevel: level,
-            submenuLevel: submenuLevel,
-            hasChildren: !!item.children,
-            childrenCount: item.children?.length
-        });
-        
         // ✨ 最大层级限制：3 级（0=主菜单, 1=二级, 2=三级）
         if (submenuLevel > 2) {
-            console.log('[DropdownManager] Max level (3) reached, not showing submenu');
             return;
         }
         
@@ -657,7 +636,6 @@ class GlobalDropdownManager {
             s => s.level === submenuLevel && s.parentItem === item
         );
         if (existingSubmenu) {
-            console.log('[DropdownManager] Same submenu already showing at level ' + submenuLevel);
             return;
         }
         
@@ -671,11 +649,9 @@ class GlobalDropdownManager {
         const submenu = document.createElement('div');
         submenu.className = 'global-dropdown global-dropdown-submenu';
         submenu.dataset.level = submenuLevel; // ✨ 标记子菜单层级
-        console.log('[DropdownManager] Submenu element created, level: ' + submenuLevel);
         
         // 子菜单的鼠标事件
         submenu.addEventListener('mouseleave', (e) => {
-            console.log('[DropdownManager] Submenu (level ' + submenuLevel + ') mouseleave');
             
             const relatedTarget = e.relatedTarget;
             
@@ -690,18 +666,15 @@ class GlobalDropdownManager {
                     const targetLevel = parseInt(targetSubmenu.dataset.level);
                     if (targetLevel >= submenuLevel) {
                         // 移到同级或更深层级的子菜单，保持
-                        console.log('[DropdownManager] Moving to same or deeper level submenu, keeping');
                         return;
                     }
                 } else {
                     // 移到主菜单，保持
-                    console.log('[DropdownManager] Moving to main menu, keeping');
                     return;
                 }
             }
             
             // 移出菜单区域，关闭当前及更深层级
-            console.log('[DropdownManager] Moving away from submenu, hiding from level ' + submenuLevel);
             this._hideSubmenusFromLevel(submenuLevel);
         });
         
@@ -734,19 +707,10 @@ class GlobalDropdownManager {
             parentElement: parentElement
         });
         
-        console.log('[DropdownManager] Submenu state saved, level: ' + submenuLevel + ', position:', {
-            left: submenu.style.left,
-            top: submenu.style.top,
-            totalSubmenus: this.state.activeSubmenus.length
-        });
-        
         // 显示动画
         requestAnimationFrame(() => {
             submenu.classList.add('visible');
-            console.log('[DropdownManager] Submenu visible class added');
         });
-        
-        console.log('[DropdownManager] Submenu shown for:', item.label);
     }
     
     /**
@@ -794,7 +758,6 @@ class GlobalDropdownManager {
      * 延迟关闭子菜单
      */
     _scheduleSubmenuHide() {
-        console.log('[DropdownManager] Scheduling submenu hide in 300ms');
         
         // 清除之前的定时器
         if (this.timers.submenuHide) {
@@ -803,7 +766,6 @@ class GlobalDropdownManager {
         
         // 300ms 后关闭子菜单（增加延迟，给用户更多时间移动鼠标）
         this.timers.submenuHide = setTimeout(() => {
-            console.log('[DropdownManager] Submenu hide timer triggered');
             this._hideAllSubmenus();
             this.timers.submenuHide = null;
         }, 300);
@@ -815,17 +777,13 @@ class GlobalDropdownManager {
      */
     _hideSubmenusFromLevel(fromLevel) {
         if (!this.state.activeSubmenus || this.state.activeSubmenus.length === 0) {
-            console.log('[DropdownManager] _hideSubmenusFromLevel called but no active submenus');
             return;
         }
         
-        console.log('[DropdownManager] Hiding submenus from level ' + fromLevel);
         
         // 找到需要关闭的子菜单
         const toClose = this.state.activeSubmenus.filter(s => s.level >= fromLevel);
         const toKeep = this.state.activeSubmenus.filter(s => s.level < fromLevel);
-        
-        console.log('[DropdownManager] Closing ' + toClose.length + ' submenu(s), keeping ' + toKeep.length);
         
         // 关闭子菜单（添加淡出动画）
         toClose.forEach(submenu => {
@@ -857,11 +815,8 @@ class GlobalDropdownManager {
      */
     _hideAllSubmenus(immediate = false) {
         if (!this.state.activeSubmenus || this.state.activeSubmenus.length === 0) {
-            console.log('[DropdownManager] _hideAllSubmenus called but no active submenus');
             return;
         }
-        
-        console.log('[DropdownManager] Hiding all submenus, immediate:', immediate, 'count:', this.state.activeSubmenus.length);
         
         this.state.activeSubmenus.forEach(submenu => {
             const element = submenu.element;
@@ -891,7 +846,6 @@ class GlobalDropdownManager {
         // 清除状态
         this.state.activeSubmenus = [];
         
-        console.log('[DropdownManager] All submenus hidden');
     }
     
     // ==================== URL 变化监听（组件自治）====================
@@ -904,7 +858,6 @@ class GlobalDropdownManager {
             window.addEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners attached');
         } catch (error) {
-            console.error('[DropdownManager] Failed to attach URL listeners:', error);
         }
     }
     
@@ -916,7 +869,6 @@ class GlobalDropdownManager {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
             this._log('URL listeners detached');
         } catch (error) {
-            console.error('[DropdownManager] Failed to detach URL listeners:', error);
         }
     }
     

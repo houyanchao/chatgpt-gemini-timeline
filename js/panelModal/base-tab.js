@@ -146,7 +146,7 @@ class BaseTab {
      * 
      * @example
      * this.addEventListener(button, 'click', () => {
-     *     console.log('clicked');
+     *     log('clicked');
      * });
      */
     addEventListener(element, event, handler, options = {}) {
@@ -233,12 +233,6 @@ class BaseTab {
         
         // 注意：不清除 _persistentState，保留用户偏好
         
-        console.log(`[BaseTab] ${this.id} cleaned:`, {
-            listenersCleared: this._listeners.length === 0,
-            domRefsCleared: Object.keys(this._domRefs).length === 0,
-            transientStateCleared: Object.keys(this._transientState).length === 0,
-            persistentStateRetained: Object.keys(this._persistentState).length
-        });
     }
 }
 

@@ -113,9 +113,9 @@ const result = await window.globalInputModal.show({
 });
 
 if (result) {
-    console.log('用户输入:', result);
+    // console.log('用户输入:', result);
 } else {
-    console.log('用户取消了');
+    // console.log('用户取消了');
 }
 
 // ❌ 不需要手动清理 DOM

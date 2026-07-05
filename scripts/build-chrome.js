@@ -23,7 +23,6 @@ function build() {
     const zipName = `AIChatTimeline-v${version}-chrome.zip`;
     const zipPath = path.join(ROOT, zipName);
 
-    console.log(`[Chrome Build] Version: ${version}`);
 
     if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
 
@@ -47,8 +46,6 @@ function build() {
 
     const stats = fs.statSync(zipPath);
     const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
-    console.log(`[Chrome Build] Packaged: ${zipName} (${sizeMB}MB)`);
-    console.log('[Chrome Build] Done!');
 }
 
 build();

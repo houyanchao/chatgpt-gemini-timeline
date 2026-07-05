@@ -98,7 +98,6 @@
      */
     function detectLanguage(code) {
         if (!window.LanguageDetector) {
-            console.warn('[Runner] LanguageDetector not loaded');
             return null;
         }
         return window.LanguageDetector.detect(code);
@@ -781,7 +780,6 @@
             ]);
 
             if (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled) {
-                console.log('[Runner] All runners are disabled, skipping initialization');
                 return;
             }
 
@@ -809,7 +807,6 @@
             });
             initialized = true;
         } catch (error) {
-            console.error('[Runner] Initialization failed:', error);
         } finally {
             initInFlight = false;
         }

@@ -128,7 +128,6 @@ class FolderEditModal {
             await TimelineI18n.ready();
 
             if (!options.title) {
-                console.error('[FolderEditModal] Missing required parameter: title');
                 return null;
             }
 
@@ -153,7 +152,6 @@ class FolderEditModal {
 
             return await this._showModal(config);
         } catch (error) {
-            console.error('[FolderEditModal] Show failed:', error);
             return null;
         }
     }
@@ -434,7 +432,7 @@ class FolderEditModal {
     }
 
     _log(...args) {
-        if (this.config.debug) console.log('[FolderEditModal]', ...args);
+        if (this.config.debug) void 0;
     }
 
     // ==================== URL listeners ====================
@@ -443,7 +441,6 @@ class FolderEditModal {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[FolderEditModal] Failed to attach URL listeners:', error);
         }
     }
 
@@ -451,7 +448,6 @@ class FolderEditModal {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
         } catch (error) {
-            console.error('[FolderEditModal] Failed to detach URL listeners:', error);
         }
     }
 

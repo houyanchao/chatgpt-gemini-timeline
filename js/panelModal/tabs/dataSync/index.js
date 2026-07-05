@@ -321,7 +321,6 @@ class DataSyncTab extends BaseTab {
                 );
             }
         } catch (error) {
-            console.error('[DataSyncTab] Export failed:', error);
             // 使用全局 toast 提示（颜色跟随主题）
             if (window.globalToastManager) {
                 window.globalToastManager.error(
@@ -382,7 +381,6 @@ class DataSyncTab extends BaseTab {
                 }
             }
         } catch (error) {
-            console.error('[DataSyncTab] Import failed:', error);
             this.showStatus('error', (TimelineI18n.getMessage('importFailed') || '导入失败') + ': ' + error.message);
         }
     }

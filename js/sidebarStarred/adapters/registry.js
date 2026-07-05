@@ -46,7 +46,6 @@ class SidebarStarredAdapterRegistry {
             try {
                 if (await adapter.matches()) return adapter;
             } catch (e) {
-                console.error('[SidebarStarredRegistry] Adapter check failed:', e);
             }
         }
         return null;
