@@ -458,7 +458,7 @@ class PromptTab extends BaseTab {
                     <label>${TimelineI18n.getMessage('promptContent')}<span class="required-mark">*</span></label>
                     <textarea class="prompt-modal-textarea" id="prompt-content-input"
                         placeholder="${TimelineI18n.getMessage('uwkjwjw')}"
-                        rows="4" maxlength="10000">${this._escapeHtml(prompt?.content || '')}</textarea>
+                        rows="4" maxlength="20000">${this._escapeHtml(prompt?.content || '')}</textarea>
                     <div class="prompt-char-counter">
                         <div class="prompt-platform-select" id="prompt-platform-select">
                             <span class="prompt-platform-label">${TimelineI18n.getMessage('ptfmsl')}：</span>
@@ -467,7 +467,7 @@ class PromptTab extends BaseTab {
                                 <polyline points="6 9 12 15 18 9"/>
                             </svg>
                         </div>
-                        <span><span id="prompt-char-count">${prompt?.content?.length || 0}</span>/10000</span>
+                        <span><span id="prompt-char-count">${prompt?.content?.length || 0}</span>/20000</span>
                     </div>
                 </div>
             </div>

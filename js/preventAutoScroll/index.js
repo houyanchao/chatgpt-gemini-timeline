@@ -11,7 +11,10 @@
  *   3. 用 rAF 循环把 scrollTop 钉回 savedTop，抵消平台的自动滚动；
  *      锚定持续到 AI 生成结束（依据各平台的"停止"按钮状态）。
  *   4. 生成期间用户主动滚动时不放弃保护，而是「跟随」用户更新 savedTop，
- *      并继续拦截平台的自动跳动（用每帧位移幅度区分用户滚动与程序化大跳）。
+ *      并继续拦截平台的自动跳动：wheel 事件的 deltaY 会累计为「用户滚动预算」，
+ *      每帧位移在预算内视为用户滚动予以跟随，超出预算视为程序化大跳予以拒绝。
+ *      长对话下主线程卡顿会拉长帧间隔，该预算机制保证用户实际滚了多少就放行多少，
+ *      不会因掉帧把手动滚动误判为平台跳转（见 issue #129）。
  *
  * 平台改变容器 scrollTop 通常绕过 scrollTop/scrollTo/scrollIntoView 等 JS API
  * （疑似缓存了原始引用），因此采用与机制无关的 rAF 拽回方案。
@@ -28,7 +31,9 @@
     const MAX_DURATION = 120000;    // 安全上限，防止生成态检测异常导致无限锚定（ms）
     const BOTTOM_THRESHOLD = 150;   // 距底部多少 px 内视为"已在底部"
     const USER_WINDOW = 250;        // 用户主动滚动后的「跟随」窗口（ms）
-    const USER_STEP_MAX = 400;      // 跟随窗口内，单帧位移 <= 此值视为用户滚动，否则视为程序化大跳
+    const USER_STEP_MAX = 400;      // 跟随窗口内，无预算时单帧位移 <= 此值视为用户滚动
+    const USER_BUDGET_MAX = 6000;   // 用户滚动预算上限（px），防止累计预算过大放行平台跳转
+    const BUDGET_TTL = 300;         // 窗口过期后预算的存活期（ms），覆盖卡顿时滚动位移延迟到达
     const NAV_KEYS = new Set([
         'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'
     ]);
@@ -60,6 +65,8 @@
             this._sawGenerating = false;
             this._lastGeneratingTs = 0;
             this._userScrollUntil = 0;
+            this._pendingUserDelta = 0;
+            this._lastTouchY = null;
             this._trustedNavigationUntil = 0;
             this._trustedNavigationId = 0;
 
@@ -128,9 +135,36 @@
             this._maybeStartPin();
         }
 
-        _onUserScrollIntent() {
-            if (this.pinning) {
-                this._userScrollUntil = performance.now() + USER_WINDOW;
+        _onUserScrollIntent(e) {
+            if (!this.pinning) return;
+
+            // 边界处（到顶/到底）滚轮不会产生实际位移，必须在刷新跟随窗口前跳过，
+            // 避免无效手势延长已有预算的存活时间。
+            if (e.type === 'wheel' && !this._canScrollInDirection(e.deltaY)) return;
+
+            const now = performance.now();
+            const gestureExpired = now >= this._userScrollUntil;
+            this._userScrollUntil = now + USER_WINDOW;
+
+            // 把手势的实际位移累计为「用户滚动预算」，供 _loop 按量放行。
+            // 只靠固定的单帧阈值判断，在长对话掉帧时会把用户滚动误判为程序化大跳（issue #129）。
+            if (e.type === 'wheel') {
+                let dy = Math.abs(e.deltaY);
+                if (e.deltaMode === 1) dy *= 16;                    // 行 -> px
+                else if (e.deltaMode === 2) dy *= window.innerHeight; // 页 -> px
+                this._pendingUserDelta = Math.min(USER_BUDGET_MAX, this._pendingUserDelta + dy);
+            } else if (e.type === 'touchmove') {
+                const y = e.touches && e.touches[0] ? e.touches[0].clientY : null;
+                if (y != null) {
+                    // 窗口已过期视为新手势，只重置基准点不累计位移
+                    if (!gestureExpired && this._lastTouchY != null) {
+                        this._pendingUserDelta = Math.min(
+                            USER_BUDGET_MAX,
+                            this._pendingUserDelta + Math.abs(y - this._lastTouchY)
+                        );
+                    }
+                    this._lastTouchY = y;
+                }
             }
         }
 
@@ -227,6 +261,8 @@
             this._sawGenerating = false;
             this._lastGeneratingTs = 0;
             this._userScrollUntil = 0;
+            this._pendingUserDelta = 0;
+            this._lastTouchY = null;
             this._trustedNavigationUntil = 0;
             this._trustedNavigationId = 0;
 
@@ -242,12 +278,22 @@
             const now = performance.now();
             const cur = this._readTop(this.scrollContainer);
 
+            // 先清除已过期预算再判断位移，避免在存活期外仍放行一次平台自动滚动。
+            if (this._pendingUserDelta > 0 &&
+                now >= this._userScrollUntil + BUDGET_TTL) {
+                this._pendingUserDelta = 0;
+            }
+
             if (now < this._trustedNavigationUntil) {
                 // 扩展主动导航：可信任大位移，持续跟随并更新锚点
                 this.savedTop = cur;
-            } else if (now < this._userScrollUntil) {
-                // 用户主动滚动窗口内：跟随用户更新 savedTop，但拒绝程序化大跳
-                if (Math.abs(cur - this.savedTop) <= USER_STEP_MAX) {
+            } else if (now < this._userScrollUntil || this._pendingUserDelta > 0) {
+                // 用户滚动窗口内（或掉帧导致窗口已过期但仍有未消费的滚动预算）：
+                // 单帧位移在「基础阈值 + 预算」内视为用户滚动，跟随并消费预算；
+                // 超出则视为平台的程序化大跳，钉回锚点。
+                const step = Math.abs(cur - this.savedTop);
+                if (step <= USER_STEP_MAX + this._pendingUserDelta) {
+                    this._pendingUserDelta = Math.max(0, this._pendingUserDelta - step);
                     this.savedTop = cur; // 跟随
                 } else {
                     this._setTop(this.scrollContainer, this.savedTop); // 拒绝平台的大跳
@@ -289,6 +335,8 @@
                 this.rafId = null;
             }
             this.scrollContainer = null;
+            this._pendingUserDelta = 0;
+            this._lastTouchY = null;
             this._trustedNavigationUntil = 0;
             this._trustedNavigationId = 0;
         }
@@ -318,6 +366,18 @@
         _readTop(container) {
             if (container === window) return window.scrollY;
             return container.scrollTop;
+        }
+
+        /** 容器在手势方向上是否还有可滚动空间（deltaY > 0 向下） */
+        _canScrollInDirection(deltaY) {
+            const container = this.scrollContainer;
+            if (!container || deltaY === 0) return false;
+            const top = this._readTop(container);
+            if (deltaY < 0) return top > 1;
+            const maxTop = container === window
+                ? document.documentElement.scrollHeight - window.innerHeight
+                : container.scrollHeight - container.clientHeight;
+            return top < maxTop - 1;
         }
 
         _measure(container) {
