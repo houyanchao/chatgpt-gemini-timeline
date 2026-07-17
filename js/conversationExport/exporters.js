@@ -4,8 +4,8 @@
  * 输入统一的导出任务对象 job：
  * {
  *   meta: { title, platformId, platformName, url, exportTime: Date },
- *   options: { showUrl, showTime, rangeId, formatId },
- *   turns: [{ order, user:{text,images}, assistant:{markdown,text,images} }]
+ *   options: { showUrl, showTime, showConversationTime, rangeId, formatId },
+ *   turns: [{ order, user:{text,images,time}, assistant:{markdown,text,images} }]
  * }
  */
 
@@ -20,7 +20,7 @@ const CETextExporters = {
     },
 
     _imageInfoLabel(image) {
-        const role = image.role === 'user' ? CE_TEXT.userLabel : CE_TEXT.assistantLabel;
+        const role = image.role === 'user' ? CE_TEXT.exportRoleUser : CE_TEXT.exportRoleAssistant;
         const size = (image.width && image.height) ? `${image.width}x${image.height}` : '未知尺寸';
         const alt = image.alt ? ` ${image.alt}` : '';
         return `${role} · ${size}${alt}`;
@@ -61,12 +61,14 @@ const CETextExporters = {
         lines.push('---');
 
         for (const turn of turns) {
-            lines.push('');
-            lines.push(`## ${CE_TEXT.turnPrefix} ${turn.order}`);
-
             // 用户
             lines.push('');
-            lines.push(`**${CE_TEXT.userLabel}：**`);
+            lines.push(`**${CE_TEXT.exportRoleUser}：**`);
+            const mdAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+            if (mdAskTime) {
+                lines.push('');
+                lines.push(`> ${CE_TEXT.askTimeLabel}: ${mdAskTime}`);
+            }
             lines.push('');
             lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
 
@@ -77,11 +79,18 @@ const CETextExporters = {
 
             // 助手
             lines.push('');
-            lines.push(`**${CE_TEXT.assistantLabel}：**`);
-            lines.push('');
-            lines.push(turn.assistant?.markdown ? turn.assistant.markdown : CE_TEXT.emptyAssistant);
+            lines.push(`**${CE_TEXT.exportRoleAssistant}：**`);
+            const mdAsstImages = turn.assistant?.images || [];
+            if (turn.assistant?.markdown) {
+                lines.push('');
+                lines.push(turn.assistant.markdown);
+            } else if (!mdAsstImages.length) {
+                // 无文本且无图片时才显示占位（纯图片回复不应提示“未找到回复内容”）
+                lines.push('');
+                lines.push(CE_TEXT.emptyAssistant);
+            }
 
-            (turn.assistant?.images || []).forEach(image => {
+            mdAsstImages.forEach(image => {
                 lines.push('');
                 lines.push(...this._imageMarkdownLines(image));
             });
@@ -109,13 +118,17 @@ const CETextExporters = {
 
         for (const turn of turns) {
             lines.push('');
-            lines.push(`【${CE_TEXT.turnPrefix} ${turn.order}】`);
-            lines.push('');
-            lines.push(`${CE_TEXT.userLabel}：`);
+            const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+            lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
             lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
             lines.push('');
-            lines.push(`${CE_TEXT.assistantLabel}：`);
-            lines.push(turn.assistant?.text ? turn.assistant.text : CE_TEXT.emptyAssistant);
+            lines.push(`${CE_TEXT.exportRoleAssistant}：`);
+            if (turn.assistant?.text) {
+                lines.push(turn.assistant.text);
+            } else if (!(turn.assistant?.images || []).length) {
+                // 无文本且无图片时才显示占位（图片在下方图片清单中列出）
+                lines.push(CE_TEXT.emptyAssistant);
+            }
 
             const images = this._turnImages(turn);
             if (images.length) {
@@ -159,6 +172,9 @@ const CETextExporters = {
             order: turn.order,
             user: {
                 text: turn.user?.text || '',
+                ...(options.showConversationTime && turn.user?.time
+                    ? { time: ceFormatChatTime(turn.user.time) }
+                    : {}),
                 images: (turn.user?.images || []).map(this._serializeImage),
             },
             assistant: {
@@ -169,6 +185,54 @@ const CETextExporters = {
         }));
 
         return JSON.stringify({ metadata, conversation }, null, 2);
+    },
+
+    /**
+     * CSV 导出：每轮一行，列为 序号 /（提问时间）/ Q / A / 图片。
+     * 使用 RFC4180 转义（含逗号/引号/换行的字段用双引号包裹、内部引号翻倍），
+     * 并加 UTF-8 BOM 便于 Excel 正确识别中文。
+     * @param {Object} job
+     * @returns {string}
+     */
+    buildCsv(job) {
+        const { meta, options, turns } = job;
+        const withTime = !!options.showConversationTime;
+
+        const rows = [];
+
+        // 头部信息（标题总是输出；来源/导出时间跟随开关），以 key,value 预置行放在表格上方
+        rows.push(`${this._csvEscape(CE_TEXT.titleLabel)},${this._csvEscape(meta.title)}`);
+        if (options.showUrl && meta.url) {
+            rows.push(`${this._csvEscape(CE_TEXT.sourceLabel)},${this._csvEscape(meta.url)}`);
+        }
+        if (options.showTime) {
+            rows.push(`${this._csvEscape(CE_TEXT.timeLabel)},${this._csvEscape(ceFormatLocalTime(meta.exportTime))}`);
+        }
+        rows.push(''); // 空行分隔头部信息与数据表
+
+        const header = ['序号'];
+        if (withTime) header.push(CE_TEXT.askTimeLabel);
+        header.push(CE_TEXT.exportRoleUser, CE_TEXT.exportRoleAssistant, CE_TEXT.imageListTitle);
+        rows.push(header.map(h => this._csvEscape(h)).join(','));
+
+        turns.forEach(turn => {
+            const cells = [turn.order];
+            if (withTime) cells.push(ceFormatChatTime(turn.user?.time) || '');
+            cells.push(turn.user?.text || '');
+            cells.push(turn.assistant?.text || turn.assistant?.markdown || '');
+            const imgs = this._turnImages(turn)
+                .map(img => (img.src ? img.src : `（${CE_TEXT.imageNotRendered}）`))
+                .join('\n');
+            cells.push(imgs);
+            rows.push(cells.map(c => this._csvEscape(c)).join(','));
+        });
+
+        return '\uFEFF' + rows.join('\r\n') + '\r\n';
+    },
+
+    _csvEscape(value) {
+        const s = value == null ? '' : String(value);
+        return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     },
 
     _serializeImage(image) {

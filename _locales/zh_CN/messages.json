@@ -431,6 +431,123 @@
   "runnerSettingsHint": {
     "message": "开启后，代码块右上角将显示 Run 按钮，点击可直接运行代码"
   },
+  "conversationExportTabName": {
+    "message": "对话导出"
+  },
+  "conversationExportSettingsTitle": {
+    "message": "对话导出"
+  },
+  "conversationExportSettingsHint": {
+    "message": "开启后，支持的平台对话页顶部会显示「导出对话」按钮"
+  },
+  "conversationExportSettingsEmpty": {
+    "message": "暂无支持导出的平台"
+  },
+  "conversationExportButtonTooltip": {
+    "message": "导出对话"
+  },
+  "conversationExportModalTitle": {
+    "message": "导出对话"
+  },
+  "conversationExportSectionRange": {
+    "message": "导出范围"
+  },
+  "conversationExportSectionFormat": {
+    "message": "导出格式"
+  },
+  "conversationExportSectionHeader": {
+    "message": "更多配置"
+  },
+  "conversationExportSectionTheme": {
+    "message": "主题色"
+  },
+  "conversationExportSectionList": {
+    "message": "选择对话"
+  },
+  "conversationExportRangeAll": {
+    "message": "整个会话"
+  },
+  "conversationExportRangeSelect": {
+    "message": "选择对话"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "对话 URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "导出时间"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "对话时间"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "提问时间"
+  },
+  "conversationExportSourceLabel": {
+    "message": "对话 URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "导出时间"
+  },
+  "conversationExportTitleLabel": {
+    "message": "标题"
+  },
+  "conversationExportSelectAll": {
+    "message": "全选"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "对话"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "未找到回复内容"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "（无文本内容）"
+  },
+  "conversationExportCancel": {
+    "message": "取消"
+  },
+  "conversationExportConfirm": {
+    "message": "导出"
+  },
+  "conversationExportLoading": {
+    "message": "加载对话中..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "加载对话中...（已加载 {count} 条）"
+  },
+  "conversationExportCancelLoading": {
+    "message": "取消加载"
+  },
+  "conversationExportExporting": {
+    "message": "导出中..."
+  },
+  "conversationExportDone": {
+    "message": "对话已导出"
+  },
+  "conversationExportFailed": {
+    "message": "导出失败"
+  },
+  "conversationExportNoConversation": {
+    "message": "未找到可导出的对话"
+  },
+  "conversationExportNeedSelect": {
+    "message": "请至少选择 1 条对话"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "图片无法内嵌"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "图片未渲染，无法内嵌（可滚动到该轮后重试）"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "内容过长，已截断"
+  },
+  "conversationExportImageListTitle": {
+    "message": "图片"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "对话导出"
+  },
   "fiveStarReview": {
     "message": "觉得好用"
   },

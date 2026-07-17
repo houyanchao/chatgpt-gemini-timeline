@@ -1,0 +1,46 @@
+/**
+ * Conversation Export Settings Tab Styles
+ * 对话导出设置样式
+ *
+ * 注意：复用 timeline/styles.css 中定义的通用类
+ * 如 .platform-list, .platform-list-title, .platform-list-hint,
+ * .platform-list-container, .platform-item, .platform-info-left, .platform-name
+ */
+
+.conversation-export-settings-tab {
+    padding: 0;
+    overflow-y: auto;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.conversation-export-settings-tab .platform-info-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.conversation-export-platform-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.conversation-export-platform-logo-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(127, 127, 127, 0.15);
+    color: inherit;
+}
+
+.conversation-export-empty {
+    padding: 16px;
+    text-align: center;
+    color: rgba(127, 127, 127, 0.8);
+    font-size: 13px;
+}

@@ -21,6 +21,7 @@ class CEExportManager {
         this.adapter = adapter;
         this.modal = null;
         this.pngExporter = new CEPngExporter();
+        this.pdfExporter = new CEPdfExporter();
 
         this._modalOpen = false;
         this._loadCancelled = false;
@@ -237,6 +238,7 @@ class CEExportManager {
                 options: {
                     showUrl: request.showUrl,
                     showTime: request.showTime,
+                    showConversationTime: request.showConversationTime,
                     rangeId: request.rangeId,
                     formatId: request.formatId,
                 },
@@ -248,10 +250,14 @@ class CEExportManager {
             if (request.formatId === 'png') {
                 const blob = await this.pngExporter.export(job, request.themeId);
                 ceTriggerDownload(filenameBase, format, blob);
+            } else if (request.formatId === 'pdf') {
+                // 文字排版方案：构建 HTML → 浏览器打印为 PDF（复用 PNG 的 markdown 解析）
+                await this.pdfExporter.export(job, request.themeId, this.pngExporter);
             } else {
                 let content;
                 if (request.formatId === 'markdown') content = CETextExporters.buildMarkdown(job);
                 else if (request.formatId === 'txt') content = CETextExporters.buildTxt(job);
+                else if (request.formatId === 'csv') content = CETextExporters.buildCsv(job);
                 else content = CETextExporters.buildJson(job);
                 ceTriggerDownload(filenameBase, format, content);
             }

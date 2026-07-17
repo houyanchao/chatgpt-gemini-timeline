@@ -6,7 +6,8 @@
  * - 采集编排 collectAllTurns：按 loadStrategy（SCROLL 滚动加载 / STATIC 内存直读）
  *   把对话准备到可读取状态 → prepareCollection 一次性准备 → 逐轮 extractTurn 读取去重
  * - 「平台事实」优先委托时间轴 adapter（单一事实来源）：用户/助手消息选择器、
- *   对话路由判断、按钮插入锚点、会话标题、滚动容器；时间轴不可用时回退子类兜底
+ *   对话路由判断、按钮插入锚点、会话标题、滚动容器；时间轴未运行时，选择器回退到
+ *   全局 registry 里同平台的时间轴 adapter（仍是单一来源，无需重复维护），其余回退子类兜底
  * - 通用抽取 helper：_domMarkdownFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
  * - 默认主题色、平台名等派生信息
  *
@@ -16,24 +17,43 @@
  * {
  *   id: string,
  *   order: number,
- *   user: { text: string, images: Array },
+ *   user: { text: string, images: Array, time: number|null },
  *   assistant: { markdown: string, text: string, images: Array }
  * }
+ *
+ * user.time 为提问时间戳（毫秒），来源于扩展的 ChatTimeRecorder 记录（chatTimes 存储）；
+ * 未记录（历史对话/平台未开启该功能）时为 null。
  */
 
 class CEExportAdapter {
     constructor(platformId) {
         this.platformId = platformId;
         this.domToMarkdown = new CEDomToMarkdown();
-        // 时间轴 adapter 不可用时的用户消息选择器兜底，由子类设置
-        this.defaultUserMessageSelector = '';
-        // 时间轴 adapter 不可用时的 AI 回复消息选择器兜底，由子类设置
-        this.defaultAssistantMessageSelector = '';
         // 采集策略（见 CE_LOAD_STRATEGY）。默认滚动加载（Gemini 等）。
         this.loadStrategy = CE_LOAD_STRATEGY.SCROLL;
     }
 
     // ---------- 平台事实（默认委托时间轴 adapter，子类提供兜底/覆盖） ----------
+
+    /**
+     * 解析同平台的时间轴 adapter（平台事实的单一来源）。
+     * 优先返回运行中的 timelineManager.adapter（携带页面运行态）；时间轴未运行时，
+     * 从全局只读单例 siteAdapterRegistry 按 platformId 取同平台内置 adapter，
+     * 以复用其静态平台事实（如消息选择器），避免在导出侧重复维护一份。
+     * 都取不到时返回 null。
+     * @returns {SiteAdapter|null}
+     */
+    _resolveTimelineAdapter() {
+        const live = window.timelineManager?.adapter;
+        if (live) return live;
+        try {
+            const registry = window.siteAdapterRegistry;
+            const all = registry?.getAllAdapters?.() || [];
+            return all.find(a => a.platformId === this.platformId) || null;
+        } catch {
+            return null;
+        }
+    }
 
     /**
      * 当前页面是否可导出。
@@ -81,7 +101,7 @@ class CEExportAdapter {
             const text = (firstUser.textContent || '').replace(/\s+/g, ' ').trim();
             if (text) return text.slice(0, 40);
         }
-        return '对话导出';
+        return CE_TEXT.defaultTitle;
     }
 
     /**
@@ -214,24 +234,74 @@ class CEExportAdapter {
 
     /**
      * 用户消息选择器。
-     * 复用时间轴 adapter 的 getUserMessageSelector（单一事实来源），
-     * 时间轴不可用时回退到本 adapter 声明的默认选择器。
+     * 复用同平台时间轴 adapter 的 getUserMessageSelector（单一事实来源，
+     * 运行态优先、否则取全局 registry 里的同平台 adapter）。
      * @returns {string}
      */
     getUserMessageSelector() {
-        const shared = window.timelineManager?.adapter?.getUserMessageSelector?.();
-        return shared || this.defaultUserMessageSelector || '';
+        return this._resolveTimelineAdapter()?.getUserMessageSelector?.() || '';
     }
 
     /**
      * AI 回复消息选择器。
-     * 复用时间轴 adapter 的 getAssistantMessageSelector（单一事实来源），
-     * 时间轴不可用时回退到本 adapter 声明的默认选择器。
+     * 复用同平台时间轴 adapter 的 getAssistantMessageSelector（单一事实来源，
+     * 运行态优先、否则取全局 registry 里的同平台 adapter）。
      * @returns {string}
      */
     getAssistantMessageSelector() {
-        const shared = window.timelineManager?.adapter?.getAssistantMessageSelector?.();
-        return shared || this.defaultAssistantMessageSelector || '';
+        return this._resolveTimelineAdapter()?.getAssistantMessageSelector?.() || '';
+    }
+
+    /**
+     * 构建「用户消息元素 → 提问时间戳」映射。
+     *
+     * 复用扩展已记录的提问时间（ChatTimeRecorder 写入的 chatTimes 存储）：
+     * 键为时间轴 adapter 的 generateTurnId(userEl, index)。这里对时间轴 adapter 声明的
+     * 用户消息元素逐个计算相同的 nodeId 并回填时间戳，用 WeakMap 以元素为键，
+     * 便于子类在 extractTurn 中按用户元素直接取用（无需关心 ID 规则差异）。
+     *
+     * 存储无记录 / 时间轴不可用 / 平台未开启该功能时返回 null。
+     * @returns {Promise<WeakMap<Element, number>|null>}
+     */
+    async _buildAskTimeMap() {
+        try {
+            const adapter = window.timelineManager?.adapter;
+            if (!adapter?.generateTurnId || typeof ChatTimeStorageManager === 'undefined') return null;
+
+            const conversationKey = location.href
+                .replace(/^https?:\/\//, '')
+                .split('?')[0]
+                .split('#')[0];
+            if (!conversationKey) return null;
+
+            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
+            const nodes = data?.nodes || {};
+            if (!Object.keys(nodes).length) return null;
+
+            const selector = adapter.getUserMessageSelector?.();
+            if (!selector) return null;
+
+            const els = Array.from(document.querySelectorAll(selector));
+            const map = new WeakMap();
+            els.forEach((el, index) => {
+                const nodeId = adapter.generateTurnId(el, index);
+                const ts = nodes[String(nodeId)];
+                if (ts) map.set(el, ts);
+            });
+            return map;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * 按用户消息元素取提问时间戳（毫秒），无记录时返回 null。
+     * @param {Element} userEl
+     * @returns {number|null}
+     */
+    _getAskTime(userEl) {
+        if (!userEl || !this._askTimeMap) return null;
+        return this._askTimeMap.get(userEl) || null;
     }
 
     /** 平台展示名 */
@@ -301,6 +371,9 @@ class CEExportAdapter {
             try { scrollTo(initialScrollTop); } catch { /* ignore */ }
             return [];
         }
+
+        // 预取提问时间映射（元素 → 时间戳），供 extractTurn 里按用户元素取用
+        this._askTimeMap = await this._buildAskTimeMap();
 
         // ③ 按顺序一次性读取所有对话轮。
         const turns = [];

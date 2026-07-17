@@ -18,9 +18,6 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         super('chatgpt');
         // ChatGPT 完整对话数据已在内存（React Fiber），无需滚动，直接读取
         this.loadStrategy = CE_LOAD_STRATEGY.STATIC;
-        // 时间轴 adapter 不可用时的兜底选择器
-        this.defaultUserMessageSelector = '[data-turn="user"][data-turn-id]';
-        this.defaultAssistantMessageSelector = '[data-turn="assistant"][data-turn-id]';
 
         // prepareCollection 阶段填充：turnId -> { role, text }
         this._fiberTurns = null;
@@ -75,7 +72,7 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         let text = fiber?.text || '';
         if (!text) text = this._domUserText(userEl);
         const images = this._resolveImages(userEl, fiber, 'user');
-        return { text, images };
+        return { text, images, time: this._getAskTime(userEl) };
     }
 
     _extractAssistant(assistantEl) {
@@ -87,8 +84,9 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         // Fiber 提供的是原始 markdown 源文本，直接作为 markdown 使用最理想；
         // 拿不到时退化为对已渲染 DOM 做 markdown 转换。
         if (fiber?.text) {
+            const md = this._normalizeLatexDelimiters(fiber.text);
             const images = this._resolveImages(assistantEl, fiber, 'assistant');
-            return { markdown: fiber.text, text: fiber.text, images };
+            return { markdown: md, text: md, images };
         }
 
         const dom = this._domMarkdownFrom(assistantEl, ['.markdown', '[data-message-author-role="assistant"]']);
@@ -97,6 +95,32 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
             dom.images = this._resolveImages(assistantEl, fiber, 'assistant');
         }
         return dom;
+    }
+
+    /**
+     * 归一化 ChatGPT 的 LaTeX 分隔符，使其与导出器/其它平台一致（$$ 块级、$ 行内）。
+     *
+     * ChatGPT 原始 markdown 用 \[ ... \] 表示块级公式、\( ... \) 表示行内公式，
+     * 而 PNG/文本导出的公式解析只认 $$ 与 $；不转换会被当作普通文本原样输出（显示 LaTeX 码）。
+     * 为避免误伤，先挖出代码块(```)与行内代码(`)占位，转换后再还原。
+     * @param {string} md
+     * @returns {string}
+     */
+    _normalizeLatexDelimiters(md) {
+        if (!md || (!md.includes('\\[') && !md.includes('\\('))) return md || '';
+
+        const placeholders = [];
+        const stash = (m) => `\u0000${placeholders.push(m) - 1}\u0000`;
+
+        let s = md
+            .replace(/```[\s\S]*?```/g, stash)   // 围栏代码块
+            .replace(/`[^`\n]*`/g, stash);        // 行内代码
+
+        s = s
+            .replace(/\\\[([\s\S]*?)\\\]/g, (_, inner) => `\n$$\n${inner.trim()}\n$$\n`)  // 块级
+            .replace(/\\\(([\s\S]*?)\\\)/g, (_, inner) => `$${inner.trim()}$`);            // 行内
+
+        return s.replace(/\u0000(\d+)\u0000/g, (_, i) => placeholders[Number(i)]);
     }
 
     /**

@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "Quando attivato, apparirà un pulsante Run sui blocchi di codice per eseguire il codice direttamente"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Esporta conversazione"
+  },
+  "conversationExportModalTitle": {
+    "message": "Esporta conversazione"
+  },
+  "conversationExportSectionRange": {
+    "message": "Intervallo di esportazione"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Formato di esportazione"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Altre opzioni"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Colore tema"
+  },
+  "conversationExportSectionList": {
+    "message": "Seleziona messaggi"
+  },
+  "conversationExportRangeAll": {
+    "message": "Intera conversazione"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Seleziona messaggi"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "URL conversazione"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Ora di esportazione"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Ora del messaggio"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Ora della domanda"
+  },
+  "conversationExportSourceLabel": {
+    "message": "URL conversazione"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Ora di esportazione"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Titolo"
+  },
+  "conversationExportSelectAll": {
+    "message": "Seleziona tutto"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Messaggio"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Nessuna risposta trovata"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Nessun contenuto testuale)"
+  },
+  "conversationExportCancel": {
+    "message": "Annulla"
+  },
+  "conversationExportConfirm": {
+    "message": "Esporta"
+  },
+  "conversationExportLoading": {
+    "message": "Caricamento conversazione..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Caricamento conversazione... ({count} caricati)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Annulla caricamento"
+  },
+  "conversationExportExporting": {
+    "message": "Esportazione..."
+  },
+  "conversationExportDone": {
+    "message": "Conversazione esportata"
+  },
+  "conversationExportFailed": {
+    "message": "Esportazione non riuscita"
+  },
+  "conversationExportNoConversation": {
+    "message": "Nessuna conversazione da esportare"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Seleziona almeno 1 messaggio"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Impossibile incorporare l'immagine"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Immagine non renderizzata e non incorporabile (scorri fino a quel messaggio e riprova)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Contenuto troppo lungo, troncato"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Immagine"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Esportazione conversazione"
+  },
   "fiveStarReview": {
     "message": "Ti piace"
   },

@@ -110,10 +110,11 @@ class CEExportModal {
      * @returns {Object}
      */
     getExportRequest() {
-        const rangeId = this._refs.rangeSelect?.checked ? 'select' : 'all';
+        const rangeId = this._refs.rangeSelect?.value === 'select' ? 'select' : 'all';
         const formatId = this._getSelectedFormat();
         const showUrl = !!this._refs.showUrl?.checked;
         const showTime = !!this._refs.showTime?.checked;
+        const showConversationTime = !!this._refs.showConversationTime?.checked;
         const themeId = this._refs.themeSelect?.value || CE_DEFAULT_THEME;
 
         let selectedTurns;
@@ -126,7 +127,7 @@ class CEExportModal {
         // 重新编号，保持导出内序号从 1 开始连续
         selectedTurns = selectedTurns.map((turn, index) => ({ ...turn, order: index + 1 }));
 
-        return { rangeId, formatId, showUrl, showTime, themeId, turns: selectedTurns };
+        return { rangeId, formatId, showUrl, showTime, showConversationTime, themeId, turns: selectedTurns };
     }
 
     // ==================== 构建 DOM ====================
@@ -211,10 +212,8 @@ class CEExportModal {
         content.className = 'ce-export-content';
         content.style.display = 'none';
 
-        content.appendChild(this._buildRangeSection());
-        content.appendChild(this._buildFormatSection());
+        content.appendChild(this._buildRangeFormatSection(config.defaultThemeId));
         content.appendChild(this._buildHeaderSection());
-        content.appendChild(this._buildThemeSection(config.defaultThemeId));
         content.appendChild(this._buildListSection());
 
         this._refs.content = content;
@@ -231,83 +230,64 @@ class CEExportModal {
         return section;
     }
 
-    _buildRangeSection() {
-        const section = this._buildSection(CE_TEXT.sectionRange);
-        const group = document.createElement('div');
-        group.className = 'ce-export-radio-group';
+    _buildRangeFormatSection(defaultThemeId) {
+        const section = document.createElement('div');
+        section.className = 'ce-export-section ce-export-section-range';
 
-        const allRadio = this._radio('ce-range', CE_TEXT.rangeAll, true);
-        const selectRadio = this._radio('ce-range', CE_TEXT.rangeSelect, false);
+        const row = document.createElement('div');
+        row.className = 'ce-export-field-row';
 
-        allRadio.input.addEventListener('change', () => this._syncRangeUI());
-        selectRadio.input.addEventListener('change', () => this._syncRangeUI());
+        const rangeField = this._buildSelectField(CE_TEXT.sectionRange, [
+            { value: 'all', label: CE_TEXT.rangeAll },
+            { value: 'select', label: CE_TEXT.rangeSelect },
+        ], 'all');
+        rangeField.select.addEventListener('change', () => this._syncRangeUI());
+        this._refs.rangeSelect = rangeField.select;
 
-        group.appendChild(allRadio.label);
-        group.appendChild(selectRadio.label);
-        section.appendChild(group);
+        const formatField = this._buildSelectField(
+            CE_TEXT.sectionFormat,
+            CE_FORMATS.map(f => ({ value: f.id, label: f.label })),
+            CE_DEFAULT_FORMAT
+        );
+        formatField.select.addEventListener('change', () => this._syncThemeVisibility());
+        this._refs.formatSelect = formatField.select;
 
-        this._refs.rangeAll = allRadio.input;
-        this._refs.rangeSelect = selectRadio.input;
-        return section;
-    }
+        // 图片主题色：第三格，仅 PNG 格式时显示
+        const themeDefault = CE_THEMES.some(t => t.id === defaultThemeId) ? defaultThemeId : CE_DEFAULT_THEME;
+        const themeField = this._buildSelectField(
+            CE_TEXT.sectionTheme,
+            CE_THEMES.map(t => ({ value: t.id, label: t.label })),
+            themeDefault
+        );
+        this._refs.themeSelect = themeField.select;
+        this._refs.themeField = themeField.field;
+        themeField.field.style.display = 'none'; // 初始按默认格式（markdown）隐藏
 
-    _buildFormatSection() {
-        const section = this._buildSection(CE_TEXT.sectionFormat);
-        const group = document.createElement('div');
-        group.className = 'ce-export-radio-group ce-export-format-group';
-
-        this._refs.formatInputs = [];
-        CE_FORMATS.forEach(format => {
-            const item = this._radio('ce-format', format.label, format.id === CE_DEFAULT_FORMAT);
-            item.input.value = format.id;
-            item.input.addEventListener('change', () => {
-                this._syncThemeVisibility();
-            });
-            group.appendChild(item.label);
-            this._refs.formatInputs.push(item.input);
-        });
-
-        section.appendChild(group);
+        row.appendChild(rangeField.field);
+        row.appendChild(formatField.field);
+        row.appendChild(themeField.field);
+        section.appendChild(row);
         return section;
     }
 
     _buildHeaderSection() {
-        const section = this._buildSection(CE_TEXT.sectionHeader);
+        const section = document.createElement('div');
+        section.className = 'ce-export-section';
         const group = document.createElement('div');
         group.className = 'ce-export-check-group';
 
         const urlCheck = this._checkbox(CE_TEXT.headerShowUrl, true);
         const timeCheck = this._checkbox(CE_TEXT.headerShowTime, true);
+        const chatTimeCheck = this._checkbox(CE_TEXT.headerShowConversationTime, true);
 
         group.appendChild(urlCheck.label);
         group.appendChild(timeCheck.label);
+        group.appendChild(chatTimeCheck.label);
         section.appendChild(group);
 
         this._refs.showUrl = urlCheck.input;
         this._refs.showTime = timeCheck.input;
-        return section;
-    }
-
-    _buildThemeSection(defaultThemeId) {
-        const section = this._buildSection(CE_TEXT.sectionTheme);
-        section.classList.add('ce-export-theme-section');
-
-        const select = document.createElement('select');
-        select.className = 'ce-export-select';
-        CE_THEMES.forEach(theme => {
-            const option = document.createElement('option');
-            option.value = theme.id;
-            option.textContent = theme.label;
-            select.appendChild(option);
-        });
-        select.value = CE_THEMES.some(t => t.id === defaultThemeId) ? defaultThemeId : CE_DEFAULT_THEME;
-
-        section.appendChild(select);
-        this._refs.themeSelect = select;
-        this._refs.themeSection = section;
-
-        // 初始按默认格式（markdown）隐藏
-        section.style.display = 'none';
+        this._refs.showConversationTime = chatTimeCheck.input;
         return section;
     }
 
@@ -370,6 +350,9 @@ class CEExportModal {
             const row = document.createElement('label');
             row.className = 'ce-export-list-item';
 
+            const aside = document.createElement('div');
+            aside.className = 'ce-export-list-aside';
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'ce-export-list-check';
@@ -379,26 +362,28 @@ class CEExportModal {
                 this._updateExportButtonState();
             });
 
-            const body = document.createElement('div');
-            body.className = 'ce-export-list-body';
-
             const orderEl = document.createElement('div');
             orderEl.className = 'ce-export-list-order';
             orderEl.textContent = `${CE_TEXT.turnPrefix} ${turn.order}`;
 
+            aside.appendChild(checkbox);
+            aside.appendChild(orderEl);
+
+            const body = document.createElement('div');
+            body.className = 'ce-export-list-body';
+
             const userPreview = document.createElement('div');
             userPreview.className = 'ce-export-list-preview ce-export-list-user';
-            userPreview.textContent = `${CE_TEXT.userLabel}：${this._preview(turn.user?.text) || CE_TEXT.emptyUserPreview}`;
+            userPreview.textContent = `${CE_TEXT.exportRoleUser}：${this._preview(turn.user?.text) || CE_TEXT.emptyUserPreview}`;
 
             const assistantPreview = document.createElement('div');
             assistantPreview.className = 'ce-export-list-preview ce-export-list-assistant';
-            assistantPreview.textContent = `${CE_TEXT.assistantLabel}：${this._preview(turn.assistant?.text) || CE_TEXT.emptyAssistant}`;
+            assistantPreview.textContent = `${CE_TEXT.exportRoleAssistant}：${this._preview(turn.assistant?.text) || CE_TEXT.emptyAssistant}`;
 
-            body.appendChild(orderEl);
             body.appendChild(userPreview);
             body.appendChild(assistantPreview);
 
-            row.appendChild(checkbox);
+            row.appendChild(aside);
             row.appendChild(body);
             list.appendChild(row);
 
@@ -425,20 +410,30 @@ class CEExportModal {
     }
 
     _syncRangeUI() {
-        const isSelect = !!this._refs.rangeSelect?.checked;
+        const isSelect = this._refs.rangeSelect?.value === 'select';
         const listSection = this._refs.list?.closest('.ce-export-list-section');
         if (listSection) {
             listSection.classList.toggle('ce-disabled', !isSelect);
         }
-        (this._refs.rows || []).forEach(cb => { cb.disabled = !isSelect; });
-        if (this._refs.selectAll) this._refs.selectAll.disabled = !isSelect;
+        // 整个会话：全部勾选并禁用交互；切换到选择对话：全部取消勾选、可交互
+        (this._refs.rows || []).forEach(cb => {
+            cb.checked = !isSelect;
+            cb.disabled = !isSelect;
+        });
+        if (this._refs.selectAll) {
+            this._refs.selectAll.checked = !isSelect;
+            this._refs.selectAll.indeterminate = false;
+            this._refs.selectAll.disabled = !isSelect;
+        }
         this._updateExportButtonState();
     }
 
     _syncThemeVisibility() {
-        const isPng = this._getSelectedFormat() === 'png';
-        if (this._refs.themeSection) {
-            this._refs.themeSection.style.display = isPng ? 'block' : 'none';
+        // PNG 与 PDF 都基于长图渲染，需要图片主题色
+        const fmt = this._getSelectedFormat();
+        const isImageBased = fmt === 'png' || fmt === 'pdf';
+        if (this._refs.themeField) {
+            this._refs.themeField.style.display = isImageBased ? '' : 'none';
         }
     }
 
@@ -446,7 +441,7 @@ class CEExportModal {
         const btn = this._refs.exportBtn;
         if (!btn || btn.dataset.busy === '1') return;
 
-        const isSelect = !!this._refs.rangeSelect?.checked;
+        const isSelect = this._refs.rangeSelect?.value === 'select';
         let enabled = true;
         if (this.turns.length === 0) {
             enabled = false;
@@ -458,18 +453,27 @@ class CEExportModal {
 
     // ==================== 小组件工厂 ====================
 
-    _radio(name, labelText, checked) {
-        const label = document.createElement('label');
-        label.className = 'ce-export-radio';
-        const input = document.createElement('input');
-        input.type = 'radio';
-        input.name = name;
-        input.checked = checked;
-        const span = document.createElement('span');
-        span.textContent = labelText;
-        label.appendChild(input);
-        label.appendChild(span);
-        return { label, input };
+    _buildSelectField(titleText, options, selectedValue) {
+        const field = document.createElement('div');
+        field.className = 'ce-export-field';
+
+        const title = document.createElement('div');
+        title.className = 'ce-export-section-title';
+        title.textContent = titleText;
+
+        const select = document.createElement('select');
+        select.className = 'ce-export-select';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            select.appendChild(option);
+        });
+        if (selectedValue != null) select.value = selectedValue;
+
+        field.appendChild(title);
+        field.appendChild(select);
+        return { field, select };
     }
 
     _checkbox(labelText, checked) {
@@ -486,8 +490,7 @@ class CEExportModal {
     }
 
     _getSelectedFormat() {
-        const input = (this._refs.formatInputs || []).find(i => i.checked);
-        return input ? input.value : CE_DEFAULT_FORMAT;
+        return this._refs.formatSelect?.value || CE_DEFAULT_FORMAT;
     }
 
     _preview(text) {

@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "Saat diaktifkan, tombol Run akan muncul di blok kode untuk menjalankan kode secara langsung"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Ekspor percakapan"
+  },
+  "conversationExportModalTitle": {
+    "message": "Ekspor percakapan"
+  },
+  "conversationExportSectionRange": {
+    "message": "Rentang ekspor"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Format ekspor"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Opsi lainnya"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Warna tema"
+  },
+  "conversationExportSectionList": {
+    "message": "Pilih pesan"
+  },
+  "conversationExportRangeAll": {
+    "message": "Seluruh percakapan"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Pilih pesan"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "URL percakapan"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Waktu ekspor"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Waktu pesan"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Waktu bertanya"
+  },
+  "conversationExportSourceLabel": {
+    "message": "URL percakapan"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Waktu ekspor"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Judul"
+  },
+  "conversationExportSelectAll": {
+    "message": "Pilih semua"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Pesan"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Balasan tidak ditemukan"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Tidak ada konten teks)"
+  },
+  "conversationExportCancel": {
+    "message": "Batal"
+  },
+  "conversationExportConfirm": {
+    "message": "Ekspor"
+  },
+  "conversationExportLoading": {
+    "message": "Memuat percakapan..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Memuat percakapan... ({count} dimuat)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Batalkan pemuatan"
+  },
+  "conversationExportExporting": {
+    "message": "Mengekspor..."
+  },
+  "conversationExportDone": {
+    "message": "Percakapan diekspor"
+  },
+  "conversationExportFailed": {
+    "message": "Ekspor gagal"
+  },
+  "conversationExportNoConversation": {
+    "message": "Tidak ada percakapan untuk diekspor"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Pilih setidaknya 1 pesan"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Gambar tidak dapat disematkan"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Gambar belum dirender dan tidak dapat disematkan (gulir ke pesan itu lalu coba lagi)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Konten terlalu panjang, dipangkas"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Gambar"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Ekspor percakapan"
+  },
   "fiveStarReview": {
     "message": "Suka"
   },

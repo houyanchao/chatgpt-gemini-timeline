@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "При включении на блоках кода появится кнопка Run для прямого выполнения кода"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Экспорт разговора"
+  },
+  "conversationExportModalTitle": {
+    "message": "Экспорт разговора"
+  },
+  "conversationExportSectionRange": {
+    "message": "Диапазон экспорта"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Формат экспорта"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Дополнительно"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Цвет темы"
+  },
+  "conversationExportSectionList": {
+    "message": "Выбрать сообщения"
+  },
+  "conversationExportRangeAll": {
+    "message": "Весь разговор"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Выбрать сообщения"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "URL разговора"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Время экспорта"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Время сообщения"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Время вопроса"
+  },
+  "conversationExportSourceLabel": {
+    "message": "URL разговора"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Время экспорта"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Заголовок"
+  },
+  "conversationExportSelectAll": {
+    "message": "Выбрать все"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Сообщение"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Ответ не найден"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Нет текста)"
+  },
+  "conversationExportCancel": {
+    "message": "Отмена"
+  },
+  "conversationExportConfirm": {
+    "message": "Экспорт"
+  },
+  "conversationExportLoading": {
+    "message": "Загрузка разговора..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Загрузка разговора... (загружено {count})"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Отменить загрузку"
+  },
+  "conversationExportExporting": {
+    "message": "Экспорт..."
+  },
+  "conversationExportDone": {
+    "message": "Разговор экспортирован"
+  },
+  "conversationExportFailed": {
+    "message": "Ошибка экспорта"
+  },
+  "conversationExportNoConversation": {
+    "message": "Не найден разговор для экспорта"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Выберите хотя бы 1 сообщение"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Невозможно встроить изображение"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Изображение не отрисовано и не может быть встроено (прокрутите к этому сообщению и повторите)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Содержимое слишком длинное, обрезано"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Изображение"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Экспорт разговора"
+  },
   "fiveStarReview": {
     "message": "Нравится"
   },

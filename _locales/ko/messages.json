@@ -398,6 +398,111 @@
   "runnerSettingsHint": {
     "message": "활성화하면 코드 블록에 Run 버튼이 표시되어 코드를 직접 실행할 수 있습니다"
   },
+  "conversationExportButtonTooltip": {
+    "message": "대화 내보내기"
+  },
+  "conversationExportModalTitle": {
+    "message": "대화 내보내기"
+  },
+  "conversationExportSectionRange": {
+    "message": "내보내기 범위"
+  },
+  "conversationExportSectionFormat": {
+    "message": "내보내기 형식"
+  },
+  "conversationExportSectionHeader": {
+    "message": "추가 옵션"
+  },
+  "conversationExportSectionTheme": {
+    "message": "테마 색상"
+  },
+  "conversationExportSectionList": {
+    "message": "대화 선택"
+  },
+  "conversationExportRangeAll": {
+    "message": "전체 대화"
+  },
+  "conversationExportRangeSelect": {
+    "message": "대화 선택"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "대화 URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "내보낸 시간"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "대화 시간"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "질문 시간"
+  },
+  "conversationExportSourceLabel": {
+    "message": "대화 URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "내보낸 시간"
+  },
+  "conversationExportTitleLabel": {
+    "message": "제목"
+  },
+  "conversationExportSelectAll": {
+    "message": "전체 선택"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "대화"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "답변을 찾을 수 없음"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(텍스트 내용 없음)"
+  },
+  "conversationExportCancel": {
+    "message": "취소"
+  },
+  "conversationExportConfirm": {
+    "message": "내보내기"
+  },
+  "conversationExportLoading": {
+    "message": "대화 불러오는 중..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "대화 불러오는 중... ({count}개 불러옴)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "불러오기 취소"
+  },
+  "conversationExportExporting": {
+    "message": "내보내는 중..."
+  },
+  "conversationExportDone": {
+    "message": "대화를 내보냈습니다"
+  },
+  "conversationExportFailed": {
+    "message": "내보내기 실패"
+  },
+  "conversationExportNoConversation": {
+    "message": "내보낼 대화를 찾을 수 없습니다"
+  },
+  "conversationExportNeedSelect": {
+    "message": "대화를 1개 이상 선택하세요"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "이미지를 삽입할 수 없음"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "이미지가 렌더링되지 않아 삽입할 수 없습니다 (해당 대화로 스크롤한 후 다시 시도하세요)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "내용이 너무 길어 잘렸습니다"
+  },
+  "conversationExportImageListTitle": {
+    "message": "이미지"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "대화 내보내기"
+  },
   "fiveStarReview": {
     "message": "마음에 드시나요"
   },

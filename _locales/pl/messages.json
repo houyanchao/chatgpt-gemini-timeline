@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "Po włączeniu na blokach kodu pojawi się przycisk Run do bezpośredniego uruchamiania kodu"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Eksportuj rozmowę"
+  },
+  "conversationExportModalTitle": {
+    "message": "Eksportuj rozmowę"
+  },
+  "conversationExportSectionRange": {
+    "message": "Zakres eksportu"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Format eksportu"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Więcej opcji"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Kolor motywu"
+  },
+  "conversationExportSectionList": {
+    "message": "Wybierz wiadomości"
+  },
+  "conversationExportRangeAll": {
+    "message": "Cała rozmowa"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Wybierz wiadomości"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "Adres URL rozmowy"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Czas eksportu"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Czas wiadomości"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Zadano o"
+  },
+  "conversationExportSourceLabel": {
+    "message": "Adres URL rozmowy"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Czas eksportu"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Tytuł"
+  },
+  "conversationExportSelectAll": {
+    "message": "Zaznacz wszystko"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Wiadomość"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Nie znaleziono odpowiedzi"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Brak treści tekstowej)"
+  },
+  "conversationExportCancel": {
+    "message": "Anuluj"
+  },
+  "conversationExportConfirm": {
+    "message": "Eksportuj"
+  },
+  "conversationExportLoading": {
+    "message": "Wczytywanie rozmowy..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Wczytywanie rozmowy... (wczytano {count})"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Anuluj wczytywanie"
+  },
+  "conversationExportExporting": {
+    "message": "Eksportowanie..."
+  },
+  "conversationExportDone": {
+    "message": "Rozmowa wyeksportowana"
+  },
+  "conversationExportFailed": {
+    "message": "Eksport nie powiódł się"
+  },
+  "conversationExportNoConversation": {
+    "message": "Nie znaleziono rozmowy do eksportu"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Wybierz co najmniej 1 wiadomość"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Nie można osadzić obrazu"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Obraz nie został wyrenderowany i nie można go osadzić (przewiń do tej tury i spróbuj ponownie)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Treść zbyt długa, skrócono"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Obraz"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Eksport rozmowy"
+  },
   "fiveStarReview": {
     "message": "Podoba Ci się"
   },

@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "Wenn aktiviert, erscheint ein Run-Button auf Codeblöcken, um Code direkt auszuführen"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Unterhaltung exportieren"
+  },
+  "conversationExportModalTitle": {
+    "message": "Unterhaltung exportieren"
+  },
+  "conversationExportSectionRange": {
+    "message": "Exportbereich"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Exportformat"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Weitere Optionen"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Themenfarbe"
+  },
+  "conversationExportSectionList": {
+    "message": "Nachrichten auswählen"
+  },
+  "conversationExportRangeAll": {
+    "message": "Gesamte Unterhaltung"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Nachrichten auswählen"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "Unterhaltungs-URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Exportzeit"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Nachrichtenzeit"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Gefragt um"
+  },
+  "conversationExportSourceLabel": {
+    "message": "Unterhaltungs-URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Exportzeit"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Titel"
+  },
+  "conversationExportSelectAll": {
+    "message": "Alle auswählen"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Nachricht"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Keine Antwort gefunden"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Kein Textinhalt)"
+  },
+  "conversationExportCancel": {
+    "message": "Abbrechen"
+  },
+  "conversationExportConfirm": {
+    "message": "Exportieren"
+  },
+  "conversationExportLoading": {
+    "message": "Unterhaltung wird geladen..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Unterhaltung wird geladen... ({count} geladen)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Laden abbrechen"
+  },
+  "conversationExportExporting": {
+    "message": "Wird exportiert..."
+  },
+  "conversationExportDone": {
+    "message": "Unterhaltung exportiert"
+  },
+  "conversationExportFailed": {
+    "message": "Export fehlgeschlagen"
+  },
+  "conversationExportNoConversation": {
+    "message": "Keine Unterhaltung zum Exportieren gefunden"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Bitte mindestens 1 Nachricht auswählen"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Bild kann nicht eingebettet werden"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Bild nicht gerendert und kann nicht eingebettet werden (zu dieser Nachricht scrollen und erneut versuchen)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Inhalt zu lang, gekürzt"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Bild"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Unterhaltungsexport"
+  },
   "fiveStarReview": {
     "message": "Gefällt es Ihnen"
   },

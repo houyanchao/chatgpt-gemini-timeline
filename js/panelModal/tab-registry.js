@@ -16,6 +16,7 @@ function getTabClass(name) {
         case 'FormulaTab': return typeof FormulaTab !== 'undefined' ? FormulaTab : null;
         case 'AnimationTab': return typeof AnimationTab !== 'undefined' ? AnimationTab : null;
         case 'RunnerTab': return typeof RunnerTab !== 'undefined' ? RunnerTab : null;
+        case 'ConversationExportTab': return typeof ConversationExportTab !== 'undefined' ? ConversationExportTab : null;
         case 'DataSyncTab': return typeof DataSyncTab !== 'undefined' ? DataSyncTab : null;
         case 'AboutTab': return typeof AboutTab !== 'undefined' ? AboutTab : null;
         case 'HighlightTab': return typeof HighlightTab !== 'undefined' ? HighlightTab : null;
@@ -41,6 +42,7 @@ const TAB_CONFIG = [
     { id: 'chat-width', className: 'ChatWidthTab' },
     { id: 'animation', className: 'AnimationTab' },
     { id: 'runner', className: 'RunnerTab' },
+    { id: 'conversation-export', className: 'ConversationExportTab' },
     { id: 'mirror-site', className: 'MirrorSiteTab' },
     { id: 'data-sync', className: 'DataSyncTab' }
 ];

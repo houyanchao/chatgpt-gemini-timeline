@@ -398,6 +398,111 @@
   "runnerSettingsHint": {
     "message": "When enabled, a Run button will appear on code blocks to execute code directly"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Export conversation"
+  },
+  "conversationExportModalTitle": {
+    "message": "Export conversation"
+  },
+  "conversationExportSectionRange": {
+    "message": "Export range"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Export format"
+  },
+  "conversationExportSectionHeader": {
+    "message": "More options"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Theme colour"
+  },
+  "conversationExportSectionList": {
+    "message": "Select messages"
+  },
+  "conversationExportRangeAll": {
+    "message": "Entire conversation"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Select messages"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "Conversation URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Export time"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Message time"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Asked at"
+  },
+  "conversationExportSourceLabel": {
+    "message": "Conversation URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Export time"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Title"
+  },
+  "conversationExportSelectAll": {
+    "message": "Select all"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Message"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "No reply found"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(No text content)"
+  },
+  "conversationExportCancel": {
+    "message": "Cancel"
+  },
+  "conversationExportConfirm": {
+    "message": "Export"
+  },
+  "conversationExportLoading": {
+    "message": "Loading conversation..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Loading conversation... ({count} loaded)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Cancel loading"
+  },
+  "conversationExportExporting": {
+    "message": "Exporting..."
+  },
+  "conversationExportDone": {
+    "message": "Conversation exported"
+  },
+  "conversationExportFailed": {
+    "message": "Export failed"
+  },
+  "conversationExportNoConversation": {
+    "message": "No conversation found to export"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Please select at least 1 message"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Image cannot be embedded"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Image not rendered and cannot be embedded (scroll to that turn and retry)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Content too long, truncated"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Image"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Conversation export"
+  },
   "fiveStarReview": {
     "message": "Like it"
   },

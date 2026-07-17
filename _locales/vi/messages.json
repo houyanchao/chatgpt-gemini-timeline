@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "Khi bật, nút Run sẽ xuất hiện trên các khối mã để chạy mã trực tiếp"
   },
+  "conversationExportButtonTooltip": {
+    "message": "Xuất cuộc trò chuyện"
+  },
+  "conversationExportModalTitle": {
+    "message": "Xuất cuộc trò chuyện"
+  },
+  "conversationExportSectionRange": {
+    "message": "Phạm vi xuất"
+  },
+  "conversationExportSectionFormat": {
+    "message": "Định dạng xuất"
+  },
+  "conversationExportSectionHeader": {
+    "message": "Tùy chọn khác"
+  },
+  "conversationExportSectionTheme": {
+    "message": "Màu chủ đề"
+  },
+  "conversationExportSectionList": {
+    "message": "Chọn tin nhắn"
+  },
+  "conversationExportRangeAll": {
+    "message": "Toàn bộ cuộc trò chuyện"
+  },
+  "conversationExportRangeSelect": {
+    "message": "Chọn tin nhắn"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "URL cuộc trò chuyện"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "Thời gian xuất"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "Thời gian tin nhắn"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "Thời gian hỏi"
+  },
+  "conversationExportSourceLabel": {
+    "message": "URL cuộc trò chuyện"
+  },
+  "conversationExportTimeLabel": {
+    "message": "Thời gian xuất"
+  },
+  "conversationExportTitleLabel": {
+    "message": "Tiêu đề"
+  },
+  "conversationExportSelectAll": {
+    "message": "Chọn tất cả"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "Tin nhắn"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "Không tìm thấy câu trả lời"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(Không có nội dung văn bản)"
+  },
+  "conversationExportCancel": {
+    "message": "Hủy"
+  },
+  "conversationExportConfirm": {
+    "message": "Xuất"
+  },
+  "conversationExportLoading": {
+    "message": "Đang tải cuộc trò chuyện..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "Đang tải cuộc trò chuyện... (đã tải {count})"
+  },
+  "conversationExportCancelLoading": {
+    "message": "Hủy tải"
+  },
+  "conversationExportExporting": {
+    "message": "Đang xuất..."
+  },
+  "conversationExportDone": {
+    "message": "Đã xuất cuộc trò chuyện"
+  },
+  "conversationExportFailed": {
+    "message": "Xuất thất bại"
+  },
+  "conversationExportNoConversation": {
+    "message": "Không tìm thấy cuộc trò chuyện để xuất"
+  },
+  "conversationExportNeedSelect": {
+    "message": "Vui lòng chọn ít nhất 1 tin nhắn"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "Không thể nhúng hình ảnh"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "Hình ảnh chưa hiển thị và không thể nhúng (cuộn đến tin nhắn đó rồi thử lại)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "Nội dung quá dài, đã cắt bớt"
+  },
+  "conversationExportImageListTitle": {
+    "message": "Hình ảnh"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "Xuất cuộc trò chuyện"
+  },
   "fiveStarReview": {
     "message": "Thích không"
   },

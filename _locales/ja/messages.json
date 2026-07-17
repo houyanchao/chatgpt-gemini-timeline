@@ -398,6 +398,111 @@
   "runnerSettingsHint": {
     "message": "有効にすると、コードブロックにRunボタンが表示され、コードを直接実行できます"
   },
+  "conversationExportButtonTooltip": {
+    "message": "会話をエクスポート"
+  },
+  "conversationExportModalTitle": {
+    "message": "会話をエクスポート"
+  },
+  "conversationExportSectionRange": {
+    "message": "エクスポート範囲"
+  },
+  "conversationExportSectionFormat": {
+    "message": "エクスポート形式"
+  },
+  "conversationExportSectionHeader": {
+    "message": "詳細オプション"
+  },
+  "conversationExportSectionTheme": {
+    "message": "テーマカラー"
+  },
+  "conversationExportSectionList": {
+    "message": "会話を選択"
+  },
+  "conversationExportRangeAll": {
+    "message": "会話全体"
+  },
+  "conversationExportRangeSelect": {
+    "message": "会話を選択"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "会話 URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "エクスポート時刻"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "会話の時刻"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "質問時刻"
+  },
+  "conversationExportSourceLabel": {
+    "message": "会話 URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "エクスポート時刻"
+  },
+  "conversationExportTitleLabel": {
+    "message": "タイトル"
+  },
+  "conversationExportSelectAll": {
+    "message": "すべて選択"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "会話"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "返信が見つかりません"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "（テキストなし）"
+  },
+  "conversationExportCancel": {
+    "message": "キャンセル"
+  },
+  "conversationExportConfirm": {
+    "message": "エクスポート"
+  },
+  "conversationExportLoading": {
+    "message": "会話を読み込み中..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "会話を読み込み中...（{count} 件読み込み済み）"
+  },
+  "conversationExportCancelLoading": {
+    "message": "読み込みをキャンセル"
+  },
+  "conversationExportExporting": {
+    "message": "エクスポート中..."
+  },
+  "conversationExportDone": {
+    "message": "会話をエクスポートしました"
+  },
+  "conversationExportFailed": {
+    "message": "エクスポートに失敗しました"
+  },
+  "conversationExportNoConversation": {
+    "message": "エクスポートできる会話が見つかりません"
+  },
+  "conversationExportNeedSelect": {
+    "message": "会話を 1 件以上選択してください"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "画像を埋め込めません"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "画像が描画されていないため埋め込めません（その会話までスクロールして再試行してください）"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "内容が長すぎるため切り詰めました"
+  },
+  "conversationExportImageListTitle": {
+    "message": "画像"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "会話のエクスポート"
+  },
   "fiveStarReview": {
     "message": "気に入りましたか"
   },

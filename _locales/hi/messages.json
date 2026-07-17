@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "सक्षम होने पर, कोड ब्लॉक पर एक Run बटन दिखाई देगा जिससे कोड को सीधे चलाया जा सकता है"
   },
+  "conversationExportButtonTooltip": {
+    "message": "बातचीत निर्यात करें"
+  },
+  "conversationExportModalTitle": {
+    "message": "बातचीत निर्यात करें"
+  },
+  "conversationExportSectionRange": {
+    "message": "निर्यात सीमा"
+  },
+  "conversationExportSectionFormat": {
+    "message": "निर्यात प्रारूप"
+  },
+  "conversationExportSectionHeader": {
+    "message": "अधिक विकल्प"
+  },
+  "conversationExportSectionTheme": {
+    "message": "थीम रंग"
+  },
+  "conversationExportSectionList": {
+    "message": "संदेश चुनें"
+  },
+  "conversationExportRangeAll": {
+    "message": "पूरी बातचीत"
+  },
+  "conversationExportRangeSelect": {
+    "message": "संदेश चुनें"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "बातचीत URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "निर्यात समय"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "संदेश समय"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "प्रश्न का समय"
+  },
+  "conversationExportSourceLabel": {
+    "message": "बातचीत URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "निर्यात समय"
+  },
+  "conversationExportTitleLabel": {
+    "message": "शीर्षक"
+  },
+  "conversationExportSelectAll": {
+    "message": "सभी चुनें"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "संदेश"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "कोई उत्तर नहीं मिला"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(कोई पाठ सामग्री नहीं)"
+  },
+  "conversationExportCancel": {
+    "message": "रद्द करें"
+  },
+  "conversationExportConfirm": {
+    "message": "निर्यात करें"
+  },
+  "conversationExportLoading": {
+    "message": "बातचीत लोड हो रही है..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "बातचीत लोड हो रही है... ({count} लोड हुए)"
+  },
+  "conversationExportCancelLoading": {
+    "message": "लोडिंग रद्द करें"
+  },
+  "conversationExportExporting": {
+    "message": "निर्यात हो रहा है..."
+  },
+  "conversationExportDone": {
+    "message": "बातचीत निर्यात की गई"
+  },
+  "conversationExportFailed": {
+    "message": "निर्यात विफल"
+  },
+  "conversationExportNoConversation": {
+    "message": "निर्यात के लिए कोई बातचीत नहीं मिली"
+  },
+  "conversationExportNeedSelect": {
+    "message": "कृपया कम से कम 1 संदेश चुनें"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "छवि एम्बेड नहीं की जा सकती"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "छवि रेंडर नहीं हुई और एम्बेड नहीं की जा सकती (उस संदेश तक स्क्रॉल करें और पुनः प्रयास करें)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "सामग्री बहुत लंबी है, छोटा किया गया"
+  },
+  "conversationExportImageListTitle": {
+    "message": "छवि"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "बातचीत निर्यात"
+  },
   "fiveStarReview": {
     "message": "पसंद आया"
   },

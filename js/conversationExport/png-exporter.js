@@ -14,6 +14,12 @@ class CEPngExporter {
         this.PAGE_WIDTH = 820;
         this.PADDING_X = 40;
         this.contentWidth = this.PAGE_WIDTH - this.PADDING_X * 2;
+        // 正文区（提问+回复）左右留白更窄，让内容更宽
+        this.BODY_PADDING_X = 24;
+        // 左侧 Q/A 标记栏：正文内容整体右移，标记画在这条栏里、与首行对齐
+        this.MARKER_GUTTER = 38;
+        this.contentX = this.BODY_PADDING_X + this.MARKER_GUTTER;
+        this.bodyWidth = this.PAGE_WIDTH - this.contentX - this.BODY_PADDING_X;
         this.IMAGE_LOAD_TIMEOUT = 8000;
         this.MAX_IMAGE_HEIGHT = 460;
 
@@ -42,6 +48,17 @@ class CEPngExporter {
      * @returns {Promise<Blob>}
      */
     async export(job, themeId) {
+        const canvas = await this.renderCanvas(job, themeId);
+        return await this._canvasToBlob(canvas);
+    }
+
+    /**
+     * 渲染整张长图到 canvas（供 PNG / PDF 复用，保证两种格式视觉一致）。
+     * @param {Object} job
+     * @param {string} themeId
+     * @returns {Promise<HTMLCanvasElement>}
+     */
+    async renderCanvas(job, themeId) {
         const theme = ceGetTheme(themeId);
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -58,7 +75,7 @@ class CEPngExporter {
 
         // 构建绘制操作（含测量高度）
         const headerBlock = this._buildHeader(measureCtx, job, theme);
-        const bodyOps = this._buildBodyOps(measureCtx, job, imageMap);
+        const bodyOps = this._buildBodyOps(measureCtx, job, imageMap, theme);
 
         // 计算高度并处理截断
         const { ops, totalHeight, truncated } = this._layout(measureCtx, headerBlock.height, bodyOps);
@@ -90,7 +107,7 @@ class CEPngExporter {
             this._paintTruncationNotice(ctx, y);
         }
 
-        return await this._canvasToBlob(canvas);
+        return canvas;
     }
 
     // ==================== 布局/截断 ====================
@@ -194,35 +211,97 @@ class CEPngExporter {
 
     // ==================== 正文 ====================
 
-    _buildBodyOps(ctx, job, imageMap) {
+    _buildBodyOps(ctx, job, imageMap, theme) {
         const ops = [];
+
+        // 正文与顶部主题区之间留出间距，避免首个内容贴着头部
+        ops.push(this._spacerOp(18));
 
         job.turns.forEach((turn, index) => {
             if (index > 0) ops.push(this._dividerOp());
 
-            ops.push(this._turnLabelOp(ctx, `${CE_TEXT.turnPrefix} ${turn.order}`));
-
-            // 用户
-            ops.push(this._roleLabelOp(ctx, CE_TEXT.userLabel));
-            ops.push(this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview));
+            // 提问：首个内容块（气泡）挂上左侧「Q」标记，与首行对齐
+            const askTime = job.options?.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+            const userOp = this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview, askTime);
+            ops.push(this._withRoleMarker(userOp, 'Q', true, theme));
             (turn.user?.images || []).forEach(image => {
                 ops.push(this._imageOp(image, imageMap));
             });
 
-            // 助手
-            ops.push(this._roleLabelOp(ctx, CE_TEXT.assistantLabel));
+            // 提问与回答之间留一点间距
+            ops.push(this._spacerOp(10));
+
+            // 回答：文本块 + 图片；图片也算内容，避免纯图片回复被判为“空”
+            const assistantOps = [];
             const blocks = this._parseMarkdownBlocks(turn.assistant?.markdown || '');
-            if (!blocks.length) {
-                ops.push(this._paragraphOp(ctx, turn.assistant?.text || CE_TEXT.emptyAssistant));
-            } else {
-                blocks.forEach(block => ops.push(this._markdownBlockOp(ctx, block)));
+            if (blocks.length) {
+                blocks.forEach(block => assistantOps.push(this._markdownBlockOp(ctx, block)));
+            } else if (turn.assistant?.text) {
+                assistantOps.push(this._paragraphOp(ctx, turn.assistant.text));
             }
             (turn.assistant?.images || []).forEach(image => {
-                ops.push(this._imageOp(image, imageMap));
+                assistantOps.push(this._imageOp(image, imageMap));
             });
+            // 文本与图片都没有时才显示占位提示
+            if (!assistantOps.length) {
+                assistantOps.push(this._paragraphOp(ctx, CE_TEXT.emptyAssistant));
+            }
+            // 首个回答内容（文本或图片）挂上左侧「A」标记
+            assistantOps[0] = this._withRoleMarker(assistantOps[0], 'A', false, theme);
+            assistantOps.forEach(op => ops.push(op));
         });
 
         return ops;
+    }
+
+    _spacerOp(height) {
+        return { height, paint() { /* 纯占位间距 */ } };
+    }
+
+    /**
+     * 给一个内容块 op 附加左侧栏的「Q / A」圆形标记，垂直对齐到该块的首行中心。
+     * @param {Object} op - 原始 op（需可选携带 markerCenter：首行中心相对 op 顶部的偏移）
+     * @param {string} letter - 'Q' | 'A'
+     * @param {boolean} isQuestion - 提问用主题色，回答用中性灰
+     * @param {Object} theme - 头部主题（用于取 Q 标记的强调色）
+     */
+    _withRoleMarker(op, letter, isQuestion, theme) {
+        const self = this;
+        const center = (op.markerCenter != null) ? op.markerCenter : 16;
+        const origPaint = op.paint;
+        return {
+            height: op.height,
+            markerCenter: op.markerCenter,
+            paint(c, y) {
+                origPaint.call(op, c, y);
+                self._paintRoleMarker(c, y + center, letter, isQuestion, theme);
+            },
+        };
+    }
+
+    _paintRoleMarker(c, centerY, letter, isQuestion, theme) {
+        const r = 14;
+        const cx = this.BODY_PADDING_X + r;
+
+        let bg = '#e5e7eb';
+        let fg = '#4b5563';
+        if (isQuestion) {
+            bg = (theme && theme.gradient) ? theme.gradient[0][1] : (theme && theme.solid) || '#6128ff';
+            fg = '#ffffff';
+        }
+
+        c.beginPath();
+        c.arc(cx, centerY, r, 0, Math.PI * 2);
+        c.fillStyle = bg;
+        c.fill();
+
+        this._setFont(c, { size: 14, weight: '700' });
+        c.fillStyle = fg;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText(letter, cx, centerY + 0.5);
+        c.textAlign = 'left';
+        c.textBaseline = 'top';
     }
 
     _dividerOp() {
@@ -233,63 +312,53 @@ class CEPngExporter {
                 c.strokeStyle = self.colors.divider;
                 c.lineWidth = 1;
                 c.beginPath();
-                c.moveTo(self.PADDING_X, y + 16);
-                c.lineTo(self.PAGE_WIDTH - self.PADDING_X, y + 16);
+                c.moveTo(self.BODY_PADDING_X, y + 16);
+                c.lineTo(self.PAGE_WIDTH - self.BODY_PADDING_X, y + 16);
                 c.stroke();
             },
         };
     }
 
-    _turnLabelOp(ctx, text) {
-        const self = this;
-        return {
-            height: 34,
-            paint(c, y) {
-                self._setFont(c, { size: 13, weight: '700' });
-                c.fillStyle = self.colors.subtle;
-                c.textAlign = 'left';
-                c.fillText(text, self.PADDING_X, y + 10);
-            },
-        };
-    }
-
-    _roleLabelOp(ctx, text) {
-        const self = this;
-        return {
-            height: 28,
-            paint(c, y) {
-                self._setFont(c, { size: 14, weight: '700' });
-                c.fillStyle = self.colors.text;
-                c.textAlign = 'left';
-                c.fillText(`${text}`, self.PADDING_X, y + 6);
-            },
-        };
-    }
-
-    _userTextOp(ctx, text) {
+    _userTextOp(ctx, text, timeText = '') {
         const self = this;
         const padding = 14;
         const lineHeight = 22;
+        const timeHeight = timeText ? 20 : 0;
         this._setFont(ctx, { size: 15, weight: '400' });
-        const lines = this._wrapText(ctx, text, this.contentWidth - padding * 2);
-        const boxHeight = lines.length * lineHeight + padding * 2;
+        const lines = this._wrapText(ctx, text, this.bodyWidth - padding * 2);
+        const boxHeight = lines.length * lineHeight + padding * 2 + timeHeight;
 
         return {
             height: boxHeight + 10,
+            // 顶部第一行中心（有时间则为时间行，否则为正文首行），用于左侧 Q 标记对齐
+            markerCenter: padding + (timeHeight || lineHeight) / 2,
             paint(c, y) {
                 const boxTop = y;
-                self._roundRect(c, self.PADDING_X, boxTop, self.contentWidth, boxHeight, 10);
+                self._roundRect(c, self.contentX, boxTop, self.bodyWidth, boxHeight, 10);
                 c.fillStyle = self.colors.userBg;
                 c.fill();
 
+                c.textAlign = 'left';
+                let textTop = boxTop + padding;
+
+                // 提问时间：小号浅色，置于气泡顶部
+                if (timeText) {
+                    self._setFont(c, { size: 12, weight: '400' });
+                    c.fillStyle = self.colors.subtle;
+                    c.textBaseline = 'top';
+                    c.fillText(timeText, self.contentX + padding, textTop);
+                    textTop += timeHeight;
+                }
+
                 self._setFont(c, { size: 15, weight: '400' });
                 c.fillStyle = self.colors.text;
-                c.textAlign = 'left';
-                let cursor = boxTop + padding;
+                c.textBaseline = 'middle';
+                let cursor = textTop + lineHeight / 2;
                 for (const line of lines) {
-                    c.fillText(line, self.PADDING_X + padding, cursor);
+                    c.fillText(line, self.contentX + padding, cursor);
                     cursor += lineHeight;
                 }
+                c.textBaseline = 'top';
             },
         };
     }
@@ -322,7 +391,7 @@ class CEPngExporter {
         const bottomPad = opts.bottomPad != null ? opts.bottomPad : 6;
         const quoteBar = !!opts.quoteBar;
 
-        const maxWidth = this.contentWidth - indent;
+        const maxWidth = this.bodyWidth - indent;
         const tokens = this._tokenizeInline(rawText);
         const hasFormula = tokens.some(t => t.type === 'formula');
 
@@ -338,19 +407,21 @@ class CEPngExporter {
         const innerHeight = lines.length * lineHeight;
         return {
             height: innerHeight + topPad + bottomPad,
+            // 首行中心，用于左侧 A 标记对齐
+            markerCenter: topPad + lineHeight / 2,
             paint(c, y) {
                 c.textAlign = 'left';
                 if (quoteBar) {
                     c.fillStyle = self.colors.quoteBar;
-                    c.fillRect(self.PADDING_X, y + topPad, 3, innerHeight);
+                    c.fillRect(self.contentX, y + topPad, 3, innerHeight);
                 }
                 if (marker) {
                     self._setFont(c, font);
                     c.fillStyle = color;
-                    c.fillText(marker, self.PADDING_X + markerDx, y + topPad);
+                    c.fillText(marker, self.contentX + markerDx, y + topPad);
                 }
                 let cursor = y + topPad;
-                const startX = self.PADDING_X + indent;
+                const startX = self.contentX + indent;
                 for (const line of lines) {
                     let cx = startX;
                     for (const item of line) {
@@ -467,15 +538,16 @@ class CEPngExporter {
         if (entry && entry.element) {
             let w = entry.width;
             let h = entry.height;
-            if (w > this.contentWidth) {
-                const ratio = this.contentWidth / w;
-                w = this.contentWidth;
+            if (w > this.bodyWidth) {
+                const ratio = this.bodyWidth / w;
+                w = this.bodyWidth;
                 h = h * ratio;
             }
             return {
                 height: h + 24,
+                markerCenter: 12 + h / 2,
                 paint(c, y) {
-                    const x = self.PADDING_X + (self.contentWidth - w) / 2;
+                    const x = self.contentX + (self.bodyWidth - w) / 2;
                     try {
                         c.drawImage(entry.element, x, y + 12, w, h);
                     } catch {
@@ -488,16 +560,17 @@ class CEPngExporter {
         // 回退：居中显示 LaTeX 文本
         const lineHeight = 23;
         this._setFont(ctx, { size: 15, weight: '400' });
-        const lines = this._wrapText(ctx, block.latex, this.contentWidth);
+        const lines = this._wrapText(ctx, block.latex, this.bodyWidth);
         return {
             height: lines.length * lineHeight + 16,
+            markerCenter: 8 + lineHeight / 2,
             paint(c, y) {
                 self._setFont(c, { size: 15, weight: '400' });
                 c.fillStyle = self.colors.text;
                 c.textAlign = 'center';
                 let cursor = y + 8;
                 for (const line of lines) {
-                    c.fillText(line, self.PAGE_WIDTH / 2, cursor);
+                    c.fillText(line, self.contentX + self.bodyWidth / 2, cursor);
                     cursor += lineHeight;
                 }
                 c.textAlign = 'left';
@@ -509,7 +582,7 @@ class CEPngExporter {
         this._setFont(ctx, { size: 15, weight: '400' });
         ctx.fillStyle = this.colors.text;
         ctx.textAlign = 'center';
-        ctx.fillText(text, this.PAGE_WIDTH / 2, y + 12);
+        ctx.fillText(text, this.contentX + this.bodyWidth / 2, y + 12);
         ctx.textAlign = 'left';
     }
 
@@ -556,15 +629,16 @@ class CEPngExporter {
         const rawLines = block.code.split('\n');
         const wrapped = [];
         rawLines.forEach(line => {
-            const parts = this._wrapText(ctx, line || ' ', this.contentWidth - padding * 2);
+            const parts = this._wrapText(ctx, line || ' ', this.bodyWidth - padding * 2);
             wrapped.push(...(parts.length ? parts : ['']));
         });
         const boxHeight = wrapped.length * lineHeight + padding * 2;
 
         return {
             height: boxHeight + 12,
+            markerCenter: padding + lineHeight / 2,
             paint(c, y) {
-                self._roundRect(c, self.PADDING_X, y, self.contentWidth, boxHeight, 8);
+                self._roundRect(c, self.contentX, y, self.bodyWidth, boxHeight, 8);
                 c.fillStyle = self.colors.codeBg;
                 c.fill();
 
@@ -573,7 +647,7 @@ class CEPngExporter {
                 c.textAlign = 'left';
                 let cursor = y + padding;
                 for (const line of wrapped) {
-                    c.fillText(line, self.PADDING_X + padding, cursor);
+                    c.fillText(line, self.contentX + padding, cursor);
                     cursor += lineHeight;
                 }
             },
@@ -587,7 +661,7 @@ class CEPngExporter {
         if (entry && entry.element) {
             const naturalW = entry.width || entry.element.naturalWidth || 1;
             const naturalH = entry.height || entry.element.naturalHeight || 1;
-            const drawWidth = Math.min(naturalW, this.contentWidth);
+            const drawWidth = Math.min(naturalW, this.bodyWidth);
             let drawHeight = (naturalH / naturalW) * drawWidth;
             let finalWidth = drawWidth;
             if (drawHeight > this.MAX_IMAGE_HEIGHT) {
@@ -597,9 +671,10 @@ class CEPngExporter {
             }
             return {
                 height: drawHeight + 16,
+                markerCenter: 8 + 14,
                 paint(c, y) {
                     try {
-                        c.drawImage(entry.element, self.PADDING_X, y + 8, finalWidth, drawHeight);
+                        c.drawImage(entry.element, self.contentX, y + 8, finalWidth, drawHeight);
                     } catch {
                         self._paintImagePlaceholder(c, y);
                     }
@@ -609,6 +684,7 @@ class CEPngExporter {
 
         return {
             height: 56,
+            markerCenter: 8 + 14,
             paint(c, y) {
                 self._paintImagePlaceholder(c, y);
             },
@@ -617,13 +693,13 @@ class CEPngExporter {
 
     _paintImagePlaceholder(ctx, y) {
         const height = 40;
-        this._roundRect(ctx, this.PADDING_X, y + 8, this.contentWidth, height, 8);
+        this._roundRect(ctx, this.contentX, y + 8, this.bodyWidth, height, 8);
         ctx.fillStyle = this.colors.placeholderBg;
         ctx.fill();
         this._setFont(ctx, { size: 13, weight: '400' });
         ctx.fillStyle = this.colors.placeholderText;
         ctx.textAlign = 'center';
-        ctx.fillText(CE_TEXT.imageCannotEmbed, this.PAGE_WIDTH / 2, y + 8 + height / 2 - 7);
+        ctx.fillText(CE_TEXT.imageCannotEmbed, this.contentX + this.bodyWidth / 2, y + 8 + height / 2 - 7);
         ctx.textAlign = 'left';
     }
 

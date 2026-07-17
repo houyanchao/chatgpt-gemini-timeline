@@ -398,6 +398,111 @@
   "runnerSettingsHint": {
     "message": "開啟後，程式碼區塊右上角將顯示 Run 按鈕，點擊可直接執行程式碼"
   },
+  "conversationExportButtonTooltip": {
+    "message": "匯出對話"
+  },
+  "conversationExportModalTitle": {
+    "message": "匯出對話"
+  },
+  "conversationExportSectionRange": {
+    "message": "匯出範圍"
+  },
+  "conversationExportSectionFormat": {
+    "message": "匯出格式"
+  },
+  "conversationExportSectionHeader": {
+    "message": "更多設定"
+  },
+  "conversationExportSectionTheme": {
+    "message": "主題色"
+  },
+  "conversationExportSectionList": {
+    "message": "選擇對話"
+  },
+  "conversationExportRangeAll": {
+    "message": "整個對話"
+  },
+  "conversationExportRangeSelect": {
+    "message": "選擇對話"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "對話 URL"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "匯出時間"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "對話時間"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "提問時間"
+  },
+  "conversationExportSourceLabel": {
+    "message": "對話 URL"
+  },
+  "conversationExportTimeLabel": {
+    "message": "匯出時間"
+  },
+  "conversationExportTitleLabel": {
+    "message": "標題"
+  },
+  "conversationExportSelectAll": {
+    "message": "全選"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "對話"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "找不到回覆內容"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "（無文字內容）"
+  },
+  "conversationExportCancel": {
+    "message": "取消"
+  },
+  "conversationExportConfirm": {
+    "message": "匯出"
+  },
+  "conversationExportLoading": {
+    "message": "載入對話中..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "載入對話中...（已載入 {count} 則）"
+  },
+  "conversationExportCancelLoading": {
+    "message": "取消載入"
+  },
+  "conversationExportExporting": {
+    "message": "匯出中..."
+  },
+  "conversationExportDone": {
+    "message": "對話已匯出"
+  },
+  "conversationExportFailed": {
+    "message": "匯出失敗"
+  },
+  "conversationExportNoConversation": {
+    "message": "找不到可匯出的對話"
+  },
+  "conversationExportNeedSelect": {
+    "message": "請至少選擇 1 則對話"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "圖片無法內嵌"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "圖片未渲染，無法內嵌（可捲動到該輪後重試）"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "內容過長，已截斷"
+  },
+  "conversationExportImageListTitle": {
+    "message": "圖片"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "對話匯出"
+  },
   "fiveStarReview": {
     "message": "覺得好用"
   },

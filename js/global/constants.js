@@ -44,6 +44,7 @@ const SITE_INFO = [
             chatTimes: true,  // 提问时间记录
             useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
+            conversationExport: true,  // 对话导出（需存在对应导出适配器）
             chatWidth: { // 对话宽度
                 selectors: ['.text-token-text-primary > div > div']
             }
@@ -67,6 +68,7 @@ const SITE_INFO = [
             chatTimes: true,  // 提问时间记录
             useStableNodeId: true,  // 使用稳定的节点 ID（父元素 id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
+            conversationExport: true,  // 对话导出（需存在对应导出适配器）
             chatWidth: {
                 selectors: ['.conversation-container', 'user-query']
             }
@@ -550,15 +552,43 @@ async function platformSupportsFeature(platformId, feature) {
 // ==================== 时间轴激活节点颜色配置 ====================
 
 /**
- * 时间轴激活节点颜色选项
+ * 激活色调色板（唯一色值来源）。
+ * 时间轴激活色与导出 PNG 主题色共享同一套色值，避免在两处硬编码同样的颜色导致漂移。
+ * - solid：纯色 hex
+ * - gradient：{ angle 角度(deg), stops 色标 [[offset, color], ...] }，CSS 字符串与 canvas 结构均由此派生
+ */
+const ACTIVE_COLOR_PALETTE = [
+    { id: 'black', label: '黑色', solid: '#0d0d0d' },
+    { id: 'blue', label: '蓝色', solid: '#3964fe' },
+    { id: 'purple', label: '紫色', solid: '#6128FF' },
+    {
+        id: 'gemini',
+        label: '蓝紫渐变',
+        gradient: { angle: 135, stops: [[0, '#4285F4'], [0.45, '#8E75FF'], [1, '#A142F4']] }
+    }
+];
+
+/**
+ * 将调色板条目转换为 CSS color 值（纯色 hex 或 linear-gradient 字符串）。
+ * @param {Object} entry - ACTIVE_COLOR_PALETTE 中的条目
+ * @returns {string}
+ */
+function activeColorPaletteToCss(entry) {
+    if (!entry) return '';
+    if (entry.solid) return entry.solid;
+    const { angle, stops } = entry.gradient;
+    const stopStr = stops.map(([offset, color]) => `${color} ${Math.round(offset * 100)}%`).join(', ');
+    return `linear-gradient(${angle}deg, ${stopStr})`;
+}
+
+/**
+ * 时间轴激活节点颜色选项（由 ACTIVE_COLOR_PALETTE 派生）。
  * 存储时只保存 color id，实际颜色从这里解析，避免散落十六进制颜色值。
  */
-const TIMELINE_ACTIVE_COLOR_OPTIONS = [
-    { id: 'black', color: '#0d0d0d' },
-    { id: 'blue', color: '#3964fe' },
-    { id: 'purple', color: '#6128FF' },
-    { id: 'gemini', color: 'linear-gradient(135deg, #4285F4 0%, #8E75FF 45%, #A142F4 100%)' }
-];
+const TIMELINE_ACTIVE_COLOR_OPTIONS = ACTIVE_COLOR_PALETTE.map(entry => ({
+    id: entry.id,
+    color: activeColorPaletteToCss(entry)
+}));
 
 /**
  * 不同平台的默认激活色。

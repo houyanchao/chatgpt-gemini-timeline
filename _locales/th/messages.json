@@ -374,6 +374,111 @@
   "runnerSettingsHint": {
     "message": "เมื่อเปิดใช้งาน ปุ่ม Run จะปรากฏบนบล็อกโค้ดเพื่อรันโค้ดโดยตรง"
   },
+  "conversationExportButtonTooltip": {
+    "message": "ส่งออกบทสนทนา"
+  },
+  "conversationExportModalTitle": {
+    "message": "ส่งออกบทสนทนา"
+  },
+  "conversationExportSectionRange": {
+    "message": "ช่วงการส่งออก"
+  },
+  "conversationExportSectionFormat": {
+    "message": "รูปแบบการส่งออก"
+  },
+  "conversationExportSectionHeader": {
+    "message": "ตัวเลือกเพิ่มเติม"
+  },
+  "conversationExportSectionTheme": {
+    "message": "สีธีม"
+  },
+  "conversationExportSectionList": {
+    "message": "เลือกข้อความ"
+  },
+  "conversationExportRangeAll": {
+    "message": "บทสนทนาทั้งหมด"
+  },
+  "conversationExportRangeSelect": {
+    "message": "เลือกข้อความ"
+  },
+  "conversationExportHeaderShowUrl": {
+    "message": "URL บทสนทนา"
+  },
+  "conversationExportHeaderShowTime": {
+    "message": "เวลาส่งออก"
+  },
+  "conversationExportHeaderShowConversationTime": {
+    "message": "เวลาข้อความ"
+  },
+  "conversationExportAskTimeLabel": {
+    "message": "เวลาที่ถาม"
+  },
+  "conversationExportSourceLabel": {
+    "message": "URL บทสนทนา"
+  },
+  "conversationExportTimeLabel": {
+    "message": "เวลาส่งออก"
+  },
+  "conversationExportTitleLabel": {
+    "message": "ชื่อเรื่อง"
+  },
+  "conversationExportSelectAll": {
+    "message": "เลือกทั้งหมด"
+  },
+  "conversationExportTurnPrefix": {
+    "message": "ข้อความ"
+  },
+  "conversationExportEmptyAssistant": {
+    "message": "ไม่พบคำตอบ"
+  },
+  "conversationExportEmptyUserPreview": {
+    "message": "(ไม่มีเนื้อหาข้อความ)"
+  },
+  "conversationExportCancel": {
+    "message": "ยกเลิก"
+  },
+  "conversationExportConfirm": {
+    "message": "ส่งออก"
+  },
+  "conversationExportLoading": {
+    "message": "กำลังโหลดบทสนทนา..."
+  },
+  "conversationExportLoadingProgress": {
+    "message": "กำลังโหลดบทสนทนา... (โหลดแล้ว {count})"
+  },
+  "conversationExportCancelLoading": {
+    "message": "ยกเลิกการโหลด"
+  },
+  "conversationExportExporting": {
+    "message": "กำลังส่งออก..."
+  },
+  "conversationExportDone": {
+    "message": "ส่งออกบทสนทนาแล้ว"
+  },
+  "conversationExportFailed": {
+    "message": "ส่งออกไม่สำเร็จ"
+  },
+  "conversationExportNoConversation": {
+    "message": "ไม่พบบทสนทนาที่จะส่งออก"
+  },
+  "conversationExportNeedSelect": {
+    "message": "โปรดเลือกอย่างน้อย 1 ข้อความ"
+  },
+  "conversationExportImageCannotEmbed": {
+    "message": "ไม่สามารถฝังรูปภาพได้"
+  },
+  "conversationExportImageNotRendered": {
+    "message": "รูปภาพยังไม่แสดงผลจึงไม่สามารถฝังได้ (เลื่อนไปที่ข้อความนั้นแล้วลองอีกครั้ง)"
+  },
+  "conversationExportTruncatedNotice": {
+    "message": "เนื้อหายาวเกินไป ถูกตัดทอน"
+  },
+  "conversationExportImageListTitle": {
+    "message": "รูปภาพ"
+  },
+  "conversationExportDefaultTitle": {
+    "message": "การส่งออกบทสนทนา"
+  },
   "fiveStarReview": {
     "message": "ชอบไหม"
   },

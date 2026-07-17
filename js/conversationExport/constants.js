@@ -2,7 +2,7 @@
  * Conversation Export - 常量与共享工具
  *
  * 集中管理对话导出功能的：
- * - 文案（当前仅中文，后续可迁移到 i18n）
+ * - 文案（已接入 i18n：TimelineI18n 取值 + 中文兜底，见 CE_TEXT）
  * - 导出格式定义
  * - PNG 图片主题色（canvas 友好的定义）
  * - 通用工具函数（文件名清洗、时间格式化等）
@@ -11,29 +11,37 @@
  */
 
 /**
- * 文案集中管理。
- * 注意：按产品决策当前仅提供中文，后续接入 i18n 时只需替换此处取值。
+ * 文案集中管理（已接入 i18n）。
+ *
+ * 通过 TimelineI18n.getMessage 惰性取值：
+ * - 每次访问 CE_TEXT.xxx 时实时解析，随语言切换即时生效；
+ * - i18n key 缺失或 TimelineI18n 尚未就绪时，回退到 CE_TEXT_FALLBACK 的中文兜底；
+ * - 角色标签 Q / A 为固定符号，不接入 i18n，仅保留在兜底表中。
+ * 各文案的 i18n key 见 CE_TEXT_I18N_KEYS，中文/英文分别维护在 _locales/{zh_CN,en}/messages.json。
  */
-const CE_TEXT = {
+const CE_TEXT_FALLBACK = {
     buttonTooltip: '导出对话',
     modalTitle: '导出对话',
 
     sectionRange: '导出范围',
     sectionFormat: '导出格式',
-    sectionHeader: '顶部信息',
-    sectionTheme: '图片主题色',
+    sectionHeader: '更多配置',
+    sectionTheme: '主题色',
     sectionList: '选择对话',
 
     rangeAll: '整个会话',
     rangeSelect: '选择对话',
 
-    headerShowUrl: '显示 URL',
-    headerShowTime: '显示导出时间',
+    headerShowUrl: '对话 URL',
+    headerShowTime: '导出时间',
+    headerShowConversationTime: '对话时间',
+    askTimeLabel: '提问时间',
 
     selectAll: '全选',
     turnPrefix: '对话',
-    userLabel: '用户',
-    assistantLabel: '助手',
+    // 角色标签：PNG / Markdown / TXT / 选择列表统一使用 Q / A
+    exportRoleUser: 'Q',
+    exportRoleAssistant: 'A',
     emptyAssistant: '未找到回复内容',
     emptyUserPreview: '（无文本内容）',
 
@@ -49,14 +57,92 @@ const CE_TEXT = {
     noConversation: '未找到可导出的对话',
     needSelect: '请至少选择 1 条对话',
 
-    sourceLabel: '来源',
+    sourceLabel: '对话 URL',
     timeLabel: '导出时间',
     titleLabel: '标题',
     imageCannotEmbed: '图片无法内嵌',
     imageNotRendered: '图片未渲染，无法内嵌（可滚动到该轮后重试）',
     truncatedNotice: '内容过长，已截断',
     imageListTitle: '图片',
+
+    // 兜底文案：会话标题 / 文件名缺省值
+    defaultTitle: '对话导出',
 };
+
+/**
+ * 文案 key → i18n message key 映射。
+ * 未列入者（如 exportRoleUser / exportRoleAssistant）不走 i18n，直接使用中文兜底。
+ */
+const CE_TEXT_I18N_KEYS = {
+    buttonTooltip: 'conversationExportButtonTooltip',
+    modalTitle: 'conversationExportModalTitle',
+
+    sectionRange: 'conversationExportSectionRange',
+    sectionFormat: 'conversationExportSectionFormat',
+    sectionHeader: 'conversationExportSectionHeader',
+    sectionTheme: 'conversationExportSectionTheme',
+    sectionList: 'conversationExportSectionList',
+
+    rangeAll: 'conversationExportRangeAll',
+    rangeSelect: 'conversationExportRangeSelect',
+
+    headerShowUrl: 'conversationExportHeaderShowUrl',
+    headerShowTime: 'conversationExportHeaderShowTime',
+    headerShowConversationTime: 'conversationExportHeaderShowConversationTime',
+    askTimeLabel: 'conversationExportAskTimeLabel',
+
+    selectAll: 'conversationExportSelectAll',
+    turnPrefix: 'conversationExportTurnPrefix',
+    emptyAssistant: 'conversationExportEmptyAssistant',
+    emptyUserPreview: 'conversationExportEmptyUserPreview',
+
+    cancel: 'conversationExportCancel',
+    confirm: 'conversationExportConfirm',
+
+    loading: 'conversationExportLoading',
+    loadingProgress: 'conversationExportLoadingProgress',
+    cancelLoading: 'conversationExportCancelLoading',
+    exporting: 'conversationExportExporting',
+    done: 'conversationExportDone',
+    failed: 'conversationExportFailed',
+    noConversation: 'conversationExportNoConversation',
+    needSelect: 'conversationExportNeedSelect',
+
+    sourceLabel: 'conversationExportSourceLabel',
+    timeLabel: 'conversationExportTimeLabel',
+    titleLabel: 'conversationExportTitleLabel',
+    imageCannotEmbed: 'conversationExportImageCannotEmbed',
+    imageNotRendered: 'conversationExportImageNotRendered',
+    truncatedNotice: 'conversationExportTruncatedNotice',
+    imageListTitle: 'conversationExportImageListTitle',
+
+    defaultTitle: 'conversationExportDefaultTitle',
+};
+
+/**
+ * 取指定文案：优先 i18n，回退中文兜底。
+ * @param {string} key - CE_TEXT_FALLBACK 中的键
+ * @returns {string}
+ */
+function ceGetText(key) {
+    const i18nKey = CE_TEXT_I18N_KEYS[key];
+    if (i18nKey && typeof TimelineI18n !== 'undefined') {
+        const message = TimelineI18n.getMessage(i18nKey);
+        if (message) return message;
+    }
+    return CE_TEXT_FALLBACK[key];
+}
+
+/**
+ * 文案访问对象：保持 CE_TEXT.xxx 的调用方式不变，读取时惰性解析 i18n。
+ */
+const CE_TEXT = Object.keys(CE_TEXT_FALLBACK).reduce((acc, key) => {
+    Object.defineProperty(acc, key, {
+        get() { return ceGetText(key); },
+        enumerable: true,
+    });
+    return acc;
+}, {});
 
 /**
  * 导出格式定义。
@@ -70,7 +156,9 @@ const CE_FORMATS = [
     { id: 'markdown', label: 'Markdown', ext: '.md', mime: 'text/markdown' },
     { id: 'txt', label: 'TXT', ext: '.txt', mime: 'text/plain' },
     { id: 'json', label: 'JSON', ext: '.json', mime: 'application/json' },
+    { id: 'csv', label: 'CSV', ext: '.csv', mime: 'text/csv' },
     { id: 'png', label: 'PNG', ext: '.png', mime: 'image/png' },
+    { id: 'pdf', label: 'PDF', ext: '.pdf', mime: 'application/pdf' },
 ];
 
 const CE_DEFAULT_FORMAT = 'markdown';
@@ -89,8 +177,10 @@ const CE_LOAD_STRATEGY = {
 
 /**
  * PNG 图片主题色（canvas 友好定义）。
- * id 与时间轴激活色（TIMELINE_ACTIVE_COLOR_OPTIONS）保持一致，
- * 以便默认主题色跟随平台激活色设置。
+ * 由全局 ACTIVE_COLOR_PALETTE 派生，色值与时间轴激活色共享同一来源，避免重复维护；
+ * id 天然与时间轴激活色保持一致，默认主题色可跟随平台激活色设置。
+ * - solid 主题保留纯色填充；gradient 主题转成 canvas 色标数组 [[offset, color], ...]
+ * - 头部文字统一使用白色
  *
  * @typedef {Object} ExportTheme
  * @property {string} id
@@ -99,17 +189,14 @@ const CE_LOAD_STRATEGY = {
  * @property {string} [solid] - 纯色填充
  * @property {Array<[number,string]>} [gradient] - 渐变色标 [offset, color]
  */
-const CE_THEMES = [
-    { id: 'black', label: '黑色', solid: '#0d0d0d', textColor: '#ffffff' },
-    { id: 'blue', label: '蓝色', solid: '#3964fe', textColor: '#ffffff' },
-    { id: 'purple', label: '紫色', solid: '#6128ff', textColor: '#ffffff' },
-    {
-        id: 'gemini',
-        label: 'Gemini',
-        gradient: [[0, '#4285F4'], [0.45, '#8E75FF'], [1, '#A142F4']],
-        textColor: '#ffffff',
-    },
-];
+const CE_THEMES = ACTIVE_COLOR_PALETTE.map(entry => ({
+    id: entry.id,
+    label: entry.label,
+    textColor: '#ffffff',
+    ...(entry.gradient
+        ? { gradient: entry.gradient.stops.map(stop => [...stop]) }
+        : { solid: entry.solid }),
+}));
 
 const CE_DEFAULT_THEME = 'purple';
 
@@ -158,7 +245,7 @@ function ceGetTheme(themeId) {
  * @returns {string}
  */
 function ceSanitizeFilename(rawName) {
-    const fallback = '对话导出';
+    const fallback = CE_TEXT.defaultTitle;
     let name = (rawName || '').toString().trim();
 
     // 移除控制字符与文件系统保留字符 \ / : * ? " < > |
@@ -190,6 +277,25 @@ function ceFormatLocalTime(date = new Date()) {
         const pad = (n) => String(n).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
             `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * 格式化提问时间（时间戳，毫秒）为简洁的本地时间字符串。
+ * 与导出时间一致采用 YYYY-MM-DD HH:mm 形式（不含秒）。
+ * @param {number} timestamp - 毫秒时间戳
+ * @returns {string}
+ */
+function ceFormatChatTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+            `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     } catch {
         return '';
     }
