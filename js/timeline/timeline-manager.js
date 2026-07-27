@@ -44,6 +44,7 @@ class TimelineManager {
         this._timelineVisibilityObservedTargets = new Set();
         this._timelineVisibilityTimer = null;
         this._unsubscribeTheme = null;
+        this._unsubscribeCapturedChatsData = null;
         
         // Event handlers
         this.onTimelineBarClick = null;
@@ -990,6 +991,7 @@ class TimelineManager {
 
         if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
 
+        this.adapter.syncCapturedChatsData();
         const selector = this.adapter.getUserMessageSelector();
         let userTurnElements = this.conversationContainer.querySelectorAll(selector);
         
@@ -1196,9 +1198,6 @@ class TimelineManager {
         // Build markers with normalized position along conversation
         this.markerMap.clear();
         
-        // 调用 fiber bridge 提取文本（仅 ChatGPT 等实现了该方法的平台）
-        const fiberTexts = this.adapter.extractFiberTexts?.() || new Map();
-        
         this.markers = Array.from(userTurnElements).map((el, index, arr) => {
             /**
              * ✅ 节点位置信息：
@@ -1225,14 +1224,10 @@ class TimelineManager {
             
             const id = this.adapter.generateTurnId(el, index);
             
-            // 优先使用 fiber 文本，回退到 DOM 提取
-            const turnIdRaw = el.getAttribute?.('data-turn-id');
-            const fiberText = turnIdRaw ? fiberTexts.get(turnIdRaw) : null;
-            
             const m = {
                 id: id,
                 element: el,
-                summary: fiberText || this.adapter.extractText(el),
+                summary: this.adapter.extractText(el),
                 offsetTop,      // 节点顶部距离（像素）- 用于激活判断
                 offsetBottom,   // 节点结束位置（像素）
                 visualN,        // 原始位置比例（0~1）
@@ -1448,15 +1443,7 @@ class TimelineManager {
      * 使用 DOMObserverManager 统一管理，减少订阅数量
      */
     setupDomCheckObserver() {
-        // 已知的冲突时间轴选择器（包括其他插件和平台自带的时间轴）
-        const conflictingSelectors = [
-            '.gemini-timeline-bar',      // Gemini 时间轴插件
-            '.chatgpt-timeline-bar',     // ChatGPT 时间轴插件
-            '[style*="--scroll-nav-page-padding"]', // DeepSeek 原生滚动导航时间轴
-            // ChatGPT 原生时间轴：会话内搜索高亮容器下的 .no-scrollbar 工具条
-            // 仅当其第一个子元素是 button 时才是原生时间轴导航条（:has 在 querySelectorAll 中受支持）
-            '[class*="convSearchResultHighlightRoot"] .no-scrollbar:has(> button:first-child)',
-        ];
+        const conflictingSelectors = this.adapter.getConflictingTimelineSelectors?.() || [];
         
         // 检查并更新时间轴可见性
         const checkAndUpdateTimelineVisibility = () => {
@@ -1667,6 +1654,14 @@ class TimelineManager {
     }
 
     setupEventListeners() {
+        // 平台适配器完成外部数据同步后，只补齐占位符文案，不重建节点几何信息。
+        this._unsubscribeCapturedChatsData = this.adapter.subscribeCapturedChatsDataUpdated?.((detail) => {
+            if (this._destroyed) return;
+            const conversationId = detail?.conversationId;
+            if (!conversationId || conversationId !== this.conversationId) return;
+            this.refreshPlaceholderSummaries();
+        }) || null;
+
         // ✅ 长按标记功能：长按节点切换图钉
         let longPressTimer = null;
         let longPressTarget = null;
@@ -2459,13 +2454,43 @@ class TimelineManager {
     }
 
     /**
+     * 用 adapter 的最新内存缓存补齐仍为占位符的 marker 文案。
+     * @returns {number} 实际更新的 marker 数量
+     */
+    refreshPlaceholderSummaries() {
+        let updatedCount = 0;
+        this.markers.forEach(marker => {
+            const oldText = (marker.summary || '').trim();
+            if (!this.adapter.isPlaceholderSummary(oldText)) return;
+
+            try {
+                const freshText = marker.element
+                    ? (this.adapter.extractText(marker.element) || '').trim()
+                    : '';
+                if (this.adapter.isPlaceholderSummary(freshText)) return;
+
+                marker.summary = freshText;
+                marker.dotElement?.setAttribute('aria-label', freshText);
+                updatedCount++;
+            } catch {}
+        });
+        return updatedCount;
+    }
+
+    /**
      * ✅ 优化：显示 Tooltip（使用全局管理器）
      */
     showTooltipForDot(dot) {
         if (!dot) return;
         
         const id = 'node-' + (dot.dataset.targetTurnId || '');
-        const messageText = (dot.getAttribute('aria-label') || '').trim();
+        let messageText = (dot.getAttribute('aria-label') || '').trim();
+
+        // 当前节点仍是占位符时，统一刷新所有占位符节点的文案。
+        if (this.adapter.isPlaceholderSummary(messageText)) {
+            this.refreshPlaceholderSummaries();
+            messageText = (dot.getAttribute('aria-label') || '').trim();
+        }
         
         // 构建内容元素（包含交互逻辑）
         const contentElement = this._buildNodeTooltipElement(dot, messageText);
@@ -3470,6 +3495,10 @@ class TimelineManager {
         if (this._unsubscribeTheme) {
             this._unsubscribeTheme();
             this._unsubscribeTheme = null;
+        }
+        if (this._unsubscribeCapturedChatsData) {
+            this._unsubscribeCapturedChatsData();
+            this._unsubscribeCapturedChatsData = null;
         }
         
         // ✅ 清理健康检查定时器

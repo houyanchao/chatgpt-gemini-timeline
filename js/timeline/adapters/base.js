@@ -40,6 +40,41 @@ class SiteAdapter {
     }
 
     /**
+     * Sync platform-specific API-captured data into in-memory sources before
+     * timeline markers are rebuilt. Adapters may override this hook to pull
+     * data from their API capture bridge.
+     */
+    syncCapturedChatsData() {
+    }
+
+    /**
+     * Subscribe to platform-specific captured-data updates.
+     * @param {(detail:Object)=>void} callback
+     * @returns {()=>void} unsubscribe function
+     */
+    subscribeCapturedChatsDataUpdated(callback) {
+        return () => {};
+    }
+
+    /**
+     * Selectors for platform-native or competing timeline elements.
+     * @returns {string[]}
+     */
+    getConflictingTimelineSelectors() {
+        return [];
+    }
+
+    /**
+     * Whether a marker summary is a temporary/non-text placeholder.
+     * @param {string} text
+     * @returns {boolean}
+     */
+    isPlaceholderSummary(text) {
+        const normalized = String(text || '').trim();
+        return !normalized || normalized === '[图片或文件]';
+    }
+
+    /**
      * Generate unique ID for a message (using index)
      * @param {Element} element - Message DOM element
      * @param {number} index - Message index in the list

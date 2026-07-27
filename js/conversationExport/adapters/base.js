@@ -11,7 +11,7 @@
  * - 通用抽取 helper：_domMarkdownFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
  * - 默认主题色、平台名等派生信息
  *
- * 「平台相关」的取数由子类实现（DOM 范式见 gemini.js，数据源/Fiber 范式见 chatgpt.js）。
+ * 「平台相关」的取数由子类实现（DOM 范式见 gemini.js / chatgpt.js）。
  *
  * 数据结构（turn）：
  * {
@@ -151,8 +151,7 @@ class CEExportAdapter {
 
     /**
      * 采集前的准备钩子（在滚动加载完成、正式读取每轮内容之前调用一次）。
-     * 平台可在此做一次性准备，例如 ChatGPT 通过 fiber bridge 拉取完整对话数据并缓存。
-     * 默认无操作。
+     * 平台可在此做一次性准备（如预取/缓存平台数据）。默认无操作。
      * @returns {Promise<void>}
      */
     async prepareCollection() { /* no-op by default */ }
@@ -329,8 +328,8 @@ class CEExportAdapter {
      * →（③）按 getTurnContainers 顺序逐轮 extractTurn 读取、去重。
      *
      * 加载策略（见 CE_LOAD_STRATEGY）：
-     * - SCROLL（Gemini 等）：反复向上滚动到顶，把只在顶部懒加载的历史全部加载出来。
-     * - STATIC（ChatGPT 等）：完整对话数据已在内存（React Fiber），无需滚动，直接读取。
+     * - SCROLL（Gemini/ChatGPT 等）：滚动把未渲染内容加载/渲染出来（平台可覆盖 _loadByScrolling）。
+     * - STATIC：完整对话数据已在 DOM/内存，无需滚动，直接读取。
      *
      * @param {Object} options
      * @param {(count:number)=>void} [options.onProgress]
@@ -361,7 +360,7 @@ class CEExportAdapter {
             return [];
         }
 
-        // ② 正式读取前的一次性准备（如 ChatGPT 从 fiber 拉取完整对话并缓存）
+        // ② 正式读取前的一次性准备（平台按需实现 prepareCollection）
         try {
             await this.prepareCollection();
         } catch (error) {

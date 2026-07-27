@@ -41,6 +41,10 @@ class DeepSeekAdapter extends SiteAdapter {
         return '.ds-message';
     }
 
+    getConflictingTimelineSelectors() {
+        return ['[style*="--scroll-nav-page-padding"]'];
+    }
+
     generateTurnId(element, index) {
         return `deepseek-${index}`;
     }

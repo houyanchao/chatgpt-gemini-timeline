@@ -11,23 +11,232 @@
 class ChatGPTAdapter extends SiteAdapter {
     constructor() {
         super();
+        // 内存文本缓存：nodeId → 提问文本（仅当前对话有效，切换对话 URL 时清空）
+        // 新版虚拟化会把视口外轮次的 React 子树整体卸载（DOM/fiber 均无文本），
+        // 只能在轮次渲染出来时缓存，空壳期回退缓存值
+        this._turnTextCache = new Map();
+        this._capturedTextIds = new Set(); // 上一份 API 完整快照包含的消息 ID
+        this._textCacheConvId = null; // 缓存所属的对话 id
     }
+
+    /**
+     * 从 MAIN world 接口拦截模块（apiCapture/chatgpt.js）同步拉取
+     * 当前对话的全量提问文本，同步进当前对话的内存缓存。
+     *
+     * 数据来源：模块在 document_start 补丁 fetch，捕获页面自己发起的
+     * GET /backend-api/conversation/{id} 响应 mapping —— 这是唯一能让
+     * 「从未渲染过的虚拟化轮次」在首次渲染时就有文案的数据源
+     * （DOM/fiber 里物理不存在，调试探测已证实）。
+     *
+     * 同步事件往返，模块未就绪/未捕获到数据时静默返回，走既有降级链
+     * （渲染期缓存 → 占位符）。切换对话时先拉取一次；如果接口稍后才完成，
+     * 拦截模块会派发更新事件，由时间轴再次拉取，不做轮询。
+     *
+     * @returns {number} 本次发生变化的缓存条目数
+     */
+    _pullConvTexts(conversationId) {
+        let received = null;
+        const handler = (event) => {
+            if (typeof event.detail !== 'string') return;
+            try {
+                const payload = JSON.parse(event.detail);
+                if (payload?.conversationId === conversationId) received = payload;
+            } catch {
+                received = null;
+            }
+        };
+        document.addEventListener('ait-gpt-user-texts-result', handler, { once: true });
+        document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-pull', {
+            detail: conversationId
+        }));
+        document.removeEventListener('ait-gpt-user-texts-result', handler);
+
+        const texts = received ? received.texts : null;
+        if (!texts) return 0;
+
+        const nextCapturedTextIds = new Set(Object.keys(texts));
+        let changedCount = 0;
+        // 只清理上一份 API 快照拥有、但最新快照已不存在的键。
+        // DOM 机会性缓存的新增消息不在 _capturedTextIds 中，因此会被保留。
+        this._capturedTextIds.forEach(id => {
+            if (!nextCapturedTextIds.has(id) && this._turnTextCache.delete(id)) {
+                changedCount++;
+            }
+        });
+        Object.entries(texts).forEach(([id, txt]) => {
+            const previous = this._turnTextCache.get(id);
+            this._cacheTurnText(id, txt);
+            if (this._turnTextCache.get(id) !== previous) changedCount++;
+        });
+        this._capturedTextIds = nextCapturedTextIds;
+        return changedCount;
+    }
+
+    subscribeCapturedChatsDataUpdated(callback) {
+        if (typeof callback !== 'function') return () => {};
+
+        const handler = (event) => {
+            const conversationId = typeof event.detail === 'string' ? event.detail : '';
+            const changedCount = this.handleCapturedChatsDataUpdated(conversationId);
+            if (changedCount > 0) callback({ conversationId, changedCount });
+        };
+        document.addEventListener('ait-gpt-user-texts-updated', handler);
+        return () => document.removeEventListener('ait-gpt-user-texts-updated', handler);
+    }
+
+    getConflictingTimelineSelectors() {
+        return [
+            '.chatgpt-timeline-bar',
+            '*:has(> [data-toc-item-index])'
+        ];
+    }
+
+    isPlaceholderSummary(text) {
+        const normalized = String(text || '').trim();
+        return super.isPlaceholderSummary(normalized)
+            || normalized === '[未加载的提问]';
+    }
+
+    static TEXT_CACHE_MAX_TEXT_LENGTH = 200;
+    static TEXT_CACHE_MAX_ENTRIES = 3000;
 
     async matches(url) {
         return matchesPlatform(url, 'chatgpt');
     }
 
+    /**
+     * 【2026-07 ChatGPT 虚拟化改版】给轮次容器标记角色属性 data-ait-turn
+     *
+     * 新版结构：每轮对话包在 [data-turn-id-container][data-is-intersecting] 容器里
+     * （已渲染轮次为外层 DIV 套内层 SECTION 双层同 id 容器，内部保留旧的 [data-turn] 元素；
+     * 视口外轮次被虚拟化成空壳 DIV，内部无任何内容，无法直接得知是提问还是回复）。
+     *
+     * 标记算法（纯 DOM，幂等，可反复执行）：
+     * 1. 取所有双属性容器，按 id 去重（文档序先外后内，保留外层）；
+     * 2. 倒序遍历。最后一轮被 ChatGPT 强制渲染（fiber props 的 isFinalTurn/forceRender），
+     *    链条必有真实锚点：已渲染轮次用后代 [data-turn] 的真实值（并重新校准链条），
+     *    空壳取后一轮角色的反值（提问/回复严格交替）；
+     * 3. 第一轮必须是提问：推断为回复时不打属性（ChatGPT 开头可能有隐藏占位轮，
+     *    只跳过、绝不平移链条）。
+     *
+     * 每次 getUserMessageSelector() 都会重跑（成本约一次 querySelectorAll + 每容器一次
+     * querySelector），覆盖四种失效场景：容器属性延迟挂载、新消息、重渲染抹属性、
+     * 虚拟化窗口移动（渲染出真实值后覆盖此前的推断值）。
+     *
+     * @returns {boolean} - 页面是否存在新版容器结构
+     */
+    /**
+     * 时间轴重建 markers 前准备当前对话的文本数据。
+     * 仅在切换对话时失效缓存并从网络拦截桥拉取一次全量文本，避免
+     * getUserMessageSelector 在初始化预检查阶段提前消费唯一一次拉取机会。
+     *
+     * 前提：时间轴渲染时拦截模块已完成拦截，故每个对话拉取一次即可，不做轮询/节流。
+     * 未拉到时静默降级（渲染期缓存 → 占位符）。
+     */
+    syncCapturedChatsData() {
+        const convId = this.extractConversationId(location.pathname);
+        if (convId === this._textCacheConvId) return; // 同一对话：已拉取过，直接用缓存
+        this._textCacheConvId = convId;
+        this._turnTextCache.clear();
+        this._capturedTextIds.clear();
+        this._pullConvTexts(convId);
+    }
+
+    /**
+     * 接口拦截完成后的事件入口。仅处理当前 URL 对应的对话；
+     * 其他对话可能是 ChatGPT 预加载的数据，只保留在 MAIN world 分桶缓存中。
+     *
+     * @param {string} conversationId - 已完成缓存的对话 ID
+     * @returns {number} 本次发生变化的缓存条目数
+     */
+    handleCapturedChatsDataUpdated(conversationId) {
+        const currentConvId = this.extractConversationId(location.pathname);
+        if (!conversationId || conversationId !== currentConvId) return 0;
+
+        // 更新事件可能早于 TimelineManager 初始化，此时先建立正确的缓存归属。
+        if (this._textCacheConvId !== conversationId) {
+            this._textCacheConvId = conversationId;
+            this._turnTextCache.clear();
+            this._capturedTextIds.clear();
+        }
+
+        return this._pullConvTexts(conversationId);
+    }
+
+    _markTurnRoles() {
+        const all = document.querySelectorAll('[data-turn-id-container][data-is-intersecting]');
+        if (!all.length) return false;
+
+        // 按 id 去重，保留外层容器
+        const seen = new Set();
+        const containers = [];
+        all.forEach(el => {
+            const id = el.getAttribute('data-turn-id-container');
+            if (!id || seen.has(id)) return;
+            seen.add(id);
+            containers.push(el);
+        });
+
+        // 倒序推导每个容器的角色
+        const roles = new Array(containers.length).fill(null);
+        let nextRole = null; // 后一个（更靠下）容器的角色
+        for (let i = containers.length - 1; i >= 0; i--) {
+            const real = containers[i].querySelector('[data-turn]')?.getAttribute('data-turn');
+            let role = (real === 'user' || real === 'assistant') ? real : null;
+            if (!role && nextRole) {
+                role = (nextRole === 'user') ? 'assistant' : 'user';
+            }
+            roles[i] = role;
+            if (role) nextRole = role;
+        }
+
+        // 第一轮推断为回复时不标记
+        if (roles[0] === 'assistant') roles[0] = null;
+
+        containers.forEach((el, i) => {
+            const role = roles[i];
+            // 机会性填充文本缓存：轮次只要渲染出来过，就在标记周期里把提问文本存住。
+            // 不能依赖 extractText（只在 markers 重建时被调用）：滚动渲染不触发重建，
+            // 等到重建时轮次可能已被虚拟化回空壳，文本就永远缓存不上了（调试日志实证）。
+            if (role === 'user') {
+                const id = el.getAttribute('data-turn-id-container');
+                if (id && !this._turnTextCache.has(id)) {
+                    const raw = el.querySelector('.whitespace-pre-wrap')?.textContent;
+                    const text = (raw || '').replace(/\s+/g, ' ').trim();
+                    if (text) this._cacheTurnText(id, text);
+                }
+            }
+            if (role) {
+                if (el.getAttribute('data-ait-turn') !== role) {
+                    el.setAttribute('data-ait-turn', role);
+                }
+            } else if (el.hasAttribute('data-ait-turn')) {
+                el.removeAttribute('data-ait-turn');
+            }
+        });
+        return true;
+    }
+
     getUserMessageSelector() {
+        // 新版虚拟化结构：先标记角色再返回容器选择器；
+        // 无新版结构或标记后无 user 节点时，回退旧选择器（兼容 ChatGPT A/B 回滚）
+        if (this._markTurnRoles() && document.querySelector('[data-turn-id-container][data-ait-turn="user"]')) {
+            return '[data-turn-id-container][data-ait-turn="user"]';
+        }
         return '[data-turn="user"][data-turn-id]';
     }
 
     getAssistantMessageSelector() {
+        if (document.querySelector('[data-turn-id-container][data-ait-turn="assistant"]')) {
+            return '[data-turn-id-container][data-ait-turn="assistant"]';
+        }
         return '[data-turn="assistant"][data-turn-id]';
     }
 
     /**
      * 从 DOM 元素中提取 nodeId
-     * 直接从元素的 data-turn-id 属性读取 ID
+     * 新版结构读容器的 data-turn-id-container，旧版结构读 data-turn-id
+     * （两者是同一批 turn UUID，收藏等历史数据可直接对上）
      * 
      * ✅ 降级方案：返回 null 时，generateTurnId 会降级使用 index（数字类型）
      * @param {Element} element - 用户消息元素
@@ -36,16 +245,17 @@ class ChatGPTAdapter extends SiteAdapter {
     _extractNodeIdFromDom(element) {
         if (!element) return null;
         
-        const nodeId = element.getAttribute('data-turn-id') || null;
+        const nodeId = element.getAttribute('data-turn-id-container')
+            || element.getAttribute('data-turn-id')
+            || null;
         return nodeId ? String(nodeId) : null;
     }
 
     /**
      * 生成节点的唯一标识 turnId
-     * 优先使用 data-turn-id（稳定），回退到数组索引（兼容）
+     * 优先使用 turn UUID（data-turn-id-container / data-turn-id，稳定），回退到数组索引（兼容）
      */
     generateTurnId(element, index) {
-        // 优先使用 data-turn-id（稳定标识），回退到数组索引
         const nodeId = this._extractNodeIdFromDom(element);
         return nodeId ? `chatgpt-${nodeId}` : `chatgpt-${index}`;
     }
@@ -100,47 +310,44 @@ class ChatGPTAdapter extends SiteAdapter {
         return null;
     }
 
-    extractText(element) {
-        const textElement = element.querySelector('.whitespace-pre-wrap');
-        const text = (textElement?.textContent || '').replace(/\s+/g, ' ').trim();
-        return text || '[图片或文件]';
+    /**
+     * 写入内存文本缓存（带容量控制）
+     * @param {string} nodeId - turn UUID
+     * @param {string} text - 提问文本
+     */
+    _cacheTurnText(nodeId, text) {
+        // 截断长文本：tooltip 最多显示 5 行，控制内存与存储体积
+        const maxLen = ChatGPTAdapter.TEXT_CACHE_MAX_TEXT_LENGTH;
+        const trimmed = text.length > maxLen ? text.slice(0, maxLen) : text;
+        if (this._turnTextCache.get(nodeId) === trimmed) return;
+        if (!this._turnTextCache.has(nodeId)
+            && this._turnTextCache.size >= ChatGPTAdapter.TEXT_CACHE_MAX_ENTRIES) {
+            // 简单容量控制：删最早的一条
+            const oldest = this._turnTextCache.keys().next().value;
+            this._turnTextCache.delete(oldest);
+        }
+        this._turnTextCache.set(nodeId, trimmed);
     }
 
-    /**
-     * 通过 MAIN world 的 fiber bridge 同步提取所有用户消息文本
-     * 用于补充/覆盖 DOM 提取（解决虚拟滚动导致的文本丢失问题）
-     *
-     * 通信依赖 DOM 自定义事件在同栈完成（同步往返）：
-     * 1. 注册一次性 `timeline-fiber-result` 监听
-     * 2. 派发 `timeline-extract-fiber` 触发 MAIN-world 桥
-     * 3. dispatchEvent 返回时 cache 已被填充
-     *
-     * 如果桥脚本未就绪（document_idle 未到达 / CSP 拦截 / 非 ChatGPT 域），
-     * 监听不会触发，cache 为空 → 调用方自动回退到 DOM 提取。
-     * 首次检测到桥不可用时打印一条 warn，便于定位「桥根本没接通」。
-     * @returns {Map<string, string>} - data-turn-id → 消息文本
-     */
-    extractFiberTexts() {
-        const cache = new Map();
-        let received = false;
-        const handler = (e) => {
-            received = true;
-            if (e.detail) {
-                Object.entries(e.detail).forEach(([id, txt]) => cache.set(id, txt));
-            }
-        };
-        document.addEventListener('timeline-fiber-result', handler, { once: true });
-        document.dispatchEvent(new CustomEvent('timeline-extract-fiber'));
-        if (!received) {
-            // 同步往返失败 → 桥脚本不可用，移除挂起监听避免内存泄漏
-            document.removeEventListener('timeline-fiber-result', handler);
-            if (!ChatGPTAdapter._bridgeWarned) {
-                ChatGPTAdapter._bridgeWarned = true;
-            }
+    extractText(element) {
+        const nodeId = this._extractNodeIdFromDom(element);
+        const textElement = element.querySelector('.whitespace-pre-wrap');
+        const text = (textElement?.textContent || '').replace(/\s+/g, ' ').trim();
+        if (text) {
+            // 渲染期缓存文本，供该轮被虚拟化成空壳后使用
+            if (nodeId) this._cacheTurnText(nodeId, text);
+            return text;
         }
-        return cache;
+        // 虚拟化空壳：React 子树已卸载，DOM/fiber 均无文本，回退会话级缓存
+        if (nodeId && this._turnTextCache.has(nodeId)) {
+            return this._turnTextCache.get(nodeId);
+        }
+        // 区分两种"无文本"：
+        // - 空壳（childElementCount=0）：轮次从未渲染过，文本在客户端物理不存在
+        // - 已渲染但无文本节点：真的是纯图片/文件消息
+        return element.childElementCount === 0 ? '[未加载的提问]' : '[图片或文件]';
     }
-    
+
     /**
      * 获取时间标签的渲染目标元素
      * ChatGPT: 使用 [data-message-id] 子元素

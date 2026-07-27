@@ -25,6 +25,10 @@ class GeminiAdapter extends SiteAdapter {
         return 'model-response';
     }
 
+    getConflictingTimelineSelectors() {
+        return ['.gemini-timeline-bar'];
+    }
+
     /**
      * 从 DOM 元素中提取稳定的 nodeId
      * Gemini 的虚拟滚动会隐藏/重建节点，导致数组索引不可靠

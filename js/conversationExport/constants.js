@@ -165,8 +165,8 @@ const CE_DEFAULT_FORMAT = 'markdown';
 
 /**
  * 采集策略：决定 collectAllTurns 如何把完整对话准备到「可读取」状态。
- * - SCROLL：反复向上滚动懒加载历史（Gemini 等——历史只在顶部按需加载，已加载节点常驻 DOM）
- * - STATIC：完整对话数据已在内存（如 React Fiber），无需滚动，直接读取（ChatGPT 等）
+ * - SCROLL：滚动把未渲染内容加载/渲染出来（Gemini 顶部懒加载、ChatGPT 虚拟化空壳等）
+ * - STATIC：完整对话数据已在 DOM/内存，无需滚动，直接读取
  *
  * 新增平台时按其加载方式选择策略；需要全新加载方式时可在此扩展并在基类 collectAllTurns 分派。
  */
