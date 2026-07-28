@@ -58,6 +58,18 @@ class RunnerManager {
             return { success: false, error: '代码正在运行中' };
         }
 
+        try {
+            if (language === 'mermaid') {
+                await window.AITResourceLoader?.load('runner-mermaid');
+            } else if (language === 'markdown') {
+                await window.AITResourceLoader?.load('runner-markdown');
+            }
+        } catch (error) {
+            const errorResult = { message: error.message || '运行器依赖加载失败' };
+            onError(errorResult);
+            return { success: false, error: errorResult.message };
+        }
+
         // 重置输出计数
         this.outputCount = 0;
         this.isRunning = true;
@@ -201,4 +213,3 @@ class RunnerManager {
 if (typeof window !== 'undefined') {
     window.RunnerManager = RunnerManager;
 }
-

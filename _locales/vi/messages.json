@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Chạy"
   },
+  "runnerLoadFailed": {
+    "message": "Không thể tải trình chạy. Hãy làm mới trang rồi thử lại."
+  },
   "themeDark": {
     "message": "Tối"
   },

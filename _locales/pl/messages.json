@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Uruchom"
   },
+  "runnerLoadFailed": {
+    "message": "Nie udało się załadować modułu uruchamiającego. Odśwież stronę i spróbuj ponownie."
+  },
   "themeDark": {
     "message": "Ciemny"
   },

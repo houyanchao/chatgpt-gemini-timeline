@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "รัน"
   },
+  "runnerLoadFailed": {
+    "message": "โหลดตัวรันไม่สำเร็จ โปรดรีเฟรชหน้าแล้วลองอีกครั้ง"
+  },
   "themeDark": {
     "message": "มืด"
   },

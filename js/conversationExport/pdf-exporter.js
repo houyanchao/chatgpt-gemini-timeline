@@ -19,8 +19,10 @@ class CEPdfExporter {
      * @returns {Promise<void>}
      */
     async export(job, themeId, markdownParser) {
-        this._mjReady = await this._ensureMathJax();
         this._parser = markdownParser || null;
+        this._mjReady = this._containsFormula(job)
+            ? await this._ensureMathJax()
+            : false;
         const html = this._buildHtml(job, themeId);
         await this._printHtml(html);
     }
@@ -224,8 +226,18 @@ a { color: #2563eb; text-decoration: none; }
 
     // ==================== 公式 ====================
 
+    _containsFormula(job) {
+        return (job?.turns || []).some((turn) => {
+            const markdown = turn?.assistant?.markdown || '';
+            if (!markdown) return false;
+            return /\\\(|\\\[|\$\$/.test(markdown)
+                || /(^|[^\\$])\$[^$\n]+\$(?!\$)/m.test(markdown);
+        });
+    }
+
     async _ensureMathJax() {
         try {
+            await window.AITResourceLoader?.load('export-mathjax');
             if (typeof MathJax === 'undefined') return false;
             if (MathJax.startup && MathJax.startup.promise) await MathJax.startup.promise;
             return typeof MathJax.tex2svg === 'function';

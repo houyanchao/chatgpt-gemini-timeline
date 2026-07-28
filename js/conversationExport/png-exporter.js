@@ -69,9 +69,16 @@ class CEPngExporter {
         // 预加载图片
         const imageMap = await this._preloadImages(job.turns);
 
-        // 公式渲染能力探测 + 预渲染（LaTeX → MathML → SVG 图片）
-        this.formulaCapable = await this._probeFormulaRendering();
-        this.formulaImages = await this._preloadFormulas(job.turns);
+        // 仅在导出内容实际包含公式时加载 MathJax 并预渲染，普通 PNG 导出不加载重型库
+        const hasFormulas = job.turns.some((turn) =>
+            this._collectFormulas(turn.assistant?.markdown || '').length > 0
+        );
+        this.formulaCapable = hasFormulas
+            ? await this._probeFormulaRendering()
+            : false;
+        this.formulaImages = this.formulaCapable
+            ? await this._preloadFormulas(job.turns)
+            : new Map();
 
         // 构建绘制操作（含测量高度）
         const headerBlock = this._buildHeader(measureCtx, job, theme);
@@ -965,10 +972,11 @@ class CEPngExporter {
      * 确保 MathJax 就绪（tex2svg 可用）。
      * @returns {Promise<boolean>}
      */
-    _ensureMathJax() {
+    async _ensureMathJax() {
         if (this._mathjaxReady) return this._mathjaxReady;
         this._mathjaxReady = (async () => {
             try {
+                await window.AITResourceLoader?.load('export-mathjax');
                 if (typeof MathJax === 'undefined') return false;
                 if (MathJax.startup && MathJax.startup.promise) {
                     await MathJax.startup.promise;
@@ -978,7 +986,11 @@ class CEPngExporter {
                 return false;
             }
         })();
-        return this._mathjaxReady;
+        const ready = await this._mathjaxReady;
+        if (!ready) {
+            this._mathjaxReady = null;
+        }
+        return ready;
     }
 
     /**

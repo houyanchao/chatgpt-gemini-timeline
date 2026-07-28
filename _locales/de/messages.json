@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Ausführen"
   },
+  "runnerLoadFailed": {
+    "message": "Runner konnte nicht geladen werden. Bitte aktualisieren Sie die Seite und versuchen Sie es erneut."
+  },
   "themeDark": {
     "message": "Dunkel"
   },

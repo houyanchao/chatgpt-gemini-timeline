@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "चलाएं"
   },
+  "runnerLoadFailed": {
+    "message": "रनर लोड नहीं हो सका। पेज रीफ़्रेश करके फिर से कोशिश करें।"
+  },
   "themeDark": {
     "message": "गहरा"
   },

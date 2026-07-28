@@ -512,6 +512,9 @@
   "runBtn": {
     "message": "실행"
   },
+  "runnerLoadFailed": {
+    "message": "러너를 불러오지 못했습니다. 페이지를 새로고침한 후 다시 시도하세요."
+  },
   "themeDark": {
     "message": "다크"
   },

@@ -164,17 +164,27 @@
         const maxZ = getMaxChildZIndex(layoutContainer);
         button.style.zIndex = maxZ + 1;
         
-        button.addEventListener('click', (e) => {
+        button.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
+            button.disabled = true;
             // 如果配置了使用悬浮面板，直接打开 FloatingRunnerPanel
-            if (config.useFloatingPanel && window.FloatingRunnerPanel) {
-                const code = getCodeText(codeElement);
-                const floatingPanel = window.FloatingRunnerPanel.getInstance();
-                floatingPanel.show({ code, language });
-            } else {
-                handleRunClick(codeElement, layoutContainer, button, language);
+            try {
+                await window.AITResourceLoader?.load('runner-editor');
+                if (config.useFloatingPanel && window.FloatingRunnerPanel) {
+                    const code = getCodeText(codeElement);
+                    const floatingPanel = window.FloatingRunnerPanel.getInstance();
+                    floatingPanel.show({ code, language });
+                } else {
+                    handleRunClick(codeElement, layoutContainer, button, language);
+                }
+            } catch {
+                window.globalToastManager?.error(
+                    safeI18n('runnerLoadFailed', '运行器加载失败，请刷新页面后重试')
+                );
+            } finally {
+                button.disabled = false;
             }
         });
         

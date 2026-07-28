@@ -512,6 +512,9 @@
   "runBtn": {
     "message": "Run"
   },
+  "runnerLoadFailed": {
+    "message": "Failed to load the runner. Please refresh the page and try again."
+  },
   "themeDark": {
     "message": "Dark"
   },

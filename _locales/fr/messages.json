@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Exécuter"
   },
+  "runnerLoadFailed": {
+    "message": "Impossible de charger l’exécuteur. Actualisez la page et réessayez."
+  },
   "themeDark": {
     "message": "Sombre"
   },

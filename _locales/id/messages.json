@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Jalankan"
   },
+  "runnerLoadFailed": {
+    "message": "Runner gagal dimuat. Muat ulang halaman lalu coba lagi."
+  },
   "themeDark": {
     "message": "Gelap"
   },

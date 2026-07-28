@@ -512,6 +512,9 @@
   "runBtn": {
     "message": "実行"
   },
+  "runnerLoadFailed": {
+    "message": "ランナーを読み込めませんでした。ページを再読み込みして、もう一度お試しください。"
+  },
   "themeDark": {
     "message": "ダーク"
   },

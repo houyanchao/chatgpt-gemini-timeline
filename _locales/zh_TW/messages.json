@@ -512,6 +512,9 @@
   "runBtn": {
     "message": "執行"
   },
+  "runnerLoadFailed": {
+    "message": "執行器載入失敗，請重新整理頁面後再試"
+  },
   "themeDark": {
     "message": "深色"
   },

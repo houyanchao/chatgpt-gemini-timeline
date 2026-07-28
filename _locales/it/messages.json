@@ -488,6 +488,9 @@
   "runBtn": {
     "message": "Esegui"
   },
+  "runnerLoadFailed": {
+    "message": "Impossibile caricare il runner. Aggiorna la pagina e riprova."
+  },
   "themeDark": {
     "message": "Scuro"
   },
