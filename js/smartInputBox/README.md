@@ -58,8 +58,7 @@ js/smartEnter/
 ```javascript
 const SMART_ENTER_CONFIG = {
     DOUBLE_CLICK_INTERVAL: 500,  // 双击间隔（ms）
-    ENABLED_BY_DEFAULT: true,     // 默认启用
-    DEBUG: false                  // 调试模式
+    ENABLED_BY_DEFAULT: true     // 默认启用
 };
 ```
 
@@ -163,27 +162,7 @@ window.smartEnterManager.enable()
 
 // 禁用功能
 window.smartEnterManager.disable()
-
-// 开启调试模式（在 constants.js 中设置）
-SMART_ENTER_CONFIG.DEBUG = true
 ```
-
-## 🔍 调试
-
-### 开启调试日志
-
-在 `constants.js` 中设置：
-
-```javascript
-DEBUG: true
-```
-
-日志会显示：
-- 适配器匹配情况
-- 输入框附加状态
-- Enter 键按下时间
-- 双击检测结果
-- 发送触发情况
 
 ## ⚙️ 配置选项
 
@@ -204,7 +183,6 @@ DOUBLE_CLICK_INTERVAL: 500  // 单位：毫秒
 1. 检查是否为支持的平台
 2. 检查控制台是否有错误
 3. 检查输入框选择器是否正确
-4. 开启 DEBUG 模式查看日志
 
 ### 双击不灵敏
 
@@ -231,4 +209,3 @@ DOUBLE_CLICK_INTERVAL: 500  // 单位：毫秒
 - [ ] 文心一言
 - [ ] 通义千问
 - [ ] 更多...
-

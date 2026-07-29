@@ -66,6 +66,10 @@ async function canInitialize() {
     const adapter = await resolveCurrentAdapter();
     if (!adapter) return false;
     
+    adapter.prepareTimelineNodes?.({
+        force: true,
+        reason: 'initialization-check'
+    });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
     return document.querySelector(selector) !== null;
@@ -284,6 +288,10 @@ async function bootstrapTimeline() {
     // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
     const checkAndInit = async () => {
         const adapter = await resolveCurrentAdapter();
+        adapter?.prepareTimelineNodes?.({
+            force: true,
+            reason: 'bootstrap-check'
+        });
         const selector = adapter ? adapter.getUserMessageSelector() : null;
         if (selector && document.querySelector(selector)) {
             if (await isConversationRoute()) {

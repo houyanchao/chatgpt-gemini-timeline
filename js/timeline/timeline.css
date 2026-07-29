@@ -638,23 +638,18 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
 /* 紧凑模式：节点变为横线 */
 .ait-compact-mode .ait-timeline-dot::after {
     border-radius: 0;
-    width: var(--timeline-compact-line-width-long);
+    width: var(--timeline-compact-line-width);
     height: var(--timeline-compact-line-height);
     /* 右对齐 */
     left: auto;
     right: 4px;
     transform: translateY(-50%);
+    transition: width 0.16s ease, height 0.16s ease, background-color 0.15s ease, filter 0.15s ease;
 }
 
-/* 紧凑模式：奇数索引节点用短横线（长短交替） */
-.ait-compact-mode .ait-timeline-dot.line-odd::after {
-    width: var(--timeline-compact-line-width-short);
-}
-
-/* 紧凑模式：hover 效果 */
+/* 紧凑模式：hover 节点最长 */
 .ait-compact-mode .ait-timeline-dot:hover::after {
-    width: 24px;
-    height: 3px;
+    width: var(--timeline-compact-line-hover-width);
 }
 
 /* 紧凑模式：收藏节点 - 橙色横线 */
@@ -662,60 +657,64 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
     background-color: var(--timeline-star-color);
     border-radius: 0;
     clip-path: none;
-    width: var(--timeline-compact-line-width-long);
     height: var(--timeline-compact-line-height);
 }
 
-.ait-compact-mode .ait-timeline-dot.starred.line-odd::after {
-    width: var(--timeline-compact-line-width-short);
-}
-
-.ait-compact-mode .ait-timeline-dot.starred:hover::after {
-    width: 24px;
-    height: 3px;
-}
-
-/* 紧凑模式：激活节点 - 主题色边框 */
-.ait-compact-mode .ait-timeline-dot.active::after {
-    box-shadow: none;
-}
-
-html[data-timeline-theme="dark"] .ait-compact-mode .ait-timeline-dot.active::after {
-    box-shadow: none;
-}
-
-/* 紧凑模式：收藏+激活 - 橙色横线+主题色边框 */
-.ait-compact-mode .ait-timeline-dot.starred.active::after {
+/* 收藏节点 Hover：保留黄色，变长、加粗并轻微提亮 */
+.ait-compact-mode .ait-timeline-dot.starred:not(.active):hover::after {
     background-color: var(--timeline-star-color);
+    height: var(--timeline-compact-line-height);
+    filter: brightness(1.08);
+}
+
+/* 紧凑模式：激活节点直接使用主题背景色，优先级高于收藏色 */
+.ait-compact-mode .ait-timeline-dot.active::after {
+    background-color: var(--ait-timeline-dot-active-color);
     box-shadow: none;
 }
 
-/* 紧凑模式：用背景层绘制激活横线边框，支持纯色和渐变 */
-.ait-compact-mode .ait-timeline-dot.active:not(.starred)::before,
+/* 收藏且选中：激活色主体，前半段覆盖收藏色 */
+.ait-compact-mode .ait-timeline-dot.starred.active::after {
+    background-color: var(--ait-timeline-dot-active-color);
+    height: var(--timeline-compact-line-height);
+    box-shadow: none;
+}
+
+/* 普通激活节点不再用 ::before 绘制边框 */
+.ait-compact-mode .ait-timeline-dot.active:not(.starred)::before {
+    content: none;
+    display: none;
+}
+
 .ait-compact-mode .ait-timeline-dot.starred.active::before {
     content: '';
     position: absolute;
-    left: auto;
-    right: 2px;
     top: 50%;
-    width: calc(var(--timeline-compact-line-width-long) + 4px);
-    height: calc(var(--timeline-compact-line-height) + 4px);
-    border-radius: 999px;
-    background: var(--ait-timeline-dot-active-color);
+    right: 4px;
+    left: auto;
+    width: 9px;
+    height: var(--timeline-compact-line-height);
+    border-radius: 0;
+    background: var(--timeline-star-color);
     clip-path: none;
-    transform: translateY(-50%);
-    transition: width 0.15s ease, height 0.15s ease;
+    transform: translate(-100%, -50%);
+    transition: width 0.16s ease, filter 0.15s ease;
     pointer-events: none;
-    z-index: 0;
+    z-index: 2;
     display: block;
 }
 
-.ait-compact-mode .ait-timeline-dot.line-odd.active:not(.starred)::before,
-.ait-compact-mode .ait-timeline-dot.starred.line-odd.active::before {
-    width: calc(var(--timeline-compact-line-width-short) + 4px);
+.ait-compact-mode .ait-timeline-dot.starred.active:hover::before {
+    width: 12px;
 }
 
-.ait-compact-mode .ait-timeline-dot.active:hover::before {
-    width: 28px;
-    height: 7px;
+.ait-compact-mode .ait-timeline-dot.starred.active:hover::after,
+.ait-compact-mode .ait-timeline-dot.starred.active:hover::before {
+    filter: brightness(1.08);
+}
+
+/* 紧凑模式：鼠标悬停节点使用激活背景色 */
+.ait-compact-mode .ait-timeline-dot:not(.active):not(.starred):hover::after,
+.ait-compact-mode .ait-timeline-dot.active:not(.starred):hover::after {
+    background-color: var(--ait-timeline-dot-active-color);
 }

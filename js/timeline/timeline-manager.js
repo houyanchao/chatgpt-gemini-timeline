@@ -31,6 +31,12 @@ class TimelineManager {
         // ✅ 上次渲染时的节点状态（用于变化检测，决定是否需要重新计算）
         this._renderedNodeCount = 0;
         this._renderedNodeIds = new Set();
+        this._timelineMutationTimer = null;
+        this._timelineStructureDirty = false;
+        this._timelineLayoutDirty = false;
+        this._timelineStructureSelector = '';
+        this._timelineStructureUsesRelationalSelector = false;
+        this._timelineStructureAttributeFilter = [];
 
         this.mutationObserver = null;
         this.resizeObserver = null;
@@ -172,6 +178,24 @@ class TimelineManager {
         return this.adapter.getFeatures?.() || this._currentPlatform?.features || {};
     }
 
+    _collectUserTurnElements({ scope = document, forcePrepare = false, reason = '' } = {}) {
+        this.adapter.prepareTimelineNodes?.({
+            force: forcePrepare,
+            reason
+        });
+
+        const selector = this.adapter.getUserMessageSelector();
+        if (!selector) {
+            return { selector: '', userTurnElements: [] };
+        }
+
+        let userTurnElements = [];
+        try {
+            userTurnElements = Array.from(scope.querySelectorAll(selector));
+        } catch {}
+        return { selector, userTurnElements };
+    }
+
     async init() {
         await TimelineI18n.ready();
 
@@ -253,11 +277,28 @@ class TimelineManager {
     }
     
     async findCriticalElements() {
-        const selector = this.adapter.getUserMessageSelector();
-        const firstTurn = await this.waitForElement(selector);
+        let prepared = this._collectUserTurnElements({
+            scope: document,
+            reason: 'initialization'
+        });
+        let firstTurn = prepared.userTurnElements[0] || null;
+        if (!firstTurn) {
+            firstTurn = await this.waitForElement(prepared.selector);
+            if (firstTurn) {
+                prepared = this._collectUserTurnElements({
+                    scope: document,
+                    forcePrepare: true,
+                    reason: 'initialization-ready'
+                });
+                firstTurn = prepared.userTurnElements[0] || firstTurn;
+            }
+        }
         if (!firstTurn) return false;
         
-        this.conversationContainer = this.adapter.findConversationContainer(firstTurn);
+        this.conversationContainer = this.adapter.findConversationContainer(firstTurn, {
+            messageSelector: prepared.selector,
+            userTurnElements: prepared.userTurnElements
+        });
         if (!this.conversationContainer) return false;
 
         const scrollInfo = this.resolveScrollContainer(this.conversationContainer);
@@ -986,14 +1027,24 @@ class TimelineManager {
         }
     }
 
-    recalculateAndRenderMarkers() {
+    recalculateAndRenderMarkers(preparedContext = null) {
         if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
         if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
 
         this.adapter.syncCapturedChatsData();
-        const selector = this.adapter.getUserMessageSelector();
-        let userTurnElements = this.conversationContainer.querySelectorAll(selector);
+        let userTurnElements = preparedContext?.userTurnElements || null;
+        if (userTurnElements) {
+            userTurnElements = Array.from(userTurnElements).filter(el =>
+                el === this.conversationContainer || this.conversationContainer.contains(el)
+            );
+        } else {
+            const prepared = this._collectUserTurnElements({
+                scope: this.conversationContainer,
+                reason: 'marker-recalculation'
+            });
+            userTurnElements = prepared.userTurnElements;
+        }
         
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
@@ -1012,54 +1063,25 @@ class TimelineManager {
         // ✅ 确定有节点要渲染，注入收起/展开切换按钮（首次调用时创建，后续调用直接跳过）
         this.injectToggleButton();
 
-        /**
-         * ✅ 按照元素在页面上的实际位置（从上往下）排序
-         * 确保节点顺序和视觉顺序完全一致，适用于所有网站
-         * 
-         * ✅ 性能优化：批量读取所有 rect 后再排序
-         * 原因：getBoundingClientRect() 会触发浏览器重排
-         * 批量读取可以让浏览器合并重排操作，减少布局抖动
-         */
         const elementsArray = Array.from(userTurnElements);
-        // 一次性批量读取所有 rect（利用浏览器批量优化）
-        const rectsMap = new Map();
-        elementsArray.forEach(el => rectsMap.set(el, el.getBoundingClientRect()));
-        // 使用缓存的 rect 进行排序
-        userTurnElements = elementsArray.sort((a, b) => 
-            rectsMap.get(a).top - rectsMap.get(b).top
-        );
         
         /**
-         * ✅ 性能优化：只在节点真正变化时重新计算位置
-         * 
-         * 背景：
-         * MutationObserver 会在各种 DOM 变化时触发，包括：
-         * - 图片加载完成（样式变化）
-         * - 代码高亮渲染（内容样式化）
-         * - 公式渲染（LaTeX/KaTeX）
-         * - 动画效果
-         * 
-         * 这些变化不会影响对话节点的数量和顺序，但会触发不必要的位置重新计算。
-         * 
-         * 优化策略：
-         * 通过比对节点 ID 集合，只在节点真正增加/删除时才重新计算。
-         * 这样可以减少 80%+ 的不必要计算，提升性能和稳定性。
+         * 先比较节点 ID 和 DOM 引用，再读取布局信息。流式回复、代码高亮、
+         * 公式渲染等不会改变提问节点结构，直接进入轻量路径。
          */
-        
-        // 生成当前节点的 ID 集合
         const currentNodeIds = new Set();
-        userTurnElements.forEach((el, index) => {
+        elementsArray.forEach((el, index) => {
             const id = this.adapter.generateTurnId(el, index);
             currentNodeIds.add(id);
         });
-        
-        // 判断节点是否变化：数量变化 或 ID 集合变化 或 DOM 引用失效
-        const nodeCountChanged = userTurnElements.length !== this._renderedNodeCount;
+        const currentElements = new Set(elementsArray);
+        const nodeCountChanged = elementsArray.length !== this._renderedNodeCount;
         const nodeIdsChanged = currentNodeIds.size !== this._renderedNodeIds.size || 
                                ![...currentNodeIds].every(id => this._renderedNodeIds.has(id));
-        // ✅ 新增：检查是否有 DOM 引用失效（处理虚拟滚动导致的 DOM 回收）
-        const hasInvalidDom = this.markers.some(m => !m.element?.isConnected);
-        const needsRecalculation = nodeCountChanged || nodeIdsChanged || hasInvalidDom;
+        const nodeReferencesChanged = this.markers.some(marker =>
+            !marker.element?.isConnected || !currentElements.has(marker.element)
+        );
+        const needsRecalculation = nodeCountChanged || nodeIdsChanged || nodeReferencesChanged;
         
         // 如果节点没有变化，只更新渲染，不重新计算位置
         if (!needsRecalculation && this.markers.length > 0) {
@@ -1074,6 +1096,15 @@ class TimelineManager {
             }
             return;
         }
+
+        /**
+         * 节点确实变化后，再按照页面实际位置排序。批量读取 rect，避免读写交错。
+         */
+        const rectsMap = new Map();
+        elementsArray.forEach(el => rectsMap.set(el, el.getBoundingClientRect()));
+        userTurnElements = elementsArray.sort((a, b) =>
+            rectsMap.get(a).top - rectsMap.get(b).top
+        );
         
         // ✅ 节点数量变化时，对外派发事件
         let pendingNodesChange = null;
@@ -1106,22 +1137,6 @@ class TimelineManager {
         (this.ui.trackContent || this.ui.timelineBar).querySelectorAll('.ait-timeline-dot').forEach(n => n.remove());
         
         /**
-         * ✅ 计算元素相对于容器顶部的距离（使用 offsetTop）
-         * 
-         * 为什么使用 offsetTop 而不是 getBoundingClientRect？
-         * - getBoundingClientRect().top 是相对于视口的，会随滚动变化
-         * - offsetTop 是相对于 offsetParent 的，不受滚动影响，更稳定
-         * 
-         * 算法说明：
-         * 1. 从元素开始，向上遍历到 container
-         * 2. 累加每一层的 offsetTop
-         * 3. 如果 offsetParent 跳出了 container（如 position:fixed），使用后备方案
-         * 
-         * @param {HTMLElement} element - 目标元素
-         * @param {HTMLElement} container - 容器元素
-         * @returns {number} 元素距离容器顶部的像素距离
-         */
-        /**
          * ✅ 使用 getBoundingClientRect 计算元素相对于容器内容区域顶部的距离
          * 
          * 公式：elemRect.top - contRect.top + container.scrollTop
@@ -1131,18 +1146,16 @@ class TimelineManager {
          * - + scrollTop = 加上已滚动的距离
          * - 结果 = 元素相对于容器内容区域顶部的绝对距离
          */
-        const getOffsetTop = (element, container) => {
-            const elemRect = element.getBoundingClientRect();
-            const contRect = container.getBoundingClientRect();
-            let contScrollTop = container.scrollTop || 0;
-            
-            // ✅ 反向滚动时，scrollTop 是负数，取绝对值
-            const isReverseScroll = typeof this.adapter.isReverseScroll === 'function' && this.adapter.isReverseScroll();
-            if (isReverseScroll) {
-                contScrollTop = Math.abs(contScrollTop);
-            }
-            
-            return elemRect.top - contRect.top + contScrollTop;
+        const containerRect = this.scrollContainer.getBoundingClientRect();
+        let containerScrollTop = this.scrollContainer.scrollTop || 0;
+        const isReverseScroll = typeof this.adapter.isReverseScroll === 'function'
+            && this.adapter.isReverseScroll();
+        if (isReverseScroll) {
+            containerScrollTop = Math.abs(containerScrollTop);
+        }
+        const getOffsetTop = (element) => {
+            const elemRect = rectsMap.get(element) || element.getBoundingClientRect();
+            return elemRect.top - containerRect.top + containerScrollTop;
         };
         
         /**
@@ -1173,7 +1186,7 @@ class TimelineManager {
         this.maxScrollTop = cleanMaxScrollTop > 0 ? cleanMaxScrollTop : 1;
         
         // ✅ 统一使用 scrollContainer 计算所有位置
-        const nodeOffsets = Array.from(userTurnElements).map(el => getOffsetTop(el, this.scrollContainer));
+        const nodeOffsets = Array.from(userTurnElements).map(el => getOffsetTop(el));
         
         // 用于时间轴圆点定位（也使用 scrollContainer，保持一致）
         const firstOffsetTop = nodeOffsets[0];
@@ -1306,7 +1319,7 @@ class TimelineManager {
         // Ensure active class is applied after dots are created
         this.updateActiveDotUI();
         this.scheduleScrollSync();
-        this.updateIntersectionObserverTargets();
+        this.updateIntersectionObserverTargets(userTurnElements);
         
         // ✅ 对外派发节点数量变化事件
         if (pendingNodesChange) {
@@ -1372,31 +1385,163 @@ class TimelineManager {
         
     }
     
-    setupObservers() {
-        this.mutationObserver = new MutationObserver((mutations) => {
-            /**
-             * ✅ 防御性检查：确保有实际的节点增删变化
-             * 
-             * 理论上，由于只配置了 childList: true，所有 mutation 都应该
-             * 包含 addedNodes 或 removedNodes。但作为防御性编程，
-             * 我们仍然检查以处理可能的边缘情况。
-             * 
-             * 真正的性能优化在 recalculateAndRenderMarkers() 中：
-             * 通过比较 turnId 集合来判断是否需要重建 markers。
-             */
-            const hasRelevantChange = mutations.some(m => 
-                m.type === 'childList' && 
-                (m.addedNodes.length > 0 || m.removedNodes.length > 0)
+    _configureTimelineStructureObserver() {
+        const selectors = this.adapter.getTimelineStructureSelectors?.() || [];
+        this._timelineStructureSelector = selectors
+            .filter(selector => typeof selector === 'string' && selector.trim())
+            .join(',');
+        this._timelineStructureUsesRelationalSelector = selectors.some(selector =>
+            typeof selector === 'string' && /:has\(/i.test(selector)
+        );
+        this._timelineStructureAttributeFilter = Array.from(new Set(
+            (this.adapter.getTimelineStructureAttributeFilter?.() || [])
+                .filter(attribute => typeof attribute === 'string' && attribute)
+        ));
+    }
+
+    _observeConversationMutations() {
+        if (!this.mutationObserver || !this.conversationContainer) return;
+        const options = {
+            childList: true,
+            subtree: true
+        };
+        if (this._timelineStructureAttributeFilter.length > 0) {
+            options.attributes = true;
+            options.attributeOldValue = true;
+            options.attributeFilter = this._timelineStructureAttributeFilter;
+        }
+        this.mutationObserver.observe(this.conversationContainer, options);
+    }
+
+    _nodeContainsTimelineStructure(node) {
+        if (!this._timelineStructureSelector || node?.nodeType !== 1) return false;
+        try {
+            return node.matches(this._timelineStructureSelector)
+                || node.querySelector(this._timelineStructureSelector) !== null;
+        } catch {
+            return false;
+        }
+    }
+
+    _isRelevantTimelineMutation(mutation) {
+        if (mutation.type === 'childList') {
+            return mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0;
+        }
+        if (mutation.type !== 'attributes') return false;
+
+        if (mutation.attributeName === 'data-is-intersecting') {
+            // 角色算法只依赖属性是否存在；true/false 等值变化不影响结构或布局。
+            return mutation.oldValue === null
+                || !mutation.target?.hasAttribute?.('data-is-intersecting');
+        }
+        return true;
+    }
+
+    _isTimelineStructureMutation(mutation) {
+        if (mutation.type === 'attributes') {
+            return true;
+        }
+        if (mutation.type !== 'childList') return false;
+        const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+        if (mutation.target === this.conversationContainer) {
+            return changedNodes.some(node =>
+                node?.nodeType !== 1 || !node.matches?.('.ait-scroll-padding')
             );
-            if (!hasRelevantChange) return;
-            
-            // ✅ 注意：padding 恢复逻辑已移至 scheduleScrollSync()
-            // 当用户滚动时恢复 padding，而不是用定时器猜测 AI 回答是否结束
-            
-            try { this.ensureContainersUpToDate(); } catch {}
-            this.debouncedRecalculateAndRender();
+        }
+
+        if (this._timelineStructureUsesRelationalSelector && mutation.target?.nodeType === 1) {
+            try {
+                // :has(...) 匹配的是祖先。新增后检查 target/祖先，不能只检查 addedNodes。
+                if (mutation.target.closest(this._timelineStructureSelector)) {
+                    return true;
+                }
+            } catch {}
+
+            // 移除后祖先可能已不再匹配 :has(...)，用现有 marker 引用补充判断。
+            if (mutation.removedNodes.length > 0 && this.markers.some(marker =>
+                marker.element === mutation.target || marker.element?.contains?.(mutation.target)
+            )) {
+                return true;
+            }
+        }
+
+        return changedNodes.some(node => this._nodeContainsTimelineStructure(node));
+    }
+
+    _scheduleTimelineMutationFlush(delay = TIMELINE_CONFIG.DEBOUNCE_DELAY) {
+        if (this._timelineMutationTimer) {
+            // 结构变化以首次触发时间为准；后续流式 token 不能不断推迟新节点刷新。
+            if (delay > 0 && this._timelineStructureDirty) return;
+            clearTimeout(this._timelineMutationTimer);
+        }
+        this._timelineMutationTimer = setTimeout(() => {
+            this._timelineMutationTimer = null;
+            this._flushTimelineMutations();
+        }, delay);
+    }
+
+    _flushTimelineMutations() {
+        if (this._destroyed) return;
+        const structureDirty = this._timelineStructureDirty;
+        const layoutDirty = this._timelineLayoutDirty;
+        this._timelineStructureDirty = false;
+        this._timelineLayoutDirty = false;
+
+        if (structureDirty) {
+            const prepared = this._collectUserTurnElements({
+                scope: document,
+                forcePrepare: true,
+                reason: 'structure-mutation'
+            });
+            const rebound = this.ensureContainersUpToDate(prepared);
+            if (!rebound) {
+                const markersVersionBefore = this.markersVersion;
+                this.recalculateAndRenderMarkers(prepared);
+                const usedFastPath = this.markersVersion === markersVersionBefore
+                    && this.markers.length > 0
+                    && this.markers.every(marker => marker.element?.isConnected);
+                if (layoutDirty && usedFastPath) {
+                    this._refreshMarkerPositionsAfterLayoutChange();
+                }
+            }
+            return;
+        }
+
+        if (layoutDirty) {
+            this._refreshMarkerPositionsAfterLayoutChange();
+        }
+    }
+
+    _refreshMarkerPositionsAfterLayoutChange() {
+        if (!this.scrollContainer || this.markers.length === 0) return;
+        this._recalcMarkerPositions();
+        this.syncTimelineTrackToMain();
+        this.updateVirtualRangeAndRender();
+        this.computeActiveByScroll();
+    }
+
+    setupObservers() {
+        this._configureTimelineStructureObserver();
+        this.mutationObserver = new MutationObserver((mutations) => {
+            const relevantMutations = mutations.filter(mutation =>
+                this._isRelevantTimelineMutation(mutation)
+            );
+            if (relevantMutations.length === 0) return;
+
+            const hasStructureChange = relevantMutations.some(mutation =>
+                this._isTimelineStructureMutation(mutation)
+            );
+            this._timelineLayoutDirty = true;
+
+            if (hasStructureChange) {
+                this._timelineStructureDirty = true;
+                this.adapter.invalidateTimelineNodes?.('structure-mutation');
+            }
+
+            const containerDisconnected = !this.conversationContainer?.isConnected;
+            this._scheduleTimelineMutationFlush(containerDisconnected ? 0 : TIMELINE_CONFIG.DEBOUNCE_DELAY);
         });
-        this.mutationObserver.observe(this.conversationContainer, { childList: true, subtree: true });
+        this._observeConversationMutations();
         // Resize: update long-canvas geometry and virtualization
         // ⚠️ 注意：这里只监听时间轴自身大小变化，不需要重新计算节点位置
         // 因为时间轴大小变化不影响对话区域节点的 offsetTop
@@ -1572,20 +1717,27 @@ class TimelineManager {
     }
 
     // Ensure our conversation/scroll containers are still current after DOM replacements
-    ensureContainersUpToDate() {
-        const selector = this.adapter.getUserMessageSelector();
-        const first = document.querySelector(selector);
-        if (!first) return;
-        
-        const newConv = this.adapter.findConversationContainer(first);
-        // ✅ 增强判断：如果新容器存在且 (新容器不等于旧容器 OR 旧容器已经断开连接)
+    ensureContainersUpToDate(preparedContext = null) {
+        const prepared = preparedContext || this._collectUserTurnElements({
+            scope: document,
+            forcePrepare: true,
+            reason: 'container-health-check'
+        });
+        const first = prepared.userTurnElements[0] || null;
+        if (!first) return false;
+
+        const newConv = this.adapter.findConversationContainer(first, {
+            messageSelector: prepared.selector,
+            userTurnElements: prepared.userTurnElements
+        });
         if (newConv && (newConv !== this.conversationContainer || !this.conversationContainer?.isConnected)) {
-            // Rebind observers and listeners to the new conversation root
-            this.rebindConversationContainer(newConv);
+            this.rebindConversationContainer(newConv, prepared);
+            return true;
         }
+        return false;
     }
 
-    rebindConversationContainer(newConv) {
+    rebindConversationContainer(newConv, preparedContext = null) {
         // Detach old listeners
         if (this.scrollContainer && this.onScroll) {
             try { this.scrollContainer.removeEventListener('scroll', this.onScroll); } catch {}
@@ -1627,13 +1779,12 @@ class TimelineManager {
             });
             this.scheduleScrollSync();
         }, { root: this.scrollContainer, threshold: 0, rootMargin: "0px" });
-        this.updateIntersectionObserverTargets();
 
         // Re-observe mutations on the new conversation container
-        this.mutationObserver.observe(this.conversationContainer, { childList: true, subtree: true });
+        this._observeConversationMutations();
 
         // Force a recalc right away to rebuild markers
-        this.recalculateAndRenderMarkers();
+        this.recalculateAndRenderMarkers(preparedContext);
     }
 
     cleanupScrollPadding(container = null) {
@@ -1644,12 +1795,14 @@ class TimelineManager {
         this._currentPadding = 0;
     }
 
-    updateIntersectionObserverTargets() {
+    updateIntersectionObserverTargets(userTurnElements = null) {
         if (!this.intersectionObserver || !this.conversationContainer) return;
         this.intersectionObserver.disconnect();
         this.visibleUserTurns.clear();
-        const selector = this.adapter.getUserMessageSelector();
-        const userTurns = this.conversationContainer.querySelectorAll(selector);
+        const userTurns = userTurnElements || this._collectUserTurnElements({
+            scope: this.conversationContainer,
+            reason: 'intersection-targets'
+        }).userTurnElements;
         userTurns.forEach(el => this.intersectionObserver.observe(el));
     }
 
@@ -2925,8 +3078,6 @@ class TimelineManager {
                 try { 
                     dot.classList.toggle('pinned', this.pinned.has(marker.id));
                 } catch {}
-                // ✅ 添加：奇偶标识（用于紧凑模式长短交替）
-                try { dot.classList.add(i % 2 === 0 ? 'line-even' : 'line-odd'); } catch {}
                 marker.dotElement = dot;
                 frag.appendChild(dot);
             } else {
@@ -3285,6 +3436,7 @@ class TimelineManager {
         // DOM 引用失效时触发完整重算
         const hasInvalidElement = this.markers.some(m => !m.element?.isConnected);
         if (hasInvalidElement) {
+            this.adapter.invalidateTimelineNodes?.('invalid-marker-reference');
             if (!this._pendingDomRefresh) {
                 this._pendingDomRefresh = true;
                 requestAnimationFrame(() => {
@@ -3295,14 +3447,15 @@ class TimelineManager {
             return;
         }
         
-        const getOffsetTop = (element, container) => {
+        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const containerScrollTop = this.scrollContainer.scrollTop || 0;
+        const getOffsetTop = (element) => {
             const elemRect = element.getBoundingClientRect();
-            const contRect = container.getBoundingClientRect();
-            return elemRect.top - contRect.top + (container.scrollTop || 0);
+            return elemRect.top - containerRect.top + containerScrollTop;
         };
         
         const { maxScrollTop: cleanMaxScrollTop } = this._getCleanScrollMetrics();
-        const nodeOffsets = this.markers.map(m => getOffsetTop(m.element, this.scrollContainer));
+        const nodeOffsets = this.markers.map(m => getOffsetTop(m.element));
         const firstOffsetTop = nodeOffsets[0];
         const lastOffsetTop = nodeOffsets[nodeOffsets.length - 1];
         const contentSpan = lastOffsetTop - firstOffsetTop || 1;
@@ -3472,6 +3625,9 @@ class TimelineManager {
         this._initialSecondRenderTimer = TimelineUtils.clearTimerSafe(this._initialSecondRenderTimer);
         this._initialStarredBtnRaf1 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf1);
         this._initialStarredBtnRaf2 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf2);
+        this._timelineMutationTimer = TimelineUtils.clearTimerSafe(this._timelineMutationTimer);
+        this._timelineStructureDirty = false;
+        this._timelineLayoutDirty = false;
 
         // Disconnect observers
         TimelineUtils.disconnectObserverSafe(this.mutationObserver);

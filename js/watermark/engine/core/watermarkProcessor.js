@@ -62,13 +62,6 @@ const PREVIEW_EDGE_CLEANUP_AGGRESSIVE_PRESETS = Object.freeze([
 const FIRST_PASS_SIGN_FLIP_GRADIENT_THRESHOLD = 0.08;
 const FIRST_PASS_SIGN_FLIP_MIN_GRADIENT_DROP = 0.2;
 
-function nowMs() {
-    if (typeof globalThis.performance?.now === 'function') {
-        return globalThis.performance.now();
-    }
-    return Date.now();
-}
-
 function cloneImageData(imageData) {
     if (typeof ImageData !== 'undefined' && imageData instanceof ImageData) {
         return new ImageData(
@@ -538,9 +531,6 @@ function refinePreviewResidualEdge({
 }
 
 export function processWatermarkImageData(imageData, options = {}) {
-    const totalStartedAt = nowMs();
-    const debugTimingsEnabled = options.debugTimings === true;
-    const debugTimings = debugTimingsEnabled ? {} : null;
     const adaptiveMode = options.adaptiveMode || 'auto';
     const allowAdaptiveSearch =
         adaptiveMode !== 'never' &&
@@ -575,7 +565,6 @@ export function processWatermarkImageData(imageData, options = {}) {
     let passStopReason = null;
     let passes = null;
 
-    const initialSelectionStartedAt = nowMs();
     const initialSelection = selectInitialCandidate({
         originalImageData,
         config,
@@ -587,14 +576,8 @@ export function processWatermarkImageData(imageData, options = {}) {
         allowAdaptiveSearch,
         alphaGainCandidates
     });
-    if (debugTimingsEnabled) {
-        debugTimings.initialSelectionMs = nowMs() - initialSelectionStartedAt;
-    }
 
     if (!initialSelection.selectedTrial) {
-        if (debugTimingsEnabled) {
-            debugTimings.totalMs = nowMs() - totalStartedAt;
-        }
         return {
             imageData: originalImageData,
             meta: createWatermarkMeta({
@@ -610,8 +593,7 @@ export function processWatermarkImageData(imageData, options = {}) {
                 applied: false,
                 skipReason: 'no-watermark-detected',
                 selectionDebug: null
-            }),
-            debugTimings
+            })
         };
     }
 
@@ -633,7 +615,6 @@ export function processWatermarkImageData(imageData, options = {}) {
     let originalSpatialScore = selectedTrial.originalSpatialScore;
     let originalGradientScore = selectedTrial.originalGradientScore;
 
-    const firstPassMetricsStartedAt = nowMs();
     const firstPassSpatialScore = computeRegionSpatialCorrelation({
         imageData: finalImageData,
         alphaMap,
@@ -655,9 +636,6 @@ export function processWatermarkImageData(imageData, options = {}) {
         gradientDelta: firstPassGradientScore - originalGradientScore,
         nearBlackRatio: firstPassNearBlackRatio
     };
-    if (debugTimingsEnabled) {
-        debugTimings.firstPassMetricsMs = nowMs() - firstPassMetricsStartedAt;
-    }
 
     const totalMaxPasses = Math.max(
         1,
@@ -670,7 +648,6 @@ export function processWatermarkImageData(imageData, options = {}) {
         firstPassSpatialScore,
         firstPassGradientScore
     });
-    const extraPassStartedAt = nowMs();
     const extraPassResult = remainingPasses > 0 &&
         !firstPassClearedResidual &&
         !skipPreviewAnchorMultiPass
@@ -683,9 +660,6 @@ export function processWatermarkImageData(imageData, options = {}) {
             alphaGain
         })
         : null;
-    if (debugTimingsEnabled) {
-        debugTimings.extraPassMs = nowMs() - extraPassStartedAt;
-    }
     finalImageData = extraPassResult?.imageData ?? finalImageData;
     passCount = extraPassResult?.passCount ?? 1;
     attemptedPassCount = extraPassResult?.attemptedPassCount ?? 1;
@@ -699,7 +673,6 @@ export function processWatermarkImageData(imageData, options = {}) {
         source = `${source}+multipass`;
     }
 
-    const finalMetricsStartedAt = nowMs();
     const processedSpatialScore = computeRegionSpatialCorrelation({
         imageData: finalImageData,
         alphaMap,
@@ -718,14 +691,10 @@ export function processWatermarkImageData(imageData, options = {}) {
             size: position.width
         }
     });
-    if (debugTimingsEnabled) {
-        debugTimings.finalMetricsMs = nowMs() - finalMetricsStartedAt;
-    }
     let finalProcessedSpatialScore = processedSpatialScore;
     let finalProcessedGradientScore = processedGradientScore;
     let suppressionGain = originalSpatialScore - finalProcessedSpatialScore;
 
-    const recalibrationStartedAt = nowMs();
     if (shouldRecalibrateAlphaStrength({
         originalScore: originalSpatialScore,
         processedScore: finalProcessedSpatialScore,
@@ -758,13 +727,8 @@ export function processWatermarkImageData(imageData, options = {}) {
             source = source === 'adaptive' ? 'adaptive+gain' : `${source}+gain`;
         }
     }
-    if (debugTimingsEnabled) {
-        debugTimings.recalibrationMs = nowMs() - recalibrationStartedAt;
-    }
 
-    let previewEdgeCleanupElapsedMs = 0;
     const applyPreviewEdgeCleanup = () => {
-        const previewEdgeStartedAt = nowMs();
         const previewEdgeRefined = refinePreviewResidualEdge({
             sourceImageData: finalImageData,
             alphaMap,
@@ -774,7 +738,6 @@ export function processWatermarkImageData(imageData, options = {}) {
             baselineGradientScore: finalProcessedGradientScore,
             allowAggressivePresets: usePreviewAnchorFastCleanup
         });
-        previewEdgeCleanupElapsedMs += nowMs() - previewEdgeStartedAt;
 
         if (!previewEdgeRefined) {
             return false;
@@ -788,7 +751,6 @@ export function processWatermarkImageData(imageData, options = {}) {
         return true;
     };
 
-    const subpixelStartedAt = nowMs();
     if (
         !usePreviewAnchorFastCleanup &&
         finalProcessedSpatialScore <= 0.3 &&
@@ -823,9 +785,6 @@ export function processWatermarkImageData(imageData, options = {}) {
             subpixelShift = refined.shift;
         }
     }
-    if (debugTimingsEnabled) {
-        debugTimings.subpixelRefinementMs = nowMs() - subpixelStartedAt;
-    }
 
     let previewEdgeCleanupPassCount = 0;
     while (previewEdgeCleanupPassCount < PREVIEW_EDGE_CLEANUP_MAX_APPLIED_PASSES) {
@@ -833,10 +792,6 @@ export function processWatermarkImageData(imageData, options = {}) {
             break;
         }
         previewEdgeCleanupPassCount++;
-    }
-    if (debugTimingsEnabled) {
-        debugTimings.previewEdgeCleanupMs = previewEdgeCleanupElapsedMs;
-        debugTimings.totalMs = nowMs() - totalStartedAt;
     }
 
     return {
@@ -870,7 +825,6 @@ export function processWatermarkImageData(imageData, options = {}) {
                     resolvedConfig
                 )
             })
-        }),
-        debugTimings
+        })
     };
 }

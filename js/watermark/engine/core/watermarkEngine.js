@@ -99,24 +99,13 @@ export class WatermarkEngine {
      * @returns {Promise<HTMLCanvasElement>} Processed canvas
      */
     async removeWatermarkFromImage(image, options = {}) {
-        const now = () => {
-            if (typeof globalThis.performance?.now === 'function') {
-                return globalThis.performance.now();
-            }
-            return Date.now();
-        };
         const canvas = createRuntimeCanvas(image.width, image.height);
         const ctx = getCanvasContext2D(canvas);
-        const drawStartedAt = now();
         ctx.drawImage(image, 0, 0);
-        const drawMs = now() - drawStartedAt;
-        const readStartedAt = now();
         const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const getImageDataMs = now() - readStartedAt;
         const alpha48 = await this.getAlphaMap(48);
         const alpha96 = await this.getAlphaMap(96);
         const alpha96NewMargin = await this.getAlphaMap('96-20260520');
-        const processingStartedAt = now();
         const result = processWatermarkImageData(originalImageData, {
             alpha48,
             alpha96,
@@ -125,21 +114,10 @@ export class WatermarkEngine {
             },
             adaptiveMode: options.adaptiveMode,
             maxPasses: options.maxPasses,
-            debugTimings: options.debugTimings === true,
             getAlphaMap: (size) => this.alphaMaps[size] || interpolateAlphaMap(alpha96, 96, size)
         });
-        const processWatermarkImageDataMs = now() - processingStartedAt;
-        const writeStartedAt = now();
         ctx.putImageData(result.imageData, 0, 0);
-        const putImageDataMs = now() - writeStartedAt;
         canvas.__watermarkMeta = result.meta;
-        canvas.__watermarkTiming = {
-            drawMs,
-            getImageDataMs,
-            processWatermarkImageDataMs,
-            putImageDataMs,
-            processor: result.debugTimings ?? null
-        };
 
         return canvas;
     }

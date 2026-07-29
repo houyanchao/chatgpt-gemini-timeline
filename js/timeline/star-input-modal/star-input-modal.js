@@ -28,10 +28,9 @@
  */
 
 class StarInputModal {
-    constructor(options = {}) {
+    constructor() {
         // 配置
         this.config = {
-            debug: options.debug || false,
             defaultMaxLength: 100,
             animationDuration: 200
         };
@@ -48,7 +47,6 @@ class StarInputModal {
         this._boundHandleUrlChange = this._handleUrlChange.bind(this);
         this._attachUrlListeners();
         
-        this._log('Star input modal initialized');
     }
     
     /**
@@ -81,7 +79,6 @@ class StarInputModal {
             
             // 防止重复显示
             if (this.state.isShowing) {
-                this._log('Modal already showing, ignoring');
                 return null;
             }
             
@@ -121,7 +118,6 @@ class StarInputModal {
      * 销毁管理器
      */
     destroy() {
-        this._log('Destroying star input modal');
         this.forceClose();
         this._detachUrlListeners();
     }
@@ -413,7 +409,6 @@ class StarInputModal {
                 }
             });
             
-            this._log('Modal shown:', config);
         });
     }
     
@@ -440,15 +435,6 @@ class StarInputModal {
         this.state.currentOverlay = null;
         this.state.currentResolve = null;
         
-        this._log('Modal cleaned up');
-    }
-    
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
-        }
     }
     
     // ==================== URL 变化监听（组件自治）====================
@@ -459,7 +445,6 @@ class StarInputModal {
     _attachUrlListeners() {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners attached');
         } catch (error) {
         }
     }
@@ -470,7 +455,6 @@ class StarInputModal {
     _detachUrlListeners() {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners detached');
         } catch (error) {
         }
     }
@@ -482,7 +466,6 @@ class StarInputModal {
         const newUrl = location.href;
         
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-closing modal:', this.state.currentUrl, '->', newUrl);
             this.state.currentUrl = newUrl;
             
             if (this.state.isShowing) {
@@ -534,7 +517,5 @@ class StarInputModal {
 
 // 创建全局实例
 if (typeof window.starInputModal === 'undefined') {
-    window.starInputModal = new StarInputModal({
-        debug: false
-    });
+    window.starInputModal = new StarInputModal();
 }

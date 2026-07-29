@@ -15,9 +15,8 @@
  */
 
 class FolderEditModal {
-    constructor(options = {}) {
+    constructor() {
         this.config = {
-            debug: options.debug || false,
             animationDuration: 200
         };
 
@@ -104,7 +103,6 @@ class FolderEditModal {
         this._boundHandleUrlChange = this._handleUrlChange.bind(this);
         this._attachUrlListeners();
 
-        this._log('FolderEditModal initialized');
     }
 
     /**
@@ -132,7 +130,6 @@ class FolderEditModal {
             }
 
             if (this.state.isShowing) {
-                this._log('Modal already showing, ignoring');
                 return null;
             }
 
@@ -165,7 +162,6 @@ class FolderEditModal {
     }
 
     destroy() {
-        this._log('Destroying FolderEditModal');
         this.forceClose();
         this._detachUrlListeners();
     }
@@ -408,7 +404,6 @@ class FolderEditModal {
                 if (e.key === 'Escape') cancelInput();
             });
 
-            this._log('Modal shown:', config.mode);
         });
     }
 
@@ -428,11 +423,6 @@ class FolderEditModal {
         this.state.isShowing = false;
         this.state.currentOverlay = null;
         this.state.currentResolve = null;
-        this._log('Modal cleaned up');
-    }
-
-    _log(...args) {
-        if (this.config.debug) void 0;
     }
 
     // ==================== URL listeners ====================
@@ -454,7 +444,6 @@ class FolderEditModal {
     _handleUrlChange() {
         const newUrl = location.href;
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-closing modal');
             this.state.currentUrl = newUrl;
             if (this.state.isShowing) this.forceClose();
         }
@@ -464,5 +453,5 @@ class FolderEditModal {
 // ==================== Global singleton ====================
 
 if (typeof window.folderEditModal === 'undefined') {
-    window.folderEditModal = new FolderEditModal({ debug: false });
+    window.folderEditModal = new FolderEditModal();
 }

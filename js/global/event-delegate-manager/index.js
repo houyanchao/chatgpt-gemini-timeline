@@ -12,18 +12,13 @@
  */
 
 class EventDelegateManager {
-    constructor(options = {}) {
-        this.config = {
-            debug: options.debug || false
-        };
-        
+    constructor() {
         // 事件处理器映射：{ eventType: Map<selector, handler> }
         this.handlers = {};
         
         // 已绑定的事件类型
         this.boundEvents = new Set();
         
-        this._log('Event delegate manager initialized');
     }
     
     /**
@@ -44,7 +39,6 @@ class EventDelegateManager {
         // 确保该事件类型已在 document 上绑定
         this._bindEventType(eventType);
         
-        this._log('Handler registered:', eventType, selector);
     }
     
     /**
@@ -55,7 +49,6 @@ class EventDelegateManager {
     off(eventType, selector) {
         if (this.handlers[eventType]) {
             this.handlers[eventType].delete(selector);
-            this._log('Handler removed:', eventType, selector);
         }
     }
     
@@ -72,7 +65,6 @@ class EventDelegateManager {
         }, false);
         
         this.boundEvents.add(eventType);
-        this._log('Event type bound:', eventType);
     }
     
     /**
@@ -88,7 +80,6 @@ class EventDelegateManager {
             const matchedElement = e.target.closest(selector);
             
             if (matchedElement) {
-                this._log('Handler matched:', selector);
                 
                 try {
                     handler(e, matchedElement);
@@ -98,20 +89,10 @@ class EventDelegateManager {
         }
     }
     
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
-        }
-    }
 }
 
 // ==================== 全局单例 ====================
 
 if (typeof window.eventDelegateManager === 'undefined') {
-    window.eventDelegateManager = new EventDelegateManager({
-        debug: false
-    });
+    window.eventDelegateManager = new EventDelegateManager();
 }
-

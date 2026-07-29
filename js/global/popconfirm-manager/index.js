@@ -5,7 +5,7 @@
  */
 
 class GlobalPopconfirmManager {
-    constructor(options = {}) {
+    constructor() {
         this.state = {
             isVisible: false,
             resolver: null,
@@ -13,9 +13,6 @@ class GlobalPopconfirmManager {
         };
         
         this.popconfirm = null;
-        this.config = {
-            debug: options.debug || false
-        };
         
         // 绑定方法
         this._boundHandleClickOutside = this._handleClickOutside.bind(this);
@@ -25,7 +22,6 @@ class GlobalPopconfirmManager {
         // 监听 URL 变化
         this._attachUrlListeners();
         
-        this._log('Popconfirm manager initialized');
     }
     
     /**
@@ -75,7 +71,6 @@ class GlobalPopconfirmManager {
                 document.addEventListener('keydown', this._boundHandleEscape);
             }, 100);
             
-            this._log('Popconfirm shown', finalConfig);
         }));
     }
     
@@ -111,7 +106,6 @@ class GlobalPopconfirmManager {
         // 重置状态
         this.state.isVisible = false;
         
-        this._log('Popconfirm hidden', { result });
     }
     
     /**
@@ -223,16 +217,7 @@ class GlobalPopconfirmManager {
             this.state.currentUrl = location.href;
             if (this.state.isVisible) {
                 this.hide(false);
-                this._log('URL changed, popconfirm auto-hidden');
             }
-        }
-    }
-    
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
         }
     }
     
@@ -242,16 +227,13 @@ class GlobalPopconfirmManager {
     destroy() {
         this.hide(false);
         window.removeEventListener('url:change', this._boundHandleUrlChange);
-        this._log('Popconfirm manager destroyed');
     }
 }
 
 // ==================== 全局单例 ====================
 
 if (!window.globalPopconfirmManager) {
-    window.globalPopconfirmManager = new GlobalPopconfirmManager({
-        debug: false
-    });
+    window.globalPopconfirmManager = new GlobalPopconfirmManager();
 }
 
 if (typeof module !== 'undefined' && module.exports) {

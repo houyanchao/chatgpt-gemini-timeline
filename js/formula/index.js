@@ -96,10 +96,4 @@
     // 页面卸载时清理
     window.addEventListener('beforeunload', destroyFormulaModule);
     
-    // 暴露到全局（用于调试）
-    window.__formulaModule__ = {
-        init: initFormulaModule,
-        destroy: destroyFormulaModule,
-        getInstance: () => globalFormulaManager
-    };
 })();

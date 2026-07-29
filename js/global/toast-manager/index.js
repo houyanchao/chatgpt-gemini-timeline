@@ -14,13 +14,12 @@
  */
 
 class GlobalToastManager {
-    constructor(options = {}) {
+    constructor() {
         // 当前显示的 toast 队列
         this.queue = [];
         
         // 配置
         this.config = {
-            debug: options.debug || false,
             maxVisible: 3,       // 最多同时显示3个
             stackGap: 10,        // 堆叠间距
             centerGap: 60,       // 屏幕中央堆叠的起始位置
@@ -109,7 +108,6 @@ class GlobalToastManager {
         this._boundHandleUrlChange = this._handleUrlChange.bind(this);
         this._attachUrlListeners();
         
-        this._log('Toast manager initialized');
     }
     
     /**
@@ -167,7 +165,6 @@ class GlobalToastManager {
                 this._removeFromQueue(toastInstance);
             }, finalConfig.duration);
             
-            this._log('Toast shown:', { type, message, config: finalConfig });
             
         } catch (error) {
         }
@@ -205,7 +202,6 @@ class GlobalToastManager {
      * 强制隐藏所有 toast
      */
     forceHideAll() {
-        this._log('Force hide all toasts');
         
         // 复制队列（避免在遍历时修改）
         const toasts = [...this.queue];
@@ -219,7 +215,6 @@ class GlobalToastManager {
      * 销毁管理器
      */
     destroy() {
-        this._log('Destroying toast manager');
         this.forceHideAll();
         this._detachUrlListeners();  // 清理事件监听器
     }
@@ -431,7 +426,6 @@ class GlobalToastManager {
         // 更新其他 toast 位置
         this._updatePositions();
         
-        this._log('Toast removed from queue');
     }
     
     /**
@@ -462,14 +456,6 @@ class GlobalToastManager {
         }
     }
     
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
-        }
-    }
-    
     // ==================== URL 变化监听（组件自治）====================
     
     /**
@@ -479,7 +465,6 @@ class GlobalToastManager {
     _attachUrlListeners() {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners attached');
         } catch (error) {
         }
     }
@@ -490,7 +475,6 @@ class GlobalToastManager {
     _detachUrlListeners() {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners detached');
         } catch (error) {
         }
     }
@@ -504,7 +488,6 @@ class GlobalToastManager {
         
         // URL 变化了，自动清理所有 toast
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-hiding all toasts:', this.state.currentUrl, '->', newUrl);
             this.state.currentUrl = newUrl;
             
             // 如果有 toast 正在显示，自动清理
@@ -541,7 +524,5 @@ if (!document.getElementById('ait-global-toast-styles')) {
 
 // 创建全局实例（只在第一次加载时）
 if (typeof window.globalToastManager === 'undefined') {
-    window.globalToastManager = new GlobalToastManager({
-        debug: false  // 生产环境关闭，调试时可设为 true
-    });
+    window.globalToastManager = new GlobalToastManager();
 }

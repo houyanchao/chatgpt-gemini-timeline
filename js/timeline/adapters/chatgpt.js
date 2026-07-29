@@ -17,6 +17,8 @@ class ChatGPTAdapter extends SiteAdapter {
         this._turnTextCache = new Map();
         this._capturedTextIds = new Set(); // 上一份 API 完整快照包含的消息 ID
         this._textCacheConvId = null; // 缓存所属的对话 id
+        this._turnRolesDirty = true;
+        this._usesVirtualizedTurnSelector = false;
     }
 
     /**
@@ -119,9 +121,9 @@ class ChatGPTAdapter extends SiteAdapter {
      * 3. 第一轮必须是提问：推断为回复时不打属性（ChatGPT 开头可能有隐藏占位轮，
      *    只跳过、绝不平移链条）。
      *
-     * 每次 getUserMessageSelector() 都会重跑（成本约一次 querySelectorAll + 每容器一次
-     * querySelector），覆盖四种失效场景：容器属性延迟挂载、新消息、重渲染抹属性、
-     * 虚拟化窗口移动（渲染出真实值后覆盖此前的推断值）。
+     * TimelineManager 仅在轮次结构变化时调用 prepareTimelineNodes() 重跑标记，
+     * 避免 AI 流式回复期间对所有容器反复执行全量扫描。结构属性延迟挂载、
+     * 新消息、重渲染和虚拟化窗口移动由结构 MutationObserver 统一置脏。
      *
      * @returns {boolean} - 页面是否存在新版容器结构
      */
@@ -217,10 +219,38 @@ class ChatGPTAdapter extends SiteAdapter {
         return true;
     }
 
+    prepareTimelineNodes(context = {}) {
+        if (!context.force && !this._turnRolesDirty) return false;
+
+        const hasVirtualizedTurns = this._markTurnRoles();
+        this._usesVirtualizedTurnSelector = hasVirtualizedTurns
+            && document.querySelector('[data-turn-id-container][data-ait-turn="user"]') !== null;
+        this._turnRolesDirty = false;
+        return true;
+    }
+
+    invalidateTimelineNodes() {
+        this._turnRolesDirty = true;
+    }
+
+    getTimelineStructureSelectors() {
+        return [
+            '[data-turn-id-container]',
+            '[data-turn]'
+        ];
+    }
+
+    getTimelineStructureAttributeFilter() {
+        return [
+            'data-turn-id-container',
+            'data-is-intersecting',
+            'data-turn'
+        ];
+    }
+
     getUserMessageSelector() {
-        // 新版虚拟化结构：先标记角色再返回容器选择器；
-        // 无新版结构或标记后无 user 节点时，回退旧选择器（兼容 ChatGPT A/B 回滚）
-        if (this._markTurnRoles() && document.querySelector('[data-turn-id-container][data-ait-turn="user"]')) {
+        // prepareTimelineNodes() 负责维护模式；getter 保持无副作用。
+        if (this._usesVirtualizedTurnSelector) {
             return '[data-turn-id-container][data-ait-turn="user"]';
         }
         return '[data-turn="user"][data-turn-id]';
@@ -427,7 +457,7 @@ class ChatGPTAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, context = {}) {
         /**
          * 查找对话容器
          * 
@@ -440,7 +470,8 @@ class ChatGPTAdapter extends SiteAdapter {
          * 优势：比传统的向上遍历更精确，避免找到过于外层的容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: context.messageSelector || this.getUserMessageSelector(),
+            messages: context.userTurnElements
         });
     }
 
@@ -466,8 +497,28 @@ class ChatGPTAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        // 返回分享按钮，收藏按钮将插入到它前面
-        return document.querySelector('[data-testid="share-chat-button"]');
+        const shareButton = document.querySelector('[data-testid="share-chat-button"]');
+        if (!shareButton) return null;
+
+        // ChatGPT 会把分享按钮包在多层 block/inline 容器中。直接插入到按钮前面
+        // 会让收藏、导出一起进入内层 inline 容器，宽度不足时把原生按钮挤到下一行。
+        // 找到最近的外层 flex 操作栏，并返回其中包含分享按钮的直属子元素，
+        // 让通用 insertBefore 逻辑把扩展按钮作为操作栏的直接 flex item 插入。
+        let actionBar = shareButton.parentElement;
+        for (let depth = 0; actionBar && depth < 6; depth++) {
+            if (getComputedStyle(actionBar).display === 'flex') {
+                let target = shareButton;
+                while (target.parentElement && target.parentElement !== actionBar) {
+                    target = target.parentElement;
+                }
+                if (target.parentElement === actionBar) return target;
+                break;
+            }
+            actionBar = actionBar.parentElement;
+        }
+
+        // DOM 结构变化时保持旧行为，避免按钮完全不显示。
+        return shareButton;
     }
     
     getDefaultChatTheme() {

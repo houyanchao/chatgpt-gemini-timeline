@@ -21,19 +21,20 @@ const ContainerFinder = {
      * @param {HTMLElement} firstMessage - 第一个用户消息元素
      * @param {Object} options - 配置选项
      * @param {string} options.messageSelector - 用户消息选择器，用于查找所有消息
+     * @param {Element[]} options.messages - 已查询的消息元素，避免重复全量查询
      * @returns {HTMLElement|null} 找到的容器元素
      */
     findConversationContainer(firstMessage, options = {}) {
         if (!firstMessage) return null;
         
-        const { messageSelector } = options;
+        const { messageSelector, messages } = options;
         
         // ✅ 核心改进：找到所有对话记录的最近共同祖先
         // 这样可以确保找到的是直接包裹所有对话的容器
         if (messageSelector) {
             try {
                 // 查询所有用户消息元素
-                const allMessages = document.querySelectorAll(messageSelector);
+                const allMessages = messages || document.querySelectorAll(messageSelector);
                 if (allMessages.length > 1) {
                     // 找到所有消息的最近共同祖先 (LCA)
                     const lca = this.findLowestCommonAncestor(Array.from(allMessages));
@@ -116,4 +117,3 @@ const ContainerFinder = {
         }
     }
 };
-

@@ -268,30 +268,6 @@ sortButton.addEventListener('click', (e) => {
 });
 ```
 
-## ⚙️ 配置选项
-
-### 全局配置
-
-```javascript
-// 如需修改默认配置，可在初始化时传入
-window.globalDropdownManager = new GlobalDropdownManager({
-  debug: true,           // 开启调试日志
-  defaultWidth: 200,     // 默认宽度
-  defaultPosition: 'bottom-left',  // 默认位置
-  gap: 8,                // 与触发元素的间距
-  padding: 8             // 距离视口边缘的最小间距
-});
-```
-
-## 🐛 调试
-
-开启调试模式：
-
-```javascript
-// 在浏览器控制台
-window.globalDropdownManager.config.debug = true;
-```
-
 ## 📝 注意事项
 
 1. **触发元素必须在 DOM 中**：确保 `trigger` 元素已添加到 DOM
@@ -309,4 +285,3 @@ window.globalDropdownManager.config.debug = true;
 ## 📄 License
 
 MIT
-

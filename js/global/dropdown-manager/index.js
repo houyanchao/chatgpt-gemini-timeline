@@ -13,7 +13,7 @@
  */
 
 class GlobalDropdownManager {
-    constructor(options = {}) {
+    constructor() {
         // 状态管理
         this.state = {
             currentId: null,
@@ -29,7 +29,6 @@ class GlobalDropdownManager {
         
         // 配置
         this.config = {
-            debug: options.debug || false,
             defaultWidth: 200,
             defaultPosition: 'bottom-left',
             gap: 8,
@@ -52,7 +51,6 @@ class GlobalDropdownManager {
         this._setupGlobalListeners();
         this._attachUrlListeners();
         
-        this._log('Dropdown manager initialized');
     }
     
     /**
@@ -85,7 +83,6 @@ class GlobalDropdownManager {
             
             // 如果已经显示同一个下拉菜单，忽略
             if (this.state.isVisible && this.state.currentId === id) {
-                this._log('Same dropdown already visible, ignoring');
                 return;
             }
             
@@ -106,7 +103,6 @@ class GlobalDropdownManager {
             this.state.isVisible = true;
             this.state.triggerElement = trigger;
             
-            this._log('Dropdown shown:', { id, position, items });
             
         } catch (error) {
             this.hide();
@@ -120,7 +116,6 @@ class GlobalDropdownManager {
     hide(immediate = false) {
         if (!this.state.isVisible) return;
         
-        this._log('Hiding dropdown');
         
         // ✨ 清理子菜单
         this._hideAllSubmenus(true);
@@ -177,7 +172,6 @@ class GlobalDropdownManager {
      * 强制隐藏所有下拉菜单
      */
     forceHideAll() {
-        this._log('Force hide all dropdowns');
         
         // 清除所有定时器
         this._clearAllTimers();
@@ -197,7 +191,6 @@ class GlobalDropdownManager {
      * 销毁管理器
      */
     destroy() {
-        this._log('Destroying dropdown manager');
         this.forceHideAll();
         this._removeGlobalListeners();
         this._detachUrlListeners();
@@ -491,14 +484,6 @@ class GlobalDropdownManager {
         return true;
     }
     
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
-        }
-    }
-    
     // ==================== 全局事件处理 ====================
     
     /**
@@ -514,7 +499,6 @@ class GlobalDropdownManager {
         // 窗口大小改变时隐藏
         window.addEventListener('resize', this._boundHandleResize);
         
-        this._log('Global listeners setup complete');
     }
     
     /**
@@ -554,13 +538,11 @@ class GlobalDropdownManager {
         
         if (clickedTrigger) {
             // 点击了 trigger，关闭下拉菜单（toggle 行为）
-            this._log('Clicked trigger, closing dropdown');
             this.hide();
             return;
         }
         
         // 点击了外部区域，关闭下拉菜单
-        this._log('Click outside dropdown, hiding');
         this.hide();
     }
     
@@ -583,7 +565,6 @@ class GlobalDropdownManager {
             return;
         }
         
-        this._log('External scroll detected, hiding dropdown');
             this.hide();
     }
     
@@ -592,7 +573,6 @@ class GlobalDropdownManager {
      */
     _handleResize() {
         if (this.state.isVisible) {
-            this._log('Window resized, hiding dropdown');
             this.hide();
         }
     }
@@ -856,7 +836,6 @@ class GlobalDropdownManager {
     _attachUrlListeners() {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners attached');
         } catch (error) {
         }
     }
@@ -867,7 +846,6 @@ class GlobalDropdownManager {
     _detachUrlListeners() {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners detached');
         } catch (error) {
         }
     }
@@ -879,7 +857,6 @@ class GlobalDropdownManager {
         const newUrl = location.href;
         
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-hiding dropdown:', this.state.currentUrl, '->', newUrl);
             this.state.currentUrl = newUrl;
             
             if (this.state.isVisible) {
@@ -894,8 +871,5 @@ class GlobalDropdownManager {
 
 // 创建全局实例（只在第一次加载时）
 if (typeof window.globalDropdownManager === 'undefined') {
-    window.globalDropdownManager = new GlobalDropdownManager({
-        debug: true  // 临时开启 debug，方便排查子菜单问题
-    });
+    window.globalDropdownManager = new GlobalDropdownManager();
 }
-

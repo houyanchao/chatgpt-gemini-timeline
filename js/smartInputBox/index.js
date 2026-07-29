@@ -65,9 +65,7 @@
             
             // ✅ 只要平台支持，就创建管理器实例
             // Enter 换行和提示词按钮各自受自己的开关控制
-            const manager = new SmartEnterManager(adapter, {
-                debug: SMART_ENTER_CONFIG.DEBUG
-            });
+            const manager = new SmartEnterManager(adapter);
             
             // 初始化
             await manager.init();

@@ -31,10 +31,9 @@
  */
 
 class GlobalInputModal {
-    constructor(options = {}) {
+    constructor() {
         // 配置
         this.config = {
-            debug: options.debug || false,
             defaultMaxLength: 100,
             animationDuration: 200
         };
@@ -51,7 +50,6 @@ class GlobalInputModal {
         this._boundHandleUrlChange = this._handleUrlChange.bind(this);
         this._attachUrlListeners();
         
-        this._log('Input modal manager initialized');
     }
     
     /**
@@ -79,7 +77,6 @@ class GlobalInputModal {
             
             // 防止重复显示
             if (this.state.isShowing) {
-                this._log('Modal already showing, ignoring');
                 return null;
             }
             
@@ -118,7 +115,6 @@ class GlobalInputModal {
      * 销毁管理器
      */
     destroy() {
-        this._log('Destroying input modal manager');
         this.forceClose();
         this._detachUrlListeners();  // 清理事件监听器
     }
@@ -248,7 +244,6 @@ class GlobalInputModal {
                 }
             });
             
-            this._log('Modal shown:', config);
         });
     }
     
@@ -275,15 +270,6 @@ class GlobalInputModal {
         this.state.currentOverlay = null;
         this.state.currentResolve = null;
         
-        this._log('Modal cleaned up');
-    }
-    
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
-        }
     }
     
     // ==================== URL 变化监听（组件自治）====================
@@ -295,7 +281,6 @@ class GlobalInputModal {
     _attachUrlListeners() {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners attached');
         } catch (error) {
         }
     }
@@ -306,7 +291,6 @@ class GlobalInputModal {
     _detachUrlListeners() {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners detached');
         } catch (error) {
         }
     }
@@ -320,7 +304,6 @@ class GlobalInputModal {
         
         // URL 变化了，自动关闭 modal
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-closing modal:', this.state.currentUrl, '->', newUrl);
             this.state.currentUrl = newUrl;
             
             // 如果 modal 正在显示，自动关闭
@@ -335,7 +318,5 @@ class GlobalInputModal {
 
 // 创建全局实例（只在第一次加载时）
 if (typeof window.globalInputModal === 'undefined') {
-    window.globalInputModal = new GlobalInputModal({
-        debug: false  // 生产环境关闭，调试时可设为 true
-    });
+    window.globalInputModal = new GlobalInputModal();
 }

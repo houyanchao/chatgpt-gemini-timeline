@@ -45,6 +45,9 @@ class ChatTimeRecorder {
      */
     _getUserTurnElements(adapter) {
         if (!adapter) return [];
+        adapter.prepareTimelineNodes?.({
+            reason: 'chat-time-recorder'
+        });
         const selector = adapter.getUserMessageSelector();
         if (!selector) return [];
         const container = window.timelineManager?.conversationContainer || document;

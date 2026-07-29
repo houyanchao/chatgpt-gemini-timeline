@@ -90,8 +90,6 @@ class DOMObserverManager {
         this._pendingMutations = [];
         this._rafId = null;
 
-        // ===== 调试模式 =====
-        this._debug = typeof GLOBAL_DEBUG !== 'undefined' ? GLOBAL_DEBUG : false;
     }
 
     // ==================== Body Observer ====================
@@ -125,7 +123,6 @@ class DOMObserverManager {
 
         // 如果已存在相同 id，先取消之前的订阅
         if (this._bodySubscribers.has(id)) {
-            this._log(`[Body] Replacing existing subscriber: ${id}`);
             this.unsubscribeBody(id);
         }
 
@@ -139,15 +136,6 @@ class DOMObserverManager {
             lastThrottleTime: 0,  // 上次节流执行时间
             characterData
         });
-
-        const modeDesc = throttle && debounce 
-            ? `throttle: ${throttle}ms + debounce: ${debounce}ms`
-            : throttle 
-                ? `throttle: ${throttle}ms`
-                : debounce 
-                    ? `debounce: ${debounce}ms`
-                    : 'immediate';
-        this._log(`[Body] Subscribed: ${id}, mode: ${modeDesc}`);
 
         // 确保 observer 已启动
         this._ensureBodyObserver();
@@ -168,7 +156,6 @@ class DOMObserverManager {
                 clearTimeout(subscriber.debounceTimer);
             }
             this._bodySubscribers.delete(id);
-            this._log(`[Body] Unsubscribed: ${id}`);
         }
 
         // 如果没有订阅者了，停止 observer
@@ -189,7 +176,6 @@ class DOMObserverManager {
         if (this._bodyObserver) {
             // 如果新订阅者需要 characterData 但当前没开启，需要重启
             if (needsCharacterData && !this._bodyObserverHasCharacterData) {
-                this._log('[Body] Restarting observer to enable characterData');
                 this._stopBodyObserver();
             } else {
                 return;  // 配置无需更新
@@ -207,7 +193,6 @@ class DOMObserverManager {
                 characterData: needsCharacterData
             });
             this._bodyObserverHasCharacterData = needsCharacterData;
-            this._log(`[Body] Observer started (characterData: ${needsCharacterData})`);
         } catch (e) {
         }
     }
@@ -219,7 +204,6 @@ class DOMObserverManager {
         if (this._bodyObserver) {
             this._bodyObserver.disconnect();
             this._bodyObserver = null;
-            this._log('[Body] Observer stopped');
         }
     }
 
@@ -393,7 +377,6 @@ class DOMObserverManager {
         }
 
         this._themeSubscribers.set(id, { callback });
-        this._log(`[Theme] Subscribed: ${id}`);
 
         this._ensureThemeObservers();
 
@@ -405,7 +388,6 @@ class DOMObserverManager {
      */
     unsubscribeTheme(id) {
         this._themeSubscribers.delete(id);
-        this._log(`[Theme] Unsubscribed: ${id}`);
 
         if (this._themeSubscribers.size === 0) {
             this._stopThemeObservers();
@@ -447,7 +429,6 @@ class DOMObserverManager {
                 attributes: true,
                 attributeFilter: ['class', 'yb-theme-mode']
             });
-            this._log('[Theme] Observer started (html + body)');
         } catch (e) {
         }
     }
@@ -459,7 +440,6 @@ class DOMObserverManager {
         if (this._themeObserver) {
             this._themeObserver.disconnect();  // 一次 disconnect 停止所有监听
             this._themeObserver = null;
-            this._log('[Theme] Observer stopped');
         }
     }
 
@@ -508,7 +488,6 @@ class DOMObserverManager {
                 subscribers: new Map()
             };
             this._containerObservers.set(containerId, containerData);
-            this._log(`[Container] Created observer for: ${containerId}`);
         }
 
         // 添加订阅者
@@ -520,7 +499,6 @@ class DOMObserverManager {
             lastThrottleTime: 0
         });
 
-        this._log(`[Container] Subscribed: ${id} to ${containerId}`);
 
         // 使用闭包保存 containerId，确保取消订阅时正确
         const savedContainerId = containerId;
@@ -540,14 +518,12 @@ class DOMObserverManager {
                 clearTimeout(subscriber.debounceTimer);
             }
             containerData.subscribers.delete(id);
-            this._log(`[Container] Unsubscribed: ${id} from ${containerId}`);
         }
 
         // 如果没有订阅者了，清理 observer
         if (containerData.subscribers.size === 0) {
             containerData.observer.disconnect();
             this._containerObservers.delete(containerId);
-            this._log(`[Container] Removed observer for: ${containerId}`);
         }
     }
 
@@ -694,20 +670,11 @@ class DOMObserverManager {
             this._rafId = null;
         }
 
-        this._log('DOMObserverManager destroyed');
     }
 
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this._debug) {
-        }
-    }
 }
 
 // 暴露到全局
 if (typeof window !== 'undefined') {
     window.DOMObserverManager = DOMObserverManager;
 }
-

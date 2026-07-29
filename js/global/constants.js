@@ -13,12 +13,6 @@ if (typeof globalThis.chrome === 'undefined' && typeof globalThis.browser !== 'u
 
 // ==================== 全局配置 ====================
 
-/**
- * 全局调试开关
- * 控制所有模块的调试日志输出
- */
-const GLOBAL_DEBUG = false;
-
 // ==================== AI 平台信息 ====================
 
 /**

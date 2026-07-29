@@ -41,9 +41,9 @@
     /* ✅ 移除：--timeline-hold-ms 已删除，长按功能已移除 */
     
     /* ✅ 紧凑模式（横线样式）变量 */
-    --timeline-compact-gap: 30px;              /* 紧凑模式默认间距 */
-    --timeline-compact-line-width-long: 20px;  /* 长横线宽度 */
-    --timeline-compact-line-width-short: 14px; /* 短横线宽度 */
+    --timeline-compact-gap: 28px;                   /* 紧凑模式默认间距 */
+    --timeline-compact-line-width: 18px;       /* 横线默认宽度 */
+    --timeline-compact-line-hover-width: 24px; /* hover 节点宽度 */
     --timeline-compact-line-height: 2px;       /* 横线高度 */
     
     /* ✅ 追问按钮变量 */

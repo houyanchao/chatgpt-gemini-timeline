@@ -339,13 +339,21 @@ class QuickAskManager {
             const adapter = this._cachedAdapter;
             if (!adapter) return null;
 
+            adapter.prepareTimelineNodes?.({
+                force: true,
+                reason: 'quick-ask-container'
+            });
             const selector = adapter.getUserMessageSelector();
             if (!selector) return null;
 
-            const firstMsg = document.querySelector(selector);
+            const userTurnElements = Array.from(document.querySelectorAll(selector));
+            const firstMsg = userTurnElements[0] || null;
             if (!firstMsg) return null;
 
-            return adapter.findConversationContainer(firstMsg);
+            return adapter.findConversationContainer(firstMsg, {
+                messageSelector: selector,
+                userTurnElements
+            });
         } catch (e) {
             return null;
         }

@@ -17,7 +17,7 @@
  */
 
 class GlobalTooltipManager {
-    constructor(options = {}) {
+    constructor() {
         // 状态管理
         this.state = {
             currentId: null,
@@ -48,7 +48,6 @@ class GlobalTooltipManager {
         
         // 配置
         this.config = {
-            debug: options.debug || false,
             types: {
                 node: {
                     maxWidth: 288,
@@ -157,7 +156,6 @@ class GlobalTooltipManager {
             
             // 去重：如果是同一个 tooltip，忽略
             if (this.state.currentId === id && this.state.isVisible) {
-                this._log('Same tooltip already visible, ignoring');
                 return;
             }
             
@@ -192,7 +190,6 @@ class GlobalTooltipManager {
             
             // 如果鼠标在 tooltip 上（pinned），忽略
             if (this.state.isPinned && !immediate) {
-                this._log('Tooltip pinned, ignoring hide');
                 return;
             }
             
@@ -220,7 +217,6 @@ class GlobalTooltipManager {
      * 强制隐藏所有 tooltip（紧急情况）
      */
     forceHideAll() {
-        this._log('Force hide all tooltips');
         this._clearAllTimers();
         this._hideImmediate();
         this.hideOverlay();
@@ -336,7 +332,6 @@ class GlobalTooltipManager {
      * 销毁管理器
      */
     destroy() {
-        this._log('Destroying tooltip manager');
         
         // 清理所有定时器
         this._clearAllTimers();
@@ -381,11 +376,9 @@ class GlobalTooltipManager {
      * 立即显示（内部）
      */
     _showImmediate(id, type, target, content, config) {
-        this._log('Showing:', { id, type, target, content });
         
         // 再次检查元素是否在 DOM 中
         if (!target.isConnected) {
-            this._log('Target disconnected, abort show');
             return;
         }
         
@@ -506,7 +499,6 @@ class GlobalTooltipManager {
     _hideImmediate() {
         if (!this.state.isVisible) return;
         
-        this._log('Hiding immediately');
         
         // ✅ 修复：先保存 currentType，因为后面会重置状态
         const currentType = this.state.currentType;
@@ -580,7 +572,6 @@ class GlobalTooltipManager {
         
         document.body.appendChild(tooltip);
         
-        this._log('Created tooltip DOM for type:', type);
         return tooltip;
     }
     
@@ -766,7 +757,6 @@ class GlobalTooltipManager {
         this.targetObserver = new MutationObserver((mutations) => {
             // 检查目标元素是否还在 DOM 中
             if (!target.isConnected) {
-                this._log('Target removed from DOM, hiding tooltip');
                 this.forceHideAll();
             }
         });
@@ -788,7 +778,6 @@ class GlobalTooltipManager {
             entries.forEach(entry => {
                 // 当目标元素不再可见时（离开视口），隐藏 tooltip
                 if (!entry.isIntersecting && this.state.isVisible) {
-                    this._log('Target scrolled out of view, hiding tooltip');
                     this.forceHideAll();
                 }
             });
@@ -886,7 +875,6 @@ class GlobalTooltipManager {
         // 窗口失焦时隐藏
         window.addEventListener('blur', this._onWindowBlur);
         
-        this._log('Global listeners setup complete');
     }
     
     /**
@@ -904,7 +892,6 @@ class GlobalTooltipManager {
      */
     _onGlobalScroll() {
         if (this.state.isVisible) {
-            this._log('Global scroll detected, hiding tooltip');
             this.forceHideAll();
         }
     }
@@ -922,7 +909,6 @@ class GlobalTooltipManager {
                                this.state.currentTarget.contains(e.target));
         
         if (!clickedTooltip && !clickedTarget) {
-            this._log('Click outside tooltip, hiding');
             this.hide(true);
         }
     }
@@ -932,7 +918,6 @@ class GlobalTooltipManager {
      */
     _onGlobalKeydown(e) {
         if (e.key === 'Escape' && this.state.isVisible) {
-            this._log('ESC pressed, hiding tooltip');
             this.forceHideAll();
         }
     }
@@ -942,7 +927,6 @@ class GlobalTooltipManager {
      */
     _onWindowBlur() {
         if (this.state.isVisible) {
-            this._log('Window blur, hiding tooltip');
             this.forceHideAll();
         }
     }
@@ -951,7 +935,6 @@ class GlobalTooltipManager {
      * Tooltip 自身鼠标进入
      */
     _onTooltipEnter() {
-        this._log('Mouse entered tooltip, pinning');
         this.state.isPinned = true;
         
         // 取消隐藏定时器
@@ -962,7 +945,6 @@ class GlobalTooltipManager {
      * Tooltip 自身鼠标离开
      */
     _onTooltipLeave(e) {
-        this._log('Mouse left tooltip');
         this.state.isPinned = false;
         
         // 检查是否移回触发元素
@@ -972,14 +954,6 @@ class GlobalTooltipManager {
         
         if (!movedToTarget) {
             this.hide();
-        }
-    }
-    
-    /**
-     * 调试日志
-     */
-    _log(...args) {
-        if (this.config.debug) {
         }
     }
     
@@ -1001,7 +975,6 @@ class GlobalTooltipManager {
     _attachUrlListeners() {
         try {
             window.addEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners attached');
         } catch (error) {
         }
     }
@@ -1012,7 +985,6 @@ class GlobalTooltipManager {
     _detachUrlListeners() {
         try {
             window.removeEventListener('url:change', this._boundHandleUrlChange);
-            this._log('URL listeners detached');
         } catch (error) {
         }
     }
@@ -1026,7 +998,6 @@ class GlobalTooltipManager {
         
         // URL 变化了，自动清理所有 tooltip
         if (newUrl !== this.state.currentUrl) {
-            this._log('URL changed, auto-hiding all tooltips:', this.state.currentUrl, '->', newUrl);
             this.state.currentUrl = newUrl;
             
             // 如果有 tooltip 正在显示，自动清理
@@ -1041,7 +1012,5 @@ class GlobalTooltipManager {
 
 // 创建全局实例（只在第一次加载时）
 if (typeof window.globalTooltipManager === 'undefined') {
-    window.globalTooltipManager = new GlobalTooltipManager({
-        debug: false  // 生产环境关闭，调试时可设为 true
-    });
+    window.globalTooltipManager = new GlobalTooltipManager();
 }

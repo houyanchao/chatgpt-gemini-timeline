@@ -19,11 +19,6 @@ const SMART_ENTER_CONFIG = {
     // 避免频繁触发附加逻辑
     DEBOUNCE_DELAY: 200,
     
-    // 调试模式（使用全局配置）
-    get DEBUG() {
-        return typeof GLOBAL_DEBUG !== 'undefined' ? GLOBAL_DEBUG : false;
-    },
-    
     // MutationObserver 配置
     OBSERVER_CONFIG: {
         childList: true,

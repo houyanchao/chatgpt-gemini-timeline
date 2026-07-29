@@ -30,6 +30,41 @@ class SiteAdapter {
     }
 
     /**
+     * Prepare platform-specific timeline nodes before querying message selectors.
+     * Adapters with virtualized/derived DOM state may override this hook.
+     * @param {Object} context - { force, reason }
+     * @returns {boolean} Whether an expensive preparation pass ran
+     */
+    prepareTimelineNodes(context = {}) {
+        return false;
+    }
+
+    /**
+     * Mark any cached/derived timeline-node state as stale.
+     * @param {string} reason
+     */
+    invalidateTimelineNodes(reason = '') {
+    }
+
+    /**
+     * Stable selectors used only to classify structural DOM mutations.
+     * The default user-message selector is sufficient for static platforms.
+     * @returns {string[]}
+     */
+    getTimelineStructureSelectors() {
+        const selector = this.getUserMessageSelector();
+        return selector ? [selector] : [];
+    }
+
+    /**
+     * Structural attributes that should be observed by TimelineManager.
+     * @returns {string[]}
+     */
+    getTimelineStructureAttributeFilter() {
+        return [];
+    }
+
+    /**
      * Get CSS selector for assistant (AI) message elements.
      * 默认返回空字符串表示未实现；子类按需覆盖（目前仅供 conversationExport 等
      * 需要定位 AI 回复元素的功能复用，timeline 自身不依赖该方法）。
@@ -135,9 +170,10 @@ class SiteAdapter {
     /**
      * Find conversation container element
      * @param {Element} firstMessage - First message element
+     * @param {Object} context - Optional prepared selector/message elements
      * @returns {Element|null}
      */
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, context = {}) {
         return firstMessage?.parentElement;
     }
 

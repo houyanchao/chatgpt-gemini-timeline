@@ -13,8 +13,7 @@ class SmartEnterManager {
         
         this.adapter = adapter;
         this.config = {
-            doubleClickInterval: options.doubleClickInterval || SMART_ENTER_CONFIG.DOUBLE_CLICK_INTERVAL,
-            debug: options.debug || SMART_ENTER_CONFIG.DEBUG
+            doubleClickInterval: options.doubleClickInterval || SMART_ENTER_CONFIG.DOUBLE_CLICK_INTERVAL
         };
         
         // ✅ 平台设置（内存缓存）
