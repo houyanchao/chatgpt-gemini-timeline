@@ -735,6 +735,7 @@ class TimelineManager {
     async injectStarChatButton() {
         // 1. 获取Adapter提供的目标元素
         const targetElement = this.adapter.getStarChatButtonTarget?.();
+        const showLabel = this.adapter.platformId !== 'chatgpt';
         
         // 如果没有目标元素，不显示按钮
         if (!targetElement) {
@@ -755,21 +756,22 @@ class TimelineManager {
             const starLabel = TimelineI18n.getMessage('qwxpzm') || '收藏';
             starChatBtn.setAttribute('aria-label', starLabel);
             starChatBtn.style.minWidth = '36px';
-            starChatBtn.style.width = 'auto';
-            starChatBtn.style.padding = '0 10px';
-            starChatBtn.style.gap = '6px';
+            starChatBtn.style.width = showLabel ? 'auto' : '36px';
+            starChatBtn.style.padding = showLabel ? '0 10px' : '0';
+            starChatBtn.style.gap = showLabel ? '6px' : '0';
             starChatBtn.style.color = 'inherit';
             starChatBtn.style.fontSize = '14px';
             starChatBtn.style.fontWeight = '500';
             starChatBtn.style.lineHeight = '1';
             starChatBtn.style.whiteSpace = 'nowrap';
             let label = starChatBtn.querySelector('.ait-timeline-star-chat-btn-label');
-            if (!label) {
+            if (showLabel && !label) {
                 label = document.createElement('span');
                 label.className = 'ait-timeline-star-chat-btn-label';
                 starChatBtn.appendChild(label);
             }
-            label.textContent = starLabel;
+            if (showLabel) label.textContent = starLabel;
+            else label?.remove();
             // 保存引用
             this.ui.starChatBtn = starChatBtn;
             return;
@@ -787,16 +789,16 @@ class TimelineManager {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="${isStarred ? 'rgb(255, 125, 3)' : 'none'}" stroke="${isStarred ? 'rgb(255, 125, 3)' : 'currentColor'}" stroke-width="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
-            <span class="ait-timeline-star-chat-btn-label">${starLabel}</span>
+            ${showLabel ? `<span class="ait-timeline-star-chat-btn-label">${starLabel}</span>` : ''}
         `;
         
         // 5. 设置基础样式（适配原生UI）
         const isDeepSeek = this.adapter.constructor.name === 'DeepSeekAdapter';
         starChatBtn.style.cssText = `
             min-width: 36px;
-            width: auto;
+            width: ${showLabel ? 'auto' : '36px'};
             height: 36px;
-            padding: 0 10px;
+            padding: ${showLabel ? '0 10px' : '0'};
             background: transparent;
             border: none;
             border-radius: 8px;
@@ -804,7 +806,7 @@ class TimelineManager {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: ${showLabel ? '6px' : '0'};
             color: inherit;
             font-size: 14px;
             font-weight: 500;

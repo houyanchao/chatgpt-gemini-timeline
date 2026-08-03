@@ -4,7 +4,7 @@
  * 按当前平台返回可用的导出适配器；不支持则返回 null。
  * ✨ 新增平台：实现一个 CEExportAdapter 子类，在下方 CE_EXPORT_ADAPTERS 加一行即可
  *   （platformId 需与 SITE_INFO / 时间轴 registry 的 id 一致）。
- * 当前支持：Gemini、ChatGPT。
+ * 当前支持：Gemini、ChatGPT、DeepSeek、Kimi、豆包。
  */
 
 /**
@@ -14,6 +14,9 @@
 const CE_EXPORT_ADAPTERS = {
     gemini: CEGeminiExportAdapter,
     chatgpt: CEChatGPTExportAdapter,
+    deepseek: CEDeepSeekExportAdapter,
+    kimi: CEKimiExportAdapter,
+    doubao: CEDoubaoExportAdapter,
 };
 
 /**

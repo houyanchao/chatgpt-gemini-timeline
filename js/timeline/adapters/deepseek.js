@@ -41,6 +41,10 @@ class DeepSeekAdapter extends SiteAdapter {
         return '.ds-message';
     }
 
+    getAssistantMessageSelector() {
+        return '.ds-message:has(.ds-assistant-message-main-content)';
+    }
+
     getConflictingTimelineSelectors() {
         return ['[style*="--scroll-nav-page-padding"]'];
     }

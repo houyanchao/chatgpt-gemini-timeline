@@ -56,27 +56,29 @@ class CEExportManager {
                 this._removeButton();
                 return;
             }
+            const showLabel = this.adapter.platformId !== 'chatgpt';
 
             const existingButton = document.querySelector(`.${CEExportManager.BUTTON_CLASS}`);
             if (existingButton) {
                 const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
                 existingButton.setAttribute('aria-label', exportLabel);
                 existingButton.style.minWidth = '36px';
-                existingButton.style.width = 'auto';
-                existingButton.style.padding = '0 10px';
-                existingButton.style.gap = '6px';
+                existingButton.style.width = showLabel ? 'auto' : '36px';
+                existingButton.style.padding = showLabel ? '0 10px' : '0';
+                existingButton.style.gap = showLabel ? '6px' : '0';
                 existingButton.style.color = 'inherit';
                 existingButton.style.fontSize = '14px';
                 existingButton.style.fontWeight = '500';
                 existingButton.style.lineHeight = '1';
                 existingButton.style.whiteSpace = 'nowrap';
                 let label = existingButton.querySelector('.ait-ce-export-btn-label');
-                if (!label) {
+                if (showLabel && !label) {
                     label = document.createElement('span');
                     label.className = 'ait-ce-export-btn-label';
                     existingButton.appendChild(label);
                 }
-                label.textContent = exportLabel;
+                if (showLabel) label.textContent = exportLabel;
+                else label?.remove();
                 return;
             }
 
@@ -88,12 +90,12 @@ class CEExportManager {
             button.type = 'button';
             const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
             button.setAttribute('aria-label', exportLabel);
-            button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}<span class="ait-ce-export-btn-label">${exportLabel}</span>`;
+            button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}${showLabel ? `<span class="ait-ce-export-btn-label">${exportLabel}</span>` : ''}`;
             button.style.cssText = `
                 min-width: 36px;
-                width: auto;
+                width: ${showLabel ? 'auto' : '36px'};
                 height: 36px;
-                padding: 0 10px;
+                padding: ${showLabel ? '0 10px' : '0'};
                 background: transparent;
                 border: none;
                 border-radius: 8px;
@@ -101,7 +103,7 @@ class CEExportManager {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                gap: 6px;
+                gap: ${showLabel ? '6px' : '0'};
                 color: inherit;
                 font-size: 14px;
                 font-weight: 500;

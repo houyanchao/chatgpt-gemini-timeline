@@ -84,7 +84,8 @@ const SITE_INFO = [
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
             useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
-            sidebarStarred: true  // 侧边栏收藏列表
+            sidebarStarred: true,  // 侧边栏收藏列表
+            conversationExport: true
         }
     },
     {
@@ -103,6 +104,7 @@ const SITE_INFO = [
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
             sidebarStarred: true,  // 侧边栏收藏列表
+            conversationExport: true,
         }
     },
     {
@@ -175,7 +177,8 @@ const SITE_INFO = [
             inputAnimation: true,
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
-            sidebarStarred: true  // 侧边栏收藏列表
+            sidebarStarred: true,  // 侧边栏收藏列表
+            conversationExport: true
         }
     },
     {

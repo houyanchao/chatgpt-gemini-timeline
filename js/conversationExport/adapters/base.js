@@ -229,6 +229,82 @@ class CEExportAdapter {
         return images;
     }
 
+    /**
+     * 从消息元素中按优先级取正文根节点。
+     * @param {Element} el
+     * @param {string[]} rootSelectors
+     * @returns {Element|null}
+     */
+    _contentRootFrom(el, rootSelectors = []) {
+        if (!el) return null;
+        for (const selector of rootSelectors) {
+            try {
+                const root = el.querySelector(selector);
+                if (root) return root;
+            } catch { /* ignore invalid/stale platform selector */ }
+        }
+        return el;
+    }
+
+    /**
+     * 通用用户消息抽取：文本限定在正文根，图片扫描整个消息行。
+     * @param {Element} userEl
+     * @param {string[]} rootSelectors
+     * @returns {{text:string, images:Array, time:number|null}}
+     */
+    _extractUserFrom(userEl, rootSelectors = []) {
+        if (!userEl) return { text: '', images: [], time: null };
+        const root = this._contentRootFrom(userEl, rootSelectors);
+        const text = (root?.textContent || '')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean)
+            .join('\n');
+        return {
+            text,
+            images: this._collectImagesFrom(userEl, 'user'),
+            time: this._getAskTime(userEl),
+        };
+    }
+
+    /**
+     * 通用助手消息抽取：正文转 markdown，并补收正文根外的对话图片。
+     * @param {Element|null} assistantEl
+     * @param {string[]} rootSelectors
+     * @returns {{markdown:string, text:string, images:Array}}
+     */
+    _extractAssistantFrom(assistantEl, rootSelectors = []) {
+        if (!assistantEl) return { markdown: '', text: '', images: [] };
+        const result = this._domMarkdownFrom(assistantEl, rootSelectors);
+        const seen = new Set(result.images.map(image => image.src));
+        this._collectImagesFrom(assistantEl, 'assistant').forEach(image => {
+            if (seen.has(image.src)) return;
+            seen.add(image.src);
+            result.images.push(image);
+        });
+        return result;
+    }
+
+    /**
+     * 尝试从平台 DOM 属性中取稳定消息 ID。
+     * @param {Element|null} el
+     * @returns {string|null}
+     */
+    _resolveElementId(el) {
+        if (!el) return null;
+        const candidates = [el, el.parentElement, el.closest?.('[data-virtual-list-item-key]')];
+        const attrs = ['data-message-id', 'data-archer-id', 'data-virtual-list-item-key', 'data-msgid'];
+        for (const candidate of candidates) {
+            if (!candidate) continue;
+            for (const attr of attrs) {
+                const value = candidate.getAttribute?.(attr);
+                if (value) return String(value);
+            }
+            if (candidate.id) return String(candidate.id);
+        }
+        return null;
+    }
+
     // ---------- 通用能力（平台无关） ----------
 
     /**

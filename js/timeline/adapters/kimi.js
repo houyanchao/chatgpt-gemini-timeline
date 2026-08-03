@@ -20,6 +20,10 @@ class KimiAdapter extends SiteAdapter {
         return '.chat-content-item:has(.user-content)';
     }
 
+    getAssistantMessageSelector() {
+        return '.chat-content-item-assistant';
+    }
+
     generateTurnId(element, index) {
         return `kimi-${index}`;
     }
