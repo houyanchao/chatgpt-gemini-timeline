@@ -66,34 +66,6 @@ class JavaScriptRunner extends BaseRunner {
     }
 
     /**
-     * 验证代码语法
-     * @param {string} code - 要验证的代码
-     * @returns {Object}
-     */
-    validateSyntax(code) {
-        try {
-            new Function(code);
-            return { valid: true };
-        } catch (error) {
-            return {
-                valid: false,
-                error: error.message,
-                line: this.extractLineNumber(error.message)
-            };
-        }
-    }
-
-    /**
-     * 从错误消息中提取行号
-     * @param {string} message - 错误消息
-     * @returns {number|null}
-     */
-    extractLineNumber(message) {
-        const match = message.match(/line (\d+)/i);
-        return match ? parseInt(match[1], 10) : null;
-    }
-
-    /**
      * 清理资源
      */
     cleanup() {
