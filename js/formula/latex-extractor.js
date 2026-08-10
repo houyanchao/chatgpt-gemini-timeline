@@ -74,6 +74,18 @@ class FormulaSourceParser {
             if (!parent || parent === document.body) break;
         }
 
+        // ChatGPT 新格式补充：从 KaTeX 公式元素向上两层内的 data-math-source 获取
+        if (formulaElement.classList.contains('katex') || formulaElement.classList.contains('katex-display')) {
+            let mathSourceAncestor = formulaElement.parentElement;
+            for (let level = 0; level < 2 && mathSourceAncestor; level++) {
+                if (mathSourceAncestor.hasAttribute('data-math-source')) {
+                    const latex = mathSourceAncestor.getAttribute('data-math-source').trim();
+                    if (latex) return FormulaSourceParser._stripMathDelimiters(latex);
+                }
+                mathSourceAncestor = mathSourceAncestor.parentElement;
+            }
+        }
+
         // 方法6: 千问/Qwen 格式 - 从 .qwen-markdown-latex .katex-mathml math 的直接文本节点获取
         const qwenLatexRoot = formulaElement.closest('.qwen-markdown-latex');
         const qwenMath = qwenLatexRoot?.querySelector('.katex-mathml math');

@@ -66,6 +66,7 @@
         "js/global/changelog-modal/changelog.js",
         "js/global/changelog-modal/index.js",
         "js/global/event-delegate-manager/index.js",
+        "js/global/chat-header-actions/index.js",
         "js/chat-width-manager/index.js",
         "js/formula/libs/temml.min.js",
         "js/formula/latex-extractor.js",

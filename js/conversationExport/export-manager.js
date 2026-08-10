@@ -79,6 +79,9 @@ class CEExportManager {
                 }
                 if (showLabel) label.textContent = exportLabel;
                 else label?.remove();
+                if (this.adapter.platformId === 'chatgpt') {
+                    window.AITChatHeaderActions?.mount?.(existingButton, 'export');
+                }
                 return;
             }
 
@@ -128,7 +131,11 @@ class CEExportManager {
                 window.globalTooltipManager?.hide();
             });
 
-            target.parentNode.insertBefore(button, target);
+            const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
+                && window.AITChatHeaderActions?.mount?.(button, 'export');
+            if (!mountedInSharedActions) {
+                target.parentNode.insertBefore(button, target);
+            }
         } catch (error) {
         }
     }
@@ -136,6 +143,7 @@ class CEExportManager {
     _removeButton() {
         const button = document.querySelector(`.${CEExportManager.BUTTON_CLASS}`);
         if (button && button.parentNode) button.parentNode.removeChild(button);
+        window.AITChatHeaderActions?.removeEmptyContainer?.();
     }
 
     _attachClickDelegate() {

@@ -772,6 +772,9 @@ class TimelineManager {
             }
             if (showLabel) label.textContent = starLabel;
             else label?.remove();
+            if (this.adapter.platformId === 'chatgpt') {
+                window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
+            }
             // 保存引用
             this.ui.starChatBtn = starChatBtn;
             return;
@@ -841,7 +844,11 @@ class TimelineManager {
         this._setupStarChatBtnClickEvent();
         
         // 9. 插入按钮到原生UI
-        targetElement.parentNode.insertBefore(starChatBtn, targetElement);
+        const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
+            && window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
+        if (!mountedInSharedActions) {
+            targetElement.parentNode.insertBefore(starChatBtn, targetElement);
+        }
         
         // 10. 保存引用
         this.ui.starChatBtn = starChatBtn;

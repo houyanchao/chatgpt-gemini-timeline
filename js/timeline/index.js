@@ -147,6 +147,7 @@ function destroyTimelineInstance() {
 
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
+    window.AITChatHeaderActions?.removeEmptyContainer?.();
     cleanupGlobalObservers();
 }
 

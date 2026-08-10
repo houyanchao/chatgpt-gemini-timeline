@@ -270,7 +270,8 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
 
     /** 兜底：与时间轴 getStarChatButtonTarget 相同的分享按钮锚点 */
     _fallbackButtonInsertTarget() {
-        return document.querySelector('[data-testid="share-chat-button"]');
+        return window.AITChatHeaderActions?.getInsertTarget?.()
+            || document.querySelector('[data-testid="share-chat-button"]');
     }
 
     /**

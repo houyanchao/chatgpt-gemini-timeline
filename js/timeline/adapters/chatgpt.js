@@ -497,28 +497,8 @@ class ChatGPTAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        const shareButton = document.querySelector('[data-testid="share-chat-button"]');
-        if (!shareButton) return null;
-
-        // ChatGPT 会把分享按钮包在多层 block/inline 容器中。直接插入到按钮前面
-        // 会让收藏、导出一起进入内层 inline 容器，宽度不足时把原生按钮挤到下一行。
-        // 找到最近的外层 flex 操作栏，并返回其中包含分享按钮的直属子元素，
-        // 让通用 insertBefore 逻辑把扩展按钮作为操作栏的直接 flex item 插入。
-        let actionBar = shareButton.parentElement;
-        for (let depth = 0; actionBar && depth < 6; depth++) {
-            if (getComputedStyle(actionBar).display === 'flex') {
-                let target = shareButton;
-                while (target.parentElement && target.parentElement !== actionBar) {
-                    target = target.parentElement;
-                }
-                if (target.parentElement === actionBar) return target;
-                break;
-            }
-            actionBar = actionBar.parentElement;
-        }
-
-        // DOM 结构变化时保持旧行为，避免按钮完全不显示。
-        return shareButton;
+        return window.AITChatHeaderActions?.getInsertTarget?.()
+            || document.querySelector('[data-testid="share-chat-button"]');
     }
     
     getDefaultChatTheme() {
