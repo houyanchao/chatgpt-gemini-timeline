@@ -1184,6 +1184,9 @@
   "languageSettingLabel": {
     "message": "插件界面语言"
   },
+  "languageSettingsTooltip": {
+    "message": "语言设置"
+  },
   "languageOptionAuto": {
     "message": "跟随浏览器"
   },

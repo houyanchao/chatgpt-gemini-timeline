@@ -669,13 +669,13 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
 
 /* 紧凑模式：激活节点直接使用主题背景色，优先级高于收藏色 */
 .ait-compact-mode .ait-timeline-dot.active::after {
-    background-color: var(--ait-timeline-dot-active-color);
+    background: var(--ait-timeline-dot-active-color);
     box-shadow: none;
 }
 
 /* 收藏且选中：激活色主体，前半段覆盖收藏色 */
 .ait-compact-mode .ait-timeline-dot.starred.active::after {
-    background-color: var(--ait-timeline-dot-active-color);
+    background: var(--ait-timeline-dot-active-color);
     height: var(--timeline-compact-line-height);
     box-shadow: none;
 }
@@ -716,5 +716,5 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
 /* 紧凑模式：鼠标悬停节点使用激活背景色 */
 .ait-compact-mode .ait-timeline-dot:not(.active):not(.starred):hover::after,
 .ait-compact-mode .ait-timeline-dot.active:not(.starred):hover::after {
-    background-color: var(--ait-timeline-dot-active-color);
+    background: var(--ait-timeline-dot-active-color);
 }

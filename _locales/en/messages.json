@@ -1184,6 +1184,9 @@
   "languageSettingLabel": {
     "message": "Interface language"
   },
+  "languageSettingsTooltip": {
+    "message": "Language settings"
+  },
   "languageOptionAuto": {
     "message": "Follow browser"
   },

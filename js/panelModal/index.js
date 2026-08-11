@@ -232,6 +232,24 @@ class PanelModal {
             }
         });
 
+        this.languageControl.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show(
+                'panel-modal-language-setting',
+                'button',
+                this.languageControl,
+                TimelineI18n.getMessage('languageSettingsTooltip') || 'Language settings',
+                { style: 'mini', placement: 'bottom' }
+            );
+        });
+
+        this.languageControl.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
+
+        this.languageControl.addEventListener('mousedown', () => {
+            window.globalTooltipManager?.hide(true);
+        });
+
         this.shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             window.open(this._getStoreDetailUrl(), '_blank', 'noopener,noreferrer');
@@ -267,7 +285,7 @@ class PanelModal {
         if (!this.languageSelect || !this.languageControl || !this.languageValue) return;
 
         const label = TimelineI18n.getMessage('languageSettingLabel') || 'Interface language';
-        this.languageControl.title = label;
+        this.languageControl.removeAttribute('title');
         this.languageSelect.setAttribute('aria-label', label);
         this.languageSelect.replaceChildren();
 
