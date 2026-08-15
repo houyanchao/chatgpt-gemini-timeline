@@ -463,8 +463,8 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
     opacity: 0.6; /* 点击时更明显的反馈 */
 }
 
-/* ✅ 页面节点上的时间标签（使用 ::before 伪元素，不插入 DOM 节点，避免干扰平台原有结构） */
-[data-ait-time]::before {
+/* ✅ 页面节点上的时间标签（空节点的伪元素不会污染提问文本） */
+.ait-chat-time-label[data-ait-time]::before {
     content: attr(data-ait-time);
     position: absolute;
     top: var(--ait-time-top, -18px);
@@ -482,8 +482,28 @@ html[data-timeline-theme="dark"] .ait-timeline-dot:not(.active):not(.starred):ho
     letter-spacing: 0.01em;
 }
 
+.ait-chat-time-label.ait-time-toggleable[data-ait-time]::before {
+    pointer-events: auto;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.ait-chat-time-label.ait-time-toggleable:hover::before {
+    opacity: 0.75;
+}
+
+.ait-chat-time-label.ait-time-toggleable:active::before {
+    opacity: 0.55;
+}
+
+.ait-chat-time-label.ait-time-toggleable:focus-visible::before {
+    outline: 2px solid var(--ait-timeline-dot-active-color);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 /* 深色模式 */
-html[data-timeline-theme="dark"] [data-ait-time]::before {
+html[data-timeline-theme="dark"] .ait-chat-time-label[data-ait-time]::before {
     color: #d1d5db;
     background: rgba(255, 255, 255, 0.06);
 }

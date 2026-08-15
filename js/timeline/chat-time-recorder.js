@@ -8,7 +8,7 @@
  * 
  * 与 TimelineManager 解耦，通过 AIStateMonitor 事件驱动
  * 
- * 简化设计：不使用内存缓存，每次直接从 storage 读取
+ * 简化设计：不缓存时间数据，每次直接从 storage 读取
  */
 class ChatTimeRecorder {
     constructor() {
@@ -21,9 +21,12 @@ class ChatTimeRecorder {
         this._renderInFlight = false;
         this._renderQueued = false;
         this._platformFeatures = {};
+        this._expandedNodeIds = new Set();
         
         // 事件处理函数（绑定 this）
         this._boundOnAIStateChange = this._onAIStateChange.bind(this);
+        this._boundOnTimeLabelClick = this._onTimeLabelClick.bind(this);
+        this._boundOnTimeLabelKeydown = this._onTimeLabelKeydown.bind(this);
     }
 
     /**
@@ -291,8 +294,8 @@ class ChatTimeRecorder {
     /**
      * 渲染所有节点的时间标签
      * 
-     * 使用 data-ait-time 属性 + CSS ::before 伪元素方案：
-     * - 不插入 DOM 节点，避免干扰平台原有 DOM 结构
+     * 使用空的 .ait-chat-time-label 节点 + CSS ::before 伪元素方案：
+     * - 空节点不会把时间混入提问文本，同时可提供独立点击区域
      * - 通过 CSS 变量传递位置配置
      *
      * 并发控制：MutationObserver 抖动可能在短时间内多次触发本方法，
@@ -355,22 +358,34 @@ class ChatTimeRecorder {
             
             if (!timestamp) return;
             
+            const nodeIdKey = String(nodeId);
             const formattedTime = this.formatNodeTime(timestamp);
+            const toggleable = this.isNodeTimeToggleable(timestamp);
+            const expanded = toggleable && this._expandedNodeIds.has(nodeIdKey);
+            const displayTime = expanded ? this.formatFullNodeTime(timestamp) : formattedTime;
             try {
-                const marker = window.timelineManager?.markerMap?.get?.(String(nodeId));
+                const marker = window.timelineManager?.markerMap?.get?.(nodeIdKey);
                 if (marker) marker.timeLabel = formattedTime;
             } catch {}
             
             // 获取时间标签的实际渲染目标元素
             const target = adapter.getTimeLabelTarget(element);
             if (!target) return;
+
+            let timeLabel = target.querySelector('.ait-chat-time-label');
+            const labelIsCurrent = timeLabel
+                && timeLabel.dataset.aitNodeId === nodeIdKey
+                && timeLabel.dataset.aitTimestamp === String(timestamp)
+                && timeLabel.getAttribute('data-ait-time') === displayTime
+                && timeLabel.classList.contains('ait-time-toggleable') === toggleable
+                && (!toggleable || timeLabel.getAttribute('aria-pressed') === String(expanded));
+
+            // 避免 MutationObserver 触发重渲染时反复写入相同属性。
+            if (labelIsCurrent && !target.hasAttribute('data-ait-time')) return;
             
             if (position.paddingTop) {
                 target.style.paddingTop = position.paddingTop;
             }
-            
-            // 检查是否已有时间标签且内容相同（避免不必要的 DOM 操作）
-            if (target.getAttribute('data-ait-time') === formattedTime) return;
             
             // 确保 target 有相对定位（::before 相对于 target 定位）
             const computedStyle = window.getComputedStyle(target);
@@ -378,15 +393,90 @@ class ChatTimeRecorder {
                 target.style.position = 'relative';
             }
             
-            // 设置时间数据属性（CSS ::before 通过 attr() 读取内容）
-            target.setAttribute('data-ait-time', formattedTime);
-            
             // 通过 CSS 变量传递位置配置
             if (position.top) target.style.setProperty('--ait-time-top', position.top);
             if (position.right) target.style.setProperty('--ait-time-right', position.right);
             if (position.left) target.style.setProperty('--ait-time-left', position.left);
             if (position.bottom) target.style.setProperty('--ait-time-bottom', position.bottom);
+
+            // 兼容扩展热重载前已经挂在 target 上的旧标签。
+            target.removeAttribute('data-ait-time');
+
+            if (!timeLabel) {
+                timeLabel = document.createElement('span');
+                timeLabel.className = 'ait-chat-time-label';
+                timeLabel.addEventListener('click', this._boundOnTimeLabelClick);
+                timeLabel.addEventListener('keydown', this._boundOnTimeLabelKeydown);
+                target.appendChild(timeLabel);
+            }
+
+            timeLabel.dataset.aitNodeId = nodeIdKey;
+            timeLabel.dataset.aitTimestamp = String(timestamp);
+            timeLabel.setAttribute('data-ait-time', displayTime);
+            timeLabel.setAttribute('aria-label', displayTime);
+            timeLabel.classList.toggle('ait-time-toggleable', toggleable);
+
+            if (toggleable) {
+                timeLabel.setAttribute('role', 'button');
+                timeLabel.tabIndex = 0;
+                timeLabel.setAttribute('aria-pressed', String(expanded));
+            } else {
+                timeLabel.removeAttribute('role');
+                timeLabel.removeAttribute('tabindex');
+                timeLabel.removeAttribute('aria-pressed');
+            }
         });
+    }
+
+    /**
+     * 只有默认格式不显示年份（本年）的时间才支持切换。
+     * @param {number} timestamp
+     * @returns {boolean}
+     */
+    isNodeTimeToggleable(timestamp) {
+        if (!timestamp) return false;
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return false;
+        return date.getFullYear() === new Date().getFullYear();
+    }
+
+    /**
+     * 切换当前时间标签的简略/完整格式。
+     * @param {HTMLElement} timeLabel
+     */
+    _toggleTimeLabel(timeLabel) {
+        if (!timeLabel?.classList.contains('ait-time-toggleable')) return;
+
+        const nodeId = timeLabel.dataset.aitNodeId;
+        const timestamp = Number(timeLabel.dataset.aitTimestamp);
+        if (!nodeId || !this.isNodeTimeToggleable(timestamp)) return;
+
+        const expanded = !this._expandedNodeIds.has(nodeId);
+        if (expanded) {
+            this._expandedNodeIds.add(nodeId);
+        } else {
+            this._expandedNodeIds.delete(nodeId);
+        }
+
+        const displayTime = expanded
+            ? this.formatFullNodeTime(timestamp)
+            : this.formatNodeTime(timestamp);
+        timeLabel.setAttribute('data-ait-time', displayTime);
+        timeLabel.setAttribute('aria-label', displayTime);
+        timeLabel.setAttribute('aria-pressed', String(expanded));
+    }
+
+    _onTimeLabelClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        this._toggleTimeLabel(event.currentTarget);
+    }
+
+    _onTimeLabelKeydown(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        this._toggleTimeLabel(event.currentTarget);
     }
 
     /**
@@ -424,10 +514,24 @@ class ChatTimeRecorder {
     }
 
     /**
+     * 格式化完整的年月日时分。
+     * @param {number} timestamp
+     * @returns {string}
+     */
+    formatFullNodeTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return '';
+        const pad = value => String(value).padStart(2, '0');
+        return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    /**
      * 重置状态（会话切换时调用）
      */
     async reset() {
         this._pendingRecord = null;
+        this._expandedNodeIds.clear();
         
         // 更新新会话的 lastVisit
         if (this.enabled) {
@@ -454,10 +558,8 @@ class ChatTimeRecorder {
             // 显示：重新渲染时间标签
             this._renderTimeLabels();
         } else {
-            // 隐藏：移除所有时间标签（清除 data 属性即可，::before 自动消失）
-            document.querySelectorAll('[data-ait-time]').forEach(el => {
-                el.removeAttribute('data-ait-time');
-            });
+            // 隐藏：移除所有时间标签。
+            this._removeTimeLabels();
             try {
                 window.timelineManager?.markers?.forEach(marker => {
                     marker.timeLabel = null;
@@ -472,10 +574,19 @@ class ChatTimeRecorder {
     destroy() {
         // 移除事件监听
         window.removeEventListener('ai:stateChange', this._boundOnAIStateChange);
+        this._removeTimeLabels();
         
         // 清理状态
         this._pendingRecord = null;
+        this._expandedNodeIds.clear();
         this.enabled = false;
+    }
+
+    _removeTimeLabels() {
+        document.querySelectorAll('.ait-chat-time-label').forEach(el => el.remove());
+        document.querySelectorAll('[data-ait-time]').forEach(el => {
+            el.removeAttribute('data-ait-time');
+        });
     }
 }
 
