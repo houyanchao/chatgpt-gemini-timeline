@@ -669,7 +669,7 @@
     "message": "Giới thiệu cho bạn bè"
   },
   "aboutShareContent": {
-    "message": "Nếu bạn thấy Timeline hữu ích, hãy viết đánh giá trên Xiaohongshu, Bilibili, X, Reddit, YouTube hoặc các nền tảng khác, và chia sẻ với bạn học và bạn bè để nhiều người hơn có thể sử dụng. Cảm ơn. ❤️"
+    "message": "Nếu bạn thấy Timeline hữu ích, hãy viết đánh giá trên Xiaohongshu, Bilibili, X, Reddit, YouTube hoặc các nền tảng khác để giúp nhiều người hơn khám phá nó. Cảm ơn. ❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "Star to Folder"
@@ -1093,5 +1093,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "Nhắc nhở bằng âm thanh"
+  },
+  "viewChangelogTooltip": {
+    "message": "Xem lịch sử cập nhật"
   }
 }

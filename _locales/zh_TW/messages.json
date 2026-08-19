@@ -711,7 +711,7 @@
     "message": "推薦給朋友"
   },
   "aboutShareContent": {
-    "message": "如果 Timeline 插件好用，歡迎在小紅書、B站、X、Reddit、YouTube 等平台發帖推薦，也歡迎分享給朋友、同學，讓更多人用上它。謝謝。❤️"
+    "message": "如果 Timeline 插件好用，歡迎在小紅書、B站、X、Reddit、YouTube 等平台發帖推薦，幫助更多人發現它，謝謝。❤️"
   },
   "formulaCopyGeneric": {
     "message": "複製公式"
@@ -1150,5 +1150,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "聲音提醒"
+  },
+  "viewChangelogTooltip": {
+    "message": "查看更新記錄"
   }
 }

@@ -669,7 +669,7 @@
     "message": "दोस्तों को सुझाएं"
   },
   "aboutShareContent": {
-    "message": "अगर Timeline आपको उपयोगी लगे, तो Xiaohongshu, Bilibili, X, Reddit, YouTube या अन्य प्लेटफ़ॉर्म पर रिव्यू लिखें, और सहपाठियों और दोस्तों के साथ शेयर करें ताकि और लोग इसका उपयोग कर सकें। धन्यवाद। ❤️"
+    "message": "अगर Timeline आपको उपयोगी लगे, तो Xiaohongshu, Bilibili, X, Reddit, YouTube या अन्य प्लेटफ़ॉर्म पर रिव्यू लिखें ताकि और लोग इसे खोज सकें। धन्यवाद। ❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "Star to Folder"
@@ -1093,5 +1093,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "ध्वनि रिमाइंडर"
+  },
+  "viewChangelogTooltip": {
+    "message": "अपडेट इतिहास देखें"
   }
 }

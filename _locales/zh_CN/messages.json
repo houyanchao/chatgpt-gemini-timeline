@@ -786,7 +786,7 @@
     "message": "推荐给朋友"
   },
   "aboutShareContent": {
-    "message": "如果 Timeline 插件好用，欢迎在 小红书、B站、X、Reddit、YouTube 等平台发帖推荐，也欢迎分享给朋友、同学，让更多人用上它。谢谢。❤️"
+    "message": "如果 Timeline 插件好用，欢迎在 小红书、B站、X、Reddit、YouTube 等平台发帖推荐，帮助更多人发现它，谢谢。❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "收藏到文件夹"
@@ -1185,7 +1185,7 @@
     "message": "插件界面语言"
   },
   "languageSettingsTooltip": {
-    "message": "语言设置"
+    "message": "语言切换"
   },
   "languageOptionAuto": {
     "message": "跟随浏览器"
@@ -1210,5 +1210,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "声音提醒"
+  },
+  "viewChangelogTooltip": {
+    "message": "查看更新记录"
   }
 }

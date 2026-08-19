@@ -20,7 +20,8 @@ class ChangelogModal {
     async show() {
         await TimelineI18n.ready();
 
-        const hasContent = CHANGELOG_DATA.features?.length || CHANGELOG_DATA.improvements?.length;
+        const hasContent = CHANGELOG_DATA.features?.length || CHANGELOG_DATA.improvements?.length
+            || typeof window.createDshPromoSection === 'function'; // 【临时-DSH宣传】推广卡片计入内容（下线时去掉本行的这个条件）
         if (!CHANGELOG_DATA.id || !hasContent) return;
         this._render();
     }
@@ -32,7 +33,8 @@ class ChangelogModal {
     async hasUpdate() {
         try {
             const id = CHANGELOG_DATA.id;
-            const hasContent = CHANGELOG_DATA.features?.length || CHANGELOG_DATA.improvements?.length;
+            const hasContent = CHANGELOG_DATA.features?.length || CHANGELOG_DATA.improvements?.length
+                || typeof window.createDshPromoSection === 'function'; // 【临时-DSH宣传】推广卡片计入内容（下线时去掉本行的这个条件）
             if (!id || !hasContent) return false;
 
             const readId = await this._getReadVersion();
@@ -178,6 +180,11 @@ class ChangelogModal {
         this._renderSection(body, featTitle, '✨', features, lang);
         this._renderSection(body, improveTitle, '🔧', improvements, lang);
 
+        // 【临时-DSH宣传】DeepSeek Harness 推广卡片（下线时删除 dsh-promo.js 并移除此段，完整下线清单见 dsh-promo.js 文件头）
+        if (typeof window.createDshPromoSection === 'function') {
+            body.appendChild(window.createDshPromoSection(lang));
+        }
+
         // Rating prompt
         const ratingBar = document.createElement('div');
         ratingBar.className = 'changelog-rating-bar';
@@ -202,6 +209,9 @@ class ChangelogModal {
 
         ratingBar.appendChild(ratingText);
         ratingBar.appendChild(ratingBtn);
+
+        // 【临时-DSH宣传】隐藏评分引导条（下线时删除这一行即可恢复）
+        ratingBar.style.display = 'none';
 
         // Footer
         const footer = document.createElement('div');
@@ -243,6 +253,27 @@ class ChangelogModal {
 
         footerLinks.appendChild(docsLink);
         footerLinks.appendChild(githubLink);
+
+        // 【临时-DSH宣传】隐藏"功能文档"、"GitHub 开源"两个按钮（下线时删除下面两行即可恢复）
+        docsLink.style.display = 'none';
+        githubLink.style.display = 'none';
+
+        // 【临时-DSH宣传】dsh-timeline GitHub 按钮（占用原 GitHub 按钮的位置，下线时删除本段，并恢复上面隐藏的两个按钮）
+        const dshGithubLink = document.createElement('a');
+        dshGithubLink.href = 'https://github.com/houyanchao/dsh-timeline';
+        dshGithubLink.target = '_blank';
+        dshGithubLink.rel = 'noopener noreferrer';
+        dshGithubLink.className = 'changelog-footer-icon';
+        dshGithubLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>';
+        const dshGithubTooltipText = lang === 'zh' ? 'dsh-timeline 开源地址' : 'dsh-timeline on GitHub';
+        dshGithubLink.title = dshGithubTooltipText;
+        dshGithubLink.addEventListener('mouseenter', () => {
+            window.globalTooltipManager?.show('changelog-dsh-github', 'button', dshGithubLink, dshGithubTooltipText, tooltipOpts);
+        });
+        dshGithubLink.addEventListener('mouseleave', () => {
+            window.globalTooltipManager?.hide();
+        });
+        footerLinks.appendChild(dshGithubLink);
 
         const confirmBtn = document.createElement('button');
         confirmBtn.className = 'changelog-modal-btn';

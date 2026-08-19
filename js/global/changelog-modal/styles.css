@@ -158,7 +158,7 @@
     overflow-y: auto;
     flex: 1;
     min-height: 80px;
-    max-height: 350px;
+    max-height: 380px;
 }
 
 .changelog-modal-body::-webkit-scrollbar {
@@ -237,6 +237,7 @@
     font-size: 13.5px;
     color: #374151;
     line-height: 1.55;
+    white-space: pre-line; /* 支持文案中用 \n 分段 */
 }
 
 /* ==================== Rating Bar ==================== */

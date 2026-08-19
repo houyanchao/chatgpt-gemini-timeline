@@ -669,7 +669,7 @@
     "message": "แนะนำให้เพื่อน"
   },
   "aboutShareContent": {
-    "message": "หาก Timeline ใช้ดี ยินดีหากเขียนรีวิวบน Xiaohongshu, Bilibili, X, Reddit, YouTube หรือแพลตฟอร์มอื่น ๆ และแบ่งปันให้เพื่อนร่วมชั้นและเพื่อน เพื่อให้คนอื่นได้ใช้ด้วย ขอบคุณ ❤️"
+    "message": "หาก Timeline ใช้ดี ยินดีหากเขียนรีวิวบน Xiaohongshu, Bilibili, X, Reddit, YouTube หรือแพลตฟอร์มอื่น ๆ เพื่อช่วยให้คนอื่นได้ค้นพบมากขึ้น ขอบคุณ ❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "Star to Folder"
@@ -1093,5 +1093,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "การแจ้งเตือนด้วยเสียง"
+  },
+  "viewChangelogTooltip": {
+    "message": "ดูประวัติการอัปเดต"
   }
 }

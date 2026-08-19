@@ -22,6 +22,8 @@ function getTabClass(name) {
         case 'HighlightTab': return typeof HighlightTab !== 'undefined' ? HighlightTab : null;
         case 'ChatWidthTab': return typeof ChatWidthTab !== 'undefined' ? ChatWidthTab : null;
         case 'MirrorSiteTab': return typeof MirrorSiteTab !== 'undefined' ? MirrorSiteTab : null;
+        // 【临时-DSH宣传】DSH 插件 tab（类定义在 changelog-modal/dsh-promo.js，下线时删除本行）
+        case 'DshPromoTab': return typeof window.DshPromoTab !== 'undefined' ? window.DshPromoTab : null;
         default: return null;
     }
 }
@@ -32,6 +34,8 @@ function getTabClass(name) {
  * - className: 对应的类名（字符串）
  */
 const TAB_CONFIG = [
+    // 【临时-DSH宣传】DSH 插件 tab（位于"关于插件"上方，下线时删除本行）
+    { id: 'dsh-promo', className: 'DshPromoTab' },
     { id: 'about', className: 'AboutTab' },
     { id: 'timeline-settings', className: 'TimelineSettingsTab' },
     { id: 'starred', className: 'StarredTab' },

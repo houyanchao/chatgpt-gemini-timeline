@@ -118,6 +118,21 @@ class PanelModal {
                     window.changelogModal.show();
                 }
             });
+            versionEl.addEventListener('mouseenter', () => {
+                window.globalTooltipManager?.show(
+                    'panel-modal-version-changelog',
+                    'button',
+                    versionEl,
+                    TimelineI18n.getMessage('viewChangelogTooltip') || '查看更新记录',
+                    { style: 'mini', placement: 'top' }
+                );
+            });
+            versionEl.addEventListener('mouseleave', () => {
+                window.globalTooltipManager?.hide();
+            });
+            versionEl.addEventListener('mousedown', () => {
+                window.globalTooltipManager?.hide(true);
+            });
         }
         
         sidebar.appendChild(sidebarHeader);

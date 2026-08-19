@@ -720,7 +720,7 @@
     "message": "友達にすすめる"
   },
   "aboutShareContent": {
-    "message": "Timeline が便利だと感じたら、小紅書、Bilibili、X、Reddit、YouTube などでおすすめ投稿していただけると嬉しいです。友人やクラスメートへの共有も大歓迎です。より多くの人に届きますように。ありがとうございます。❤️"
+    "message": "Timeline が便利だと感じたら、小紅書、Bilibili、X、Reddit、YouTube などでおすすめ投稿していただけると嬉しいです。より多くの人に届きますように。ありがとうございます。❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "フォルダにスター"
@@ -1144,5 +1144,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "音声通知"
+  },
+  "viewChangelogTooltip": {
+    "message": "更新履歴を見る"
   }
 }

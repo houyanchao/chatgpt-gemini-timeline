@@ -669,7 +669,7 @@
     "message": "Rekomendasikan ke teman"
   },
   "aboutShareContent": {
-    "message": "Jika Timeline berguna, silakan tulis ulasan di Xiaohongshu, Bilibili, X, Reddit, YouTube, atau platform lainnya, dan bagikan ke teman sekelas dan teman agar lebih banyak orang bisa menggunakannya. Terima kasih. ❤️"
+    "message": "Jika Timeline berguna, silakan tulis ulasan di Xiaohongshu, Bilibili, X, Reddit, YouTube, atau platform lainnya untuk membantu lebih banyak orang menemukannya. Terima kasih. ❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "Star to Folder"
@@ -1093,5 +1093,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "Pengingat suara"
+  },
+  "viewChangelogTooltip": {
+    "message": "Lihat riwayat pembaruan"
   }
 }

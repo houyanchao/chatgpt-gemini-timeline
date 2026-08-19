@@ -14,10 +14,11 @@ class DoubaoSmartEnterAdapter extends BaseSmartEnterAdapter {
     
     /**
      * 获取输入框选择器
-     * 豆包使用 textarea.semi-input-textarea
+     * 豆包新版使用 TipTap/ProseMirror 富文本编辑器（contenteditable）
+     * 旧版为 textarea.semi-input-textarea，保留作为兜底
      */
     getInputSelector() {
-        return 'textarea.semi-input-textarea';
+        return '[class*="input-content-container-"] .tiptap.ProseMirror[contenteditable="true"], textarea.semi-input-textarea';
     }
 
     /**

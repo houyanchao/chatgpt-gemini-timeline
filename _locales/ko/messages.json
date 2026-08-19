@@ -720,7 +720,7 @@
     "message": "친구에게 추천"
   },
   "aboutShareContent": {
-    "message": "Timeline이 유용하다고 느끼시면, 샤오홍슈, Bilibili, X, Reddit, YouTube 등에서 추천 게시물을 올려주세요. 친구나 동료에게 공유하여 더 많은 사람들이 사용할 수 있게 해주세요. 감사합니다. ❤️"
+    "message": "Timeline이 유용하다고 느끼시면, 샤오홍슈, Bilibili, X, Reddit, YouTube 등에서 추천 게시물을 올려 더 많은 사람들이 발견할 수 있도록 도와주세요. 감사합니다. ❤️"
   },
   "nativeMenuStarToFolder": {
     "message": "폴더에 즐겨찾기"
@@ -1144,5 +1144,8 @@
   },
   "timelineAICompleteSoundOptionTitle": {
     "message": "소리 알림"
+  },
+  "viewChangelogTooltip": {
+    "message": "업데이트 기록 보기"
   }
 }
