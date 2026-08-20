@@ -38,15 +38,15 @@ Repository: <https://github.com/houyanchao/dsh-timeline>
 
 ## What is Timeline?
 
-Timeline is a browser extension for AI chat pages. It keeps each platform's native interface intact while adding tools for long conversation navigation, organization, note taking, copying, and input workflows.
+Timeline is a productivity extension for ChatGPT, Gemini, DeepSeek, and other AI chat pages. It leaves each platform's native UI intact and adds what long conversations actually need: timeline navigation, starred folders, a prompt library, conversation export, formula copy, and data backup.
 
-It is designed for these common needs:
+The longer a chat gets, the harder it is to work with:
 
-- Quickly return to a specific question in a long conversation.
-- Save valuable answers from different chats for later review and reuse.
-- Work with formulas, code blocks, and Mermaid diagrams more efficiently.
-- Standardize input behavior, reusable prompts, and follow-up workflows across AI platforms.
-- Back up or migrate extension data across browsers and devices.
+- Jumping back to an earlier question means endless scrolling.
+- Valuable answers are scattered across sessions and hard to find later.
+- Formulas, code, and diagrams are awkward to copy and take away.
+- Input habits differ by platform, so prompts and follow-ups get repeated.
+- Extension data is stuck in one browser, making it hard to switch devices.
 
 ## Installation
 
