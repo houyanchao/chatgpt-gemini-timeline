@@ -22,6 +22,8 @@
 
 (function () {
     const STYLE_ID = 'changelog-dsh-promo-style';
+    const DSH_GITHUB_URL = 'https://github.com/houyanchao/dsh-timeline';
+    const DSH_GITHUB_HOST_PATH = 'github.com/houyanchao/dsh-timeline';
 
     const CSS = `
 .changelog-dsh-promo {
@@ -154,6 +156,86 @@
     color: #817e9c;
 }
 
+.dsh-promo-github {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid rgba(97, 40, 255, 0.06);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 2px 12px rgba(31, 26, 61, 0.08), 0 1px 3px rgba(31, 26, 61, 0.05);
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+
+.dsh-promo-github:hover {
+    background: #faf8ff;
+    border-color: rgba(97, 40, 255, 0.22);
+    box-shadow: 0 4px 16px rgba(97, 40, 255, 0.1), 0 1px 3px rgba(31, 26, 61, 0.05);
+}
+
+.dsh-promo-github:focus-visible {
+    outline: 2px solid #8b5cf6;
+    outline-offset: 2px;
+}
+
+.dsh-promo-github-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #24292f, #3d4450);
+}
+
+.dsh-promo-github-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.dsh-promo-github-texts {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.dsh-promo-github-label {
+    font-size: 12px;
+    font-weight: 650;
+    color: #1f2937;
+    line-height: 1.4;
+}
+
+.dsh-promo-github-url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: #6128ff;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dsh-promo-github-arrow {
+    flex-shrink: 0;
+    color: #9ca3af;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.dsh-promo-github:hover .dsh-promo-github-arrow {
+    color: #6128ff;
+    transform: translate(1px, -1px);
+}
+
 html[data-timeline-theme="dark"] .changelog-dsh-promo {
     background: linear-gradient(135deg, rgba(97, 40, 255, 0.08), rgba(139, 92, 246, 0.06));
     border-color: rgba(139, 92, 246, 0.14);
@@ -198,6 +280,37 @@ html[data-timeline-theme="dark"] .changelog-dsh-promo-install-item code {
 
 html[data-timeline-theme="dark"] .changelog-dsh-promo-install-code {
     background: #171526;
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github {
+    background: #24223a;
+    border-color: rgba(139, 92, 246, 0.14);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github:hover {
+    background: #2c2948;
+    border-color: rgba(139, 92, 246, 0.32);
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github-icon {
+    background: linear-gradient(135deg, #0d1117, #30363d);
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github-label {
+    color: #e5e2f0;
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github-url {
+    color: #b39aff;
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github-arrow {
+    color: #6b6780;
+}
+
+html[data-timeline-theme="dark"] .dsh-promo-github:hover .dsh-promo-github-arrow {
+    color: #b39aff;
 }
 `;
 
@@ -358,9 +471,46 @@ html[data-timeline-theme="dark"] .changelog-dsh-promo-install-code {
                 container.className = 'dsh-promo-tab';
 
                 const isZh = (TimelineI18n.getUILanguage?.() || 'en').startsWith('zh');
-                container.appendChild(window.createDshPromoSection(isZh ? 'zh' : 'en'));
+                const card = window.createDshPromoSection(isZh ? 'zh' : 'en');
+                card.appendChild(this._createGithubRow(isZh));
+                container.appendChild(card);
 
                 return container;
+            }
+
+            _createGithubRow(isZh) {
+                const link = document.createElement('a');
+                link.className = 'dsh-promo-github';
+                link.href = DSH_GITHUB_URL;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+
+                const icon = document.createElement('span');
+                icon.className = 'dsh-promo-github-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>';
+
+                const texts = document.createElement('span');
+                texts.className = 'dsh-promo-github-texts';
+
+                const label = document.createElement('span');
+                label.className = 'dsh-promo-github-label';
+                label.textContent = isZh ? 'GitHub 开源' : 'View on GitHub';
+
+                const urlEl = document.createElement('span');
+                urlEl.className = 'dsh-promo-github-url';
+                urlEl.textContent = DSH_GITHUB_HOST_PATH;
+
+                texts.appendChild(label);
+                texts.appendChild(urlEl);
+
+                const arrow = document.createElement('span');
+                arrow.className = 'dsh-promo-github-arrow';
+                arrow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+
+                link.appendChild(icon);
+                link.appendChild(texts);
+                link.appendChild(arrow);
+                return link;
             }
         };
     }

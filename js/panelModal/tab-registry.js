@@ -34,9 +34,9 @@ function getTabClass(name) {
  * - className: 对应的类名（字符串）
  */
 const TAB_CONFIG = [
-    // 【临时-DSH宣传】DSH 插件 tab（位于"关于插件"上方，下线时删除本行）
-    { id: 'dsh-promo', className: 'DshPromoTab' },
     { id: 'about', className: 'AboutTab' },
+    // 【临时-DSH宣传】DSH 插件 tab（位于"关于插件"下方，下线时删除本行）
+    { id: 'dsh-promo', className: 'DshPromoTab' },
     { id: 'timeline-settings', className: 'TimelineSettingsTab' },
     { id: 'starred', className: 'StarredTab' },
     { id: 'prompt', className: 'PromptTab' },
