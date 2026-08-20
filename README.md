@@ -48,6 +48,7 @@ Timeline 是一个运行在浏览器端的 AI 对话增强扩展。它保留各 
 | Chrome | **[安装 Chrome 版](https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh)** |
 | Microsoft Edge | **[安装 Edge 版](https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab)** |
 | Firefox | **[安装 Firefox 版](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/)** |
+| DeepSeek Harness | **[前往 GitHub 安装 dsh-timeline](https://github.com/houyanchao/dsh-timeline)** |
 
 安装后打开受支持的 AI 对话页面即可使用。大多数功能默认开启，也可以在扩展设置面板中按平台或功能关闭。
 

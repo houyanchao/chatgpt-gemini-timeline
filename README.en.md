@@ -57,6 +57,7 @@ Install from the official browser extension stores:
 | Chrome | **[Install for Chrome](https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh)** |
 | Microsoft Edge | **[Install for Edge](https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab)** |
 | Firefox | **[Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/)** |
+| DeepSeek Harness | **[Install dsh-timeline on GitHub](https://github.com/houyanchao/dsh-timeline)** |
 
 After installation, open a supported AI chat page. Most features are enabled by default and can be adjusted per platform or per feature in the settings panel.
 
