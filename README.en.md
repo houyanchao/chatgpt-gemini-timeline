@@ -32,7 +32,7 @@
 
 ## DeepSeek Harness
 
-Timeline now supports [DeepSeek Harness](https://github.com/houyanchao/dsh-timeline). If you use DeepSeek Harness, install the native **dsh-timeline** plugin — timeline, starred folders, prompt library, conversation export, and formula copy are all there, with theme syncing and zero setup.
+Timeline now supports DeepSeek Harness. If you use DeepSeek Harness, install the native **dsh-timeline** plugin — timeline, starred folders, prompt library, conversation export, and formula copy are all there, with theme syncing and zero setup.
 
 Repository: <https://github.com/houyanchao/dsh-timeline>
 

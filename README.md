@@ -23,7 +23,7 @@
 
 ## DeepSeek Harness
 
-Timeline 现已支持 [DeepSeek Harness](https://github.com/houyanchao/dsh-timeline)。如果你在用 DeepSeek Harness，可以安装原生插件 **dsh-timeline** —— 时间轴、收藏文件夹、提示词库、对话导出、公式复制，熟悉的功能都在，主题跟随、开箱即用。
+Timeline 现已支持 DeepSeek Harness。如果你在用 DeepSeek Harness，可以安装原生插件 **dsh-timeline** —— 时间轴、收藏文件夹、提示词库、对话导出、公式复制，熟悉的功能都在，主题跟随、开箱即用。
 
 仓库地址：<https://github.com/houyanchao/dsh-timeline>
 
