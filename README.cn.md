@@ -1,8 +1,8 @@
 <div align="center">
   <img src="./icons/icon128.png" alt="Timeline Logo" width="88" height="88">
   <h1>Timeline</h1>
-  <p><strong>面向 AI 对话页面的浏览器增强扩展</strong></p>
-  <p>为 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、通义千问、Grok、Perplexity、NotebookLM 等平台提供对话导航、收藏整理、输入增强、公式复制、代码运行与数据备份能力。</p>
+  <p><strong>专为 ChatGPT、Gemini、DeepSeek 等 AI 平台开发的超级提效插件</strong></p>
+  <p>时间轴导航 · 收藏文件夹 · 提示词库 · 对话导出 · 公式复制 · 宠物动画 · 数据备份</p>
 
   <p>
     <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><img src="https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
@@ -18,19 +18,16 @@
 
   <p><strong>简体中文</strong> | <a href="./README.md">English</a></p>
 
-  <h2>立即安装</h2>
-  <p>
-    <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><strong>Chrome Web Store</strong></a>
-    &nbsp;|&nbsp;
-    <a href="https://microsoftedge.microsoft.com/addons/detail/ai-timeline%EF%BC%9A%E5%8A%A9%E4%BD%A0%E4%BD%BF%E7%94%A8-ai-%E6%95%88%E7%8E%87%E7%BF%BB%E5%80%8D-/ekednjjojnhlajfobalaaihkibbdcbab"><strong>Microsoft Edge Add-ons</strong></a>
-    &nbsp;|&nbsp;
-    <a href="https://addons.mozilla.org/en-US/firefox/addon/ai-timeline/"><strong>Firefox Add-ons</strong></a>
-  </p>
-
   <img src="./READMEIMAGE/index.png" alt="Timeline 功能预览" width="840">
 </div>
 
-## 简介
+## DeepSeek Harness
+
+Timeline 现已支持 [DeepSeek Harness](https://github.com/houyanchao/dsh-timeline)。如果你在用 DeepSeek Harness，可以安装原生插件 **dsh-timeline** —— 时间轴、收藏文件夹、提示词库、对话导出、公式复制，熟悉的功能都在，主题跟随、开箱即用。
+
+仓库地址：<https://github.com/houyanchao/dsh-timeline>
+
+## Timeline是什么？
 
 Timeline 是一个运行在浏览器端的 AI 对话增强扩展。它保留各 AI 平台原有界面，在页面内补充更适合长对话使用的导航、整理、记录、复制和输入辅助能力。
 

@@ -1,8 +1,8 @@
 <div align="center">
   <img src="./icons/icon128.png" alt="Timeline Logo" width="88" height="88">
   <h1>Timeline</h1>
-  <p><strong>A browser extension for AI chat pages</strong></p>
-  <p>Timeline adds conversation navigation, bookmark management, input enhancements, formula copy, code running, and data backup to ChatGPT, Gemini, Claude, DeepSeek, Kimi, Doubao, Qwen, Grok, Perplexity, NotebookLM, and other AI chat platforms.</p>
+  <p><strong>A super productivity extension built for ChatGPT, Gemini, DeepSeek, and other AI platforms</strong></p>
+  <p>Timeline navigation · Starred folders · Prompt library · Conversation export · Formula copy · Pet animation · Data backup</p>
 
   <p>
     <a href="https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh"><img src="https://img.shields.io/badge/Chrome-Web%20Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Chrome Web Store"></a>
@@ -30,7 +30,13 @@
   <img src="./READMEIMAGE/index.png" alt="Timeline preview" width="840">
 </div>
 
-## Overview
+## DeepSeek Harness
+
+Timeline now supports [DeepSeek Harness](https://github.com/houyanchao/dsh-timeline). If you use DeepSeek Harness, install the native **dsh-timeline** plugin — timeline, starred folders, prompt library, conversation export, and formula copy are all there, with theme syncing and zero setup.
+
+Repository: <https://github.com/houyanchao/dsh-timeline>
+
+## What is Timeline?
 
 Timeline is a browser extension for AI chat pages. It keeps each platform's native interface intact while adding tools for long conversation navigation, organization, note taking, copying, and input workflows.
 
