@@ -223,3 +223,9 @@ html[data-timeline-theme="dark"] .ait-custom-drag-ghost span { color: #e5e7eb; }
     position: relative;
     top: -2px;
 }
+
+/* ChatGPT：星标是 .truncate 的兄弟节点，间距由该 flex 行自带的 gap 提供，对齐交给 align-items */
+a[data-sidebar-item] > div > .ait-conv-starred-icon {
+    margin-right: 0;
+    top: 0;
+}

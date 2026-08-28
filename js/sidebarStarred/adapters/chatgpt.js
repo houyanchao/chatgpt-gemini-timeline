@@ -72,14 +72,17 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     }
 
     injectStarIcon(convEl) {
+        if (convEl.querySelector(`[${BaseSidebarStarredAdapter.STAR_ICON_ATTR}]`)) return;
         const truncate = convEl.querySelector('.truncate');
-        if (!truncate || truncate.querySelector(`[${BaseSidebarStarredAdapter.STAR_ICON_ATTR}]`)) return;
+        const row = truncate?.parentElement;
+        if (!row) return;
 
         const icon = document.createElement('span');
         icon.setAttribute(BaseSidebarStarredAdapter.STAR_ICON_ATTR, 'true');
         icon.className = 'ait-conv-starred-icon';
         icon.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="rgb(255, 125, 3)" stroke="rgb(255, 125, 3)" stroke-width="1"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
-        truncate.insertBefore(icon, truncate.firstChild);
+        // 标题被 marquee 组件包成多层块级元素，插进去必然换行；只能作为 .truncate 的兄弟插入外层 flex 行
+        row.insertBefore(icon, truncate);
     }
 
     removeStarIcon(convEl) {
