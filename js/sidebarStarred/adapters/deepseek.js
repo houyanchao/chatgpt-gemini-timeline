@@ -1,10 +1,14 @@
 /**
  * DeepSeek Sidebar Starred Adapter
  *
- * DeepSeek 侧边栏 DOM 结构：
- *   通过 img[src*="/user-avatar/"] 定位用户头像
- *   → 父元素的父元素的上一个兄弟元素 = 聊天记录列表容器
+ * DeepSeek 侧边栏 DOM 结构（class 为动态哈希，不可直接依赖）：
+ *   img[src*="/user-avatar/"] 定位用户头像
+ *   → 从头像逐级向上，第一个包含 div.ds-scroll-area 的祖先 = 侧边栏容器
+ *   → 其中带对话链接的 ds-scroll-area = 聊天记录列表容器
  *   收藏区域插在聊天记录列表容器的上方
+ *
+ * ⚠️ 不要写死头像到侧边栏容器的父级层数：DeepSeek 调整过嵌套深度（曾是 3 层，现为 5 层），
+ *   写死层数会导致定位失败，收藏区整块消失。
  *
  * 策略：
  *   findSidebarContainer → 聊天记录列表容器的父元素
@@ -18,9 +22,29 @@ class DeepSeekSidebarStarredAdapter extends BaseSidebarStarredAdapter {
 
     _findHistoryContainer() {
         const avatar = document.querySelector('img[src*="/user-avatar/"]');
-        if (!avatar?.parentElement?.parentElement?.parentElement) return null;
-        const parent = avatar.parentElement.parentElement.parentElement;
-        return parent.querySelector('.ds-scroll-area') || null;
+        let history = null;
+        let fallback = null;
+
+        // 从头像逐级向上，找最近的、包含滚动区的祖先；优先取带对话链接的滚动区
+        for (let node = avatar?.parentElement, depth = 0; node && depth < 8 && !history; node = node.parentElement, depth++) {
+            const areas = node.querySelectorAll('div.ds-scroll-area');
+            if (!areas.length) continue;
+            for (const area of areas) {
+                if (area.querySelector('a[href*="/chat/"]')) { history = area; break; }
+            }
+            // 历史记录为空（新用户 / 列表未渲染）时，退回该祖先内的第一个滚动区
+            if (!fallback) fallback = areas[0];
+        }
+        if (!history) history = fallback;
+
+        // 兜底：头像未渲染或改版时，直接找页面中带对话链接的最外层滚动区
+        if (!history) {
+            for (const area of document.querySelectorAll('div.ds-scroll-area')) {
+                if (area.querySelector('a[href*="/chat/"]')) { history = area; break; }
+            }
+        }
+
+        return history;
     }
 
     findSidebarContainer() {
