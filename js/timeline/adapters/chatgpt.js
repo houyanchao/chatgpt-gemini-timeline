@@ -54,6 +54,7 @@ class ChatGPTAdapter extends SiteAdapter {
         document.removeEventListener('ait-gpt-user-texts-result', handler);
 
         const texts = received ? received.texts : null;
+        window.AITGPTDiagnostics?.log('adapter.bridge-result', { responded: !!received, hasTexts: !!texts, textEntries: texts && typeof texts === 'object' ? Object.keys(texts).length : 0 });
         if (!texts) return 0;
 
         const nextCapturedTextIds = new Set(Object.keys(texts));
@@ -71,6 +72,11 @@ class ChatGPTAdapter extends SiteAdapter {
             if (this._turnTextCache.get(id) !== previous) changedCount++;
         });
         this._capturedTextIds = nextCapturedTextIds;
+        if (window.AITGPTDiagnostics) {
+            const elements = Array.from(document.querySelectorAll('[data-turn-id-container], [data-turn-id]'));
+            const ids = new Set(elements.map(el => this._extractNodeIdFromDom(el)).filter(Boolean));
+            window.AITGPTDiagnostics.log('adapter.api-dom-id-match', { apiTextEntries: nextCapturedTextIds.size, domUniqueIds: ids.size, matchedIds: Array.from(ids).filter(id => nextCapturedTextIds.has(id)).length, changedCount });
+        }
         return changedCount;
     }
 
@@ -232,6 +238,7 @@ class ChatGPTAdapter extends SiteAdapter {
         this._usesVirtualizedTurnSelector = hasVirtualizedTurns
             && document.querySelector('[data-turn-id-container][data-ait-turn="user"]') !== null;
         this._turnRolesDirty = false;
+        window.AITGPTDiagnostics?.log('adapter.prepared', { virtualized: this._usesVirtualizedTurnSelector, nativeUsers: document.querySelectorAll('[data-turn="user"][data-turn-id]').length, virtualUsers: document.querySelectorAll('[data-turn-id-container][data-ait-turn="user"]').length });
         return true;
     }
 
@@ -372,15 +379,18 @@ class ChatGPTAdapter extends SiteAdapter {
         if (text) {
             // 渲染期缓存文本，供该轮被虚拟化成空壳后使用
             if (nodeId) this._cacheTurnText(nodeId, text);
+            window.AITGPTDiagnostics?.log('adapter.text-source', { source: 'dom' });
             return text;
         }
         // 虚拟化空壳：React 子树已卸载，DOM/fiber 均无文本，回退会话级缓存
         if (nodeId && this._turnTextCache.has(nodeId)) {
+            window.AITGPTDiagnostics?.log('adapter.text-source', { source: this._capturedTextIds.has(nodeId) ? 'api-cache' : 'dom-cache' });
             return this._turnTextCache.get(nodeId);
         }
         // 区分两种"无文本"：
         // - 空壳（childElementCount=0）：轮次从未渲染过，文本在客户端物理不存在
         // - 已渲染但无文本节点：真的是纯图片/文件消息
+        window.AITGPTDiagnostics?.log('adapter.text-source', { source: 'placeholder', hasNodeId: !!nodeId, emptyElement: element.childElementCount === 0 });
         return element.childElementCount === 0 ? '[未加载的提问]' : '[图片或文件]';
     }
 

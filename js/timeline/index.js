@@ -44,6 +44,7 @@ function sleep(ms) {
 async function isPlatformEnabled() {
     try {
         const platform = await getCurrentPlatform();
+        window.AITGPTDiagnostics?.log('timeline.platform', { detected: !!platform, supported: platform?.features?.timeline === true });
         if (!platform) return true; // 未知平台，默认启用
         
         // ✅ 首先检查平台是否支持时间轴功能
@@ -55,8 +56,10 @@ async function isPlatformEnabled() {
         const settings = result.timelinePlatformSettings || {};
         
         // 默认启用（!== false）
+        window.AITGPTDiagnostics?.log('timeline.platform-setting', { enabled: settings[platform.id] !== false });
         return settings[platform.id] !== false;
     } catch (e) {
+        window.AITGPTDiagnostics?.error("timeline.platform-check", e);
         return true; // 出错默认启用
     }
 }
@@ -78,7 +81,9 @@ async function canInitialize() {
 // Initialize timeline with retry mechanism (exponential backoff)
 async function initWithRetry(version, delays, retryIndex = 0) {
     // Check if we've exceeded max retries
+    window.AITGPTDiagnostics?.log("timeline.retry", { retryIndex, version });
     if (retryIndex >= delays.length) {
+        window.AITGPTDiagnostics?.log("timeline.retries-exhausted");
         return;
     }
     
@@ -173,6 +178,7 @@ async function initializeTimeline(version = initVersion) {
 
         try {
             const initialized = await manager.init();
+            window.AITGPTDiagnostics?.log('timeline.manager-result', { initialized: !!initialized, stale: version !== initVersion });
             if (!initialized || version !== initVersion || timelineManagerInstance !== manager) {
                 try { manager.destroy(); } catch {}
                 if (timelineManagerInstance === manager) {
@@ -181,6 +187,7 @@ async function initializeTimeline(version = initVersion) {
                 return false;
             }
         } catch (err) {
+            window.AITGPTDiagnostics?.error("timeline.manager-init", err);
             if (timelineManagerInstance === manager) {
                 timelineManagerInstance = null;
             }
@@ -224,7 +231,7 @@ async function handleUrlChange() {
     if (await isConversationRoute()) {
         const currentVersion = initVersion;
         void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-            .catch(e => void 0);
+            .catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));
     }
     // 如果不是对话 URL，只清理（上面已经做了）
 }
@@ -262,24 +269,28 @@ function setupPlatformSettingsListener() {
                             initVersion++;
                             const currentVersion = initVersion;
                             void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                                .catch(e => void 0);
+                                .catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));
                         }
                     } else {
                         // 从启用到禁用：销毁时间轴
                         destroyTimelineInstance();
                     }
                 }
-            })().catch(e => void 0);
+            })().catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));
         }
     });
 }
 
 async function bootstrapTimeline() {
+    window.AITGPTDiagnostics?.log('timeline.bootstrap-start');
     await TimelineI18n.ready();
+    window.AITGPTDiagnostics?.log('timeline.i18n-ready');
     await adapterRegistry.loadCustomAdapters();
+    window.AITGPTDiagnostics?.log('timeline.registry-ready');
 
     // Check if current site is supported before initializing
     if (!(await adapterRegistry.isSupportedSite())) {
+        window.AITGPTDiagnostics?.log("timeline.unsupported-site");
         return;
     }
 
@@ -294,13 +305,14 @@ async function bootstrapTimeline() {
             reason: 'bootstrap-check'
         });
         const selector = adapter ? adapter.getUserMessageSelector() : null;
+        window.AITGPTDiagnostics?.log('timeline.bootstrap-probe', { adapter: !!adapter, hasSelector: !!selector, matches: selector ? document.querySelectorAll(selector).length : 0 });
         if (selector && document.querySelector(selector)) {
             if (await isConversationRoute()) {
                 // Use retry mechanism for initial load as well
                 initVersion++;
                 const currentVersion = initVersion;
                 void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                    .catch(e => void 0);
+                    .catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));
             }
             
             attachRouteListenersOnce();
@@ -333,7 +345,7 @@ async function bootstrapTimeline() {
                                 unsubscribeInitial = null;
                             }
                         }
-                    })().catch(e => void 0);
+                    })().catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));
                 },
                 debounce: 150  // 150ms 防抖
             });
@@ -341,4 +353,4 @@ async function bootstrapTimeline() {
     }
 }
 
-bootstrapTimeline().catch(e => void 0);
+bootstrapTimeline().catch(e => window.AITGPTDiagnostics?.error("timeline.async", e));

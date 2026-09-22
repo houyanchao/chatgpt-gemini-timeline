@@ -1,0 +1,80 @@
+// NODE_PATH=/private/tmp/ait-dom-tests/node_modules node scripts/tests/chatgpt-api-diagnostics.cjs
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const { JSDOM } = require('jsdom');
+const assert = require('node:assert/strict');
+const root = path.resolve(__dirname, '../..');
+const current = fs.readFileSync(path.join(root, 'js/apiCapture/chatgpt.js'), 'utf8');
+const baseline = execFileSync('git', ['show', 'HEAD:js/apiCapture/chatgpt.js'], { cwd: root, encoding: 'utf8' });
+const logger = fs.readFileSync(path.join(root, 'js/global/chatgpt-diagnostics/index.js'), 'utf8');
+const secret = 'PRIVATE_CONTENT_AND_ACCOUNT';
+const id = '12345678-1234-1234-1234-123456789012';
+const endpoint = `https://chatgpt.com/backend-api/conversation/${id}`;
+const json = { current_node: 'secret-node', title: secret, mapping: {
+    'secret-node': { id: 'secret-node', parent: null, children: [], message: { id: 'private-message', author: { role: 'user' }, recipient: 'all', content: { content_type: 'text', parts: [secret] } } }
+} };
+const clone = value => JSON.parse(JSON.stringify(value));
+async function run(source, fixture, options = {}) {
+    const dom = new JSDOM('<main></main>', { url: `https://chatgpt.com/c/${id}`, runScripts: 'outside-only' });
+    const w = dom.window, logs = [];
+    w.console.info = text => logs.push(text);
+    const timers = [];
+    w.setTimeout = fn => { timers.push(fn); return timers.length; };
+    let cloned = 0, consumed = false;
+    const response = { ok: !options.httpError, status: options.httpError ? 403 : 200, headers: { get: () => 'application/json' }, clone: () => {
+        cloned++; return { json: async () => { if (options.invalidJson) throw new SyntaxError(secret); return fixture; } };
+    }, json: async () => { consumed = true; return fixture; } };
+    const originalPromise = options.networkError ? Promise.reject(new TypeError(secret)) : Promise.resolve(response);
+    w.fetch = () => originalPromise;
+    if (source === current) w.eval(logger);
+    w.eval(source);
+    assert.equal(w.fetch(options.url || endpoint), originalPromise, 'Fetch must return original promise');
+    await new Promise(resolve => setImmediate(resolve));
+    let result;
+    w.document.addEventListener('ait-gpt-user-texts-result', e => { result = JSON.parse(e.detail); }, { once: true });
+    w.document.dispatchEvent(new w.CustomEvent('ait-gpt-user-texts-pull', { detail: id }));
+    assert.equal(consumed, false, 'Diagnostics must not consume the original response');
+    timers.forEach(fn => fn());
+    const output = logs.join('\n');
+    for (const value of [secret, id, 'secret-node', 'private-message']) assert(!output.includes(value), `Sensitive value leaked: ${value}`);
+    const records = logs.map(line => JSON.parse(line.slice('[AIT-GPT-DIAG] '.length)));
+    w.close();
+    return { result, records, cloned };
+}
+(async () => {
+    const cases = [
+        ['normal', json, {}],
+        ['wrapped mapping', { data: json }, {}],
+        ['renamed nodes', { nodes: json.mapping }, {}],
+        ['current node missing', { ...json, current_node: 'absent' }, {}],
+        ['HTTP error', json, { httpError: true }],
+        ['invalid JSON', json, { invalidJson: true }],
+        ['network error', json, { networkError: true }],
+        ['alternate endpoint', { data: json }, { url: endpoint + '/messages' }]
+    ];
+    for (const mutate of [j => delete j.mapping['secret-node'].id,
+        j => j.mapping['secret-node'].message.author.role = secret,
+        j => j.mapping['secret-node'].message.content.content_type = secret,
+        j => j.mapping['secret-node'].message.recipient = secret,
+        j => j.mapping['secret-node'].message.content.parts = { private: secret }]) {
+        const value = clone(json); mutate(value); cases.push(['changed node fields', value, {}]);
+    }
+    for (const [name, fixture, options] of cases) {
+        const before = await run(baseline, fixture, options);
+        const after = await run(current, fixture, options);
+        assert.deepEqual(after.result, before.result, `${name}: parser/bridge behavior changed`);
+        assert(after.records.some(r => r.event === 'api.bridge-pull'));
+        if (name === 'normal') {
+            const parsed = after.records.find(r => r.event === 'api.parsed-branch');
+            assert.equal(parsed.userTurns, 1); assert.equal(parsed.textEntries, 1);
+        }
+        if (name === 'wrapped mapping') assert(after.records.some(r => r.event === 'api.capture-skipped' && r.reason === 'mapping-missing'));
+        if (name === 'alternate endpoint') assert(after.records.some(r => r.event === 'api.alternative-shape' && r.data.mapping.count === 1));
+        if (name === 'invalid JSON') assert(after.records.some(r => r.event === 'error' && r.stage === 'api.response-json'));
+    }
+    // Non-GPT pages remain quiet, and repeated identical logs are bounded.
+    const dom = new JSDOM('', { url: 'https://example.com', runScripts: 'outside-only' });
+    dom.window.eval(logger); assert.equal(dom.window.AITGPTDiagnostics, undefined); dom.window.close();
+    console.log(`PASS: ${cases.length} API scenarios match baseline outputs; response body preserved; all logs exclude private contents/IDs; alternate endpoint structure detected.`);
+})().catch(error => { console.error(error); process.exitCode = 1; });

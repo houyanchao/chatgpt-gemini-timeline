@@ -205,6 +205,7 @@ class TimelineManager {
         if (this._destroyed) return false;
 
         const elementsFound = await this.findCriticalElements();
+        window.AITGPTDiagnostics?.log('timeline.critical-elements', { found: !!elementsFound, destroyed: !!this._destroyed, conversationContainer: !!this.conversationContainer, scrollContainer: !!this.scrollContainer, scrollFallback: !!this.isScrollContainerFallback });
         if (this._destroyed || !elementsFound) return false;
         this.applyHostScrollContainerClass();
         
@@ -1057,6 +1058,7 @@ class TimelineManager {
             userTurnElements = prepared.userTurnElements;
         }
         
+        window.AITGPTDiagnostics?.log('timeline.render-input', { userElements: userTurnElements.length, previousMarkers: this.markers.length });
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
         // If the conversation is transiently empty (branch switching), don't wipe UI immediately
@@ -1265,6 +1267,7 @@ class TimelineManager {
             return m;
         });
         
+        window.AITGPTDiagnostics?.log('timeline.markers-built', { count: this.markers.length, scrollHeight, clientHeight, contentSpanPx: this.contentSpanPx });
         // ✅ 应用收藏状态：根据 starredIndexes 设置 starred 和填充 this.starred
         // 支持 nodeId（字符串）和 index（数字），并有 fallback 逻辑
         this.starredIndexes.forEach(nodeKey => {

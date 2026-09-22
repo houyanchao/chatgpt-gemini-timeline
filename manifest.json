@@ -30,6 +30,7 @@
         "https://chat.openai.com/*"
       ],
       "js": [
+        "js/global/chatgpt-diagnostics/index.js",
         "js/apiCapture/chatgpt.js"
       ],
       "world": "MAIN",
@@ -40,6 +41,7 @@
         "<all_urls>"
       ],
       "js": [
+        "js/global/chatgpt-diagnostics/index.js",
         "js/global/i18n.js",
         "js/global/constants.js",
         "js/global/resource-loader/index.js",
