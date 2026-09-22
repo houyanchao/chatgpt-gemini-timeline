@@ -1,0 +1,58 @@
+// NODE_PATH=/private/tmp/ait-dom-tests/node_modules node scripts/tests/chatgpt-diagnostics-coverage.cjs
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { JSDOM } = require('jsdom');
+(async () => {
+    const secret = 'PRIVATE_email_token_message';
+    const dom = new JSDOM('<main><h4 class="sr-only">你说：</h4><h4 class="sr-only">PRIVATE_email_token_message</h4></main>', { url: 'https://chatgpt.com/c/private-conversation', runScripts: 'outside-only' });
+    const w = dom.window;
+    const logs = [];
+    w.console.info = text => logs.push(text);
+    w.TextDecoder = TextDecoder;
+    w.setTimeout = (fn, ms) => ms === 5000 ? setTimeout(fn, ms) : 0;
+    w.clearTimeout = clearTimeout;
+    let resourceCallback;
+    w.PerformanceObserver = class { constructor(fn) { resourceCallback = fn; } observe() {} disconnect() {} };
+    w.XMLHttpRequest = class extends w.EventTarget {
+        open() { this.opened = true; }
+        getResponseHeader() { return 'application/json'; }
+    };
+    w.eval(fs.readFileSync(path.resolve(__dirname, '../../js/global/chatgpt-diagnostics/index.js'), 'utf8'));
+    const diag = w.AITGPTDiagnostics;
+    const payload = { data: { nodes: [{ [secret]: secret, message: { author: { role: 'user' }, content: { parts: [secret] } } }] } };
+    const response = new Response(JSON.stringify(payload), { headers: { 'content-type': 'application/json' } });
+    const parsed = await diag.readResponseSample(response);
+    assert.equal(JSON.stringify(parsed), JSON.stringify(payload));
+    assert.equal(response.bodyUsed, false);
+    assert.equal(await response.text(), JSON.stringify(payload));
+    diag.log('schema-test', diag.shape(parsed));
+    const sseText = `data: ${JSON.stringify(payload)}\n\ndata: [DONE]\n\n`;
+    const sse = new Response(sseText, { headers: { 'content-type': 'text/event-stream' } });
+    await diag.readResponseSample(sse, true, { diagnosticRequest: 1 });
+    assert.equal(sse.bodyUsed, false);
+    assert.equal(await sse.text(), sseText);
+    const big = new Response('x'.repeat(2097153));
+    assert.equal(await diag.readResponseSample(big), undefined);
+    assert.equal(big.bodyUsed, false);
+    const xhr = new w.XMLHttpRequest();
+    xhr.open('POST', 'https://chatgpt.com/api/conversation/' + secret);
+    assert.equal(xhr.opened, true);
+    xhr.responseType = 'json'; xhr.response = payload; xhr.status = 200;
+    xhr.dispatchEvent(new w.Event('loadend'));
+    resourceCallback({ getEntries: () => [{ name: 'https://chatgpt.com/backend-api/messages/' + secret + '?token=' + secret, startTime: 1, duration: 20, initiatorType: 'xmlhttprequest', responseStatus: 200 }] });
+    w.document.dispatchEvent(new w.CustomEvent('ait-gpt-diag-record', { detail: JSON.stringify({ world: 'ISOLATED', ms: 1, event: 'timeline.bootstrap-start' }) }));
+    const report = diag.export();
+    assert(!report.includes(secret));
+    assert(!report.includes('private-conversation'));
+    assert(!logs.join('\n').includes(secret));
+    const exported = JSON.parse(report.slice(report.indexOf('{')));
+    assert(exported.records.some(r => r.world === 'ISOLATED'));
+    assert(exported.records.some(r => r.event === 'network.xhr-shape'));
+    assert(exported.records.some(r => r.event === 'network.resource'));
+    assert(exported.records.some(r => r.event === 'network.stream-sample' && r.jsonEvents === 1));
+    assert(exported.records.some(r => r.event === 'network.json-sample-skipped' && r.reason === 'byte-limit'));
+    assert(exported.records.some(r => r.event === 'dom-snapshot' && r.headingRoles.user === 1 && r.headingRoles.unknown === 1));
+    w.close();
+    console.log('PASS: bounded JSON/SSE copies preserve page response, XHR/resource observations, private nested fields, role counts, merged report export.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

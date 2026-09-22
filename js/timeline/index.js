@@ -67,7 +67,7 @@ async function isPlatformEnabled() {
 // Helper function: lightweight check if timeline can be initialized
 async function canInitialize() {
     const adapter = await resolveCurrentAdapter();
-    if (!adapter) return false;
+    if (!adapter) { window.AITGPTDiagnostics?.log("timeline.no-adapter"); return false; }
     
     adapter.prepareTimelineNodes?.({
         force: true,
@@ -75,7 +75,9 @@ async function canInitialize() {
     });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
-    return document.querySelector(selector) !== null;
+    const found = document.querySelector(selector) !== null;
+    window.AITGPTDiagnostics?.log('timeline.retry-dom-probe', { found });
+    return found;
 }
 
 // Initialize timeline with retry mechanism (exponential backoff)
@@ -97,6 +99,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     
     // Double-check we're still on a conversation route
     if (!(await isConversationRoute())) {
+        window.AITGPTDiagnostics?.log("timeline.retry-stopped", { reason: "not-conversation-route" });
         return;
     }
     
@@ -334,6 +337,7 @@ async function bootstrapTimeline() {
     } else {
         // 还没有用户消息，使用 DOMObserverManager 等待
         let unsubscribeInitial = null;
+        window.AITGPTDiagnostics?.log("timeline.waiting-for-dom", { observerAvailable: !!window.DOMObserverManager });
         if (window.DOMObserverManager) {
             unsubscribeInitial = window.DOMObserverManager.getInstance().subscribeBody('timeline-initial', {
                 callback: () => {

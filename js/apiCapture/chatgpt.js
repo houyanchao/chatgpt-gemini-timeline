@@ -40,6 +40,9 @@
   const latestAppliedRequestByConversation = new Map(); // convId → 已成功应用的请求序号
   let nextRequestSequence = 0;
   let unmatchedJsonProbes = 0;
+  let diagnosticRequestSequence = 0;
+  const probedEndpointCounts = new Map();
+  const endpointWords = new Set(['backend-api', 'conversation', 'conversations', 'thread', 'threads', 'message', 'messages', 'turn', 'turns', 'v1', 'v2', 'history', 'list', 'get', 'fetch', 'init', 'initialize', 'bootstrap', 'stream', 'resume', 'prepare', 'latest', 'recent', 'shared', 'sync', 'delta', 'batch', 'read', 'read-state', 'api', 'graphql', 'query']);
   const diag = window.AITGPTDiagnostics;
   const stats = { backendRequests: 0, matchedRequests: 0, unmatchedConversationRequests: 0, responses: 0, captured: 0, parseFailures: 0, pulls: 0 };
   diag?.log('api.capture-installed');
@@ -206,24 +209,32 @@
       const method = String(args[1]?.method || (typeof args[0] === 'object' ? args[0]?.method : '') || 'GET').toUpperCase();
       const match = rawUrl.match(CONV_URL_RE);
       // Endpoint metadata only; never log raw URL/path, request body or headers.
-      let backend = false, conversationLike = false, pathDepth = 0;
+      let backend = false, conversationLike = false, pathDepth = 0, endpointShape = 'unknown', currentConversationInPath = false;
       try {
         const url = new URL(rawUrl, location.href);
-        backend = url.origin === location.origin && url.pathname.startsWith('/backend-api/');
+        backend = url.origin === location.origin && (/^\/(?:backend-api|api)\//.test(url.pathname) || url.pathname === '/graphql');
         const segments = url.pathname.split('/').filter(Boolean);
         conversationLike = backend && segments.some(s => /conversation|thread|message|turn/i.test(s));
+        const currentParts = location.pathname.split('/');
+        const currentIndex = currentParts.indexOf('c');
+        const currentId = currentIndex >= 0 ? currentParts[currentIndex + 1] : null;
+        currentConversationInPath = !!currentId && segments.includes(currentId);
         pathDepth = segments.length;
+        endpointShape = '/' + segments.map(segment => endpointWords.has(segment) ? segment : ':redacted').join('/');
       } catch {}
       if (backend) stats.backendRequests++;
+      const diagnosticRequest = backend || match ? ++diagnosticRequestSequence : 0;
+      const safeMethod = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? method : 'other';
+      if (backend) diag?.log('api.request-observed', { diagnosticRequest, endpointShape, method: safeMethod, conversationLike, currentConversationInPath });
       if (conversationLike && !(match && method === 'GET')) {
         stats.unmatchedConversationRequests++;
-        diag?.log('api.unmatched-conversation-request', { method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? method : 'other', pathDepth, note: method === 'POST' ? 'may-be-normal-send-stream' : 'not-handled-by-existing-matcher' });
+        diag?.log('api.unmatched-conversation-request', { diagnosticRequest, endpointShape, method: safeMethod, pathDepth, note: method === 'POST' ? 'may-be-normal-send-stream' : 'not-handled-by-existing-matcher' });
       }
       if (match && method === 'GET') {
         stats.matchedRequests++;
         const conversationId = match[1];
         const requestSequence = ++nextRequestSequence;
-        diag?.log('api.request-matched', { requestSequence });
+        diag?.log('api.request-matched', { requestSequence, diagnosticRequest, endpointShape });
         p.then(resp => {
           stats.responses++;
           const ct = resp?.headers?.get('content-type') || '';
@@ -240,14 +251,25 @@
               .catch(error => { stats.parseFailures++; diag?.error('api.response-json', error); });
           }
         }).catch(error => diag?.error('api.fetch', error));
-      } else if (conversationLike && method === 'GET' && unmatchedJsonProbes < 3) {
-        // Observe at most 3 alternative JSON responses; do not feed them into the existing parser.
-        unmatchedJsonProbes++;
+      } else if (backend) {
+        // Correlate every response with its request. Sample JSON from distinct endpoint
+        // families, including POST JSON; never read request bodies or SSE streams.
+        const probeKey = safeMethod + ':' + endpointShape;
+        const shouldProbe = unmatchedJsonProbes < (conversationLike || currentConversationInPath ? 80 : 35) && (probedEndpointCounts.get(probeKey) || 0) < 3;
+        if (shouldProbe) {
+          unmatchedJsonProbes++;
+          probedEndpointCounts.set(probeKey, (probedEndpointCounts.get(probeKey) || 0) + 1);
+        }
         p.then(async resp => {
           const ct = resp?.headers?.get('content-type') || '';
-          diag?.log('api.alternative-response', { status: resp?.status, json: ct.includes('json'), pathDepth });
-          if (resp?.ok && ct.includes('json')) {
-            diag?.log('api.alternative-shape', diag.shape(await resp.clone().json()));
+          const meta = { diagnosticRequest, endpointShape, method: safeMethod, status: resp?.status,
+            contentType: ct.includes('json') ? 'json' : ct.includes('event-stream') ? 'event-stream' : ct.includes('html') ? 'html' : 'other', conversationLike, currentConversationInPath };
+          diag?.log('api.alternative-response', { ...meta, shapeProbeSelected: shouldProbe });
+          if (shouldProbe && resp?.ok && ct.includes('json')) {
+            const payload = await diag?.readResponseSample(resp, false);
+            if (payload !== undefined) diag?.log('api.alternative-shape', { ...meta, ...diag.shape(payload) });
+          } else if (shouldProbe && resp?.ok && ct.includes('event-stream')) {
+            await diag?.readResponseSample(resp, true, meta);
           }
         }).catch(error => diag?.error('api.alternative-probe', error));
       }

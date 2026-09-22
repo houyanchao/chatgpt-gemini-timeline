@@ -22,14 +22,14 @@ async function run(source, fixture, options = {}) {
     const timers = [];
     w.setTimeout = fn => { timers.push(fn); return timers.length; };
     let cloned = 0, consumed = false;
-    const response = { ok: !options.httpError, status: options.httpError ? 403 : 200, headers: { get: () => 'application/json' }, clone: () => {
+    const response = { ok: !options.httpError, status: options.httpError ? 403 : 200, headers: { get: () => options.contentType || 'application/json' }, clone: () => {
         cloned++; return { json: async () => { if (options.invalidJson) throw new SyntaxError(secret); return fixture; } };
     }, json: async () => { consumed = true; return fixture; } };
     const originalPromise = options.networkError ? Promise.reject(new TypeError(secret)) : Promise.resolve(response);
     w.fetch = () => originalPromise;
     if (source === current) w.eval(logger);
     w.eval(source);
-    assert.equal(w.fetch(options.url || endpoint), originalPromise, 'Fetch must return original promise');
+    assert.equal(w.fetch(options.url || endpoint, { method: options.method || 'GET' }), originalPromise, 'Fetch must return original promise');
     await new Promise(resolve => setImmediate(resolve));
     let result;
     w.document.addEventListener('ait-gpt-user-texts-result', e => { result = JSON.parse(e.detail); }, { once: true });
@@ -51,7 +51,9 @@ async function run(source, fixture, options = {}) {
         ['HTTP error', json, { httpError: true }],
         ['invalid JSON', json, { invalidJson: true }],
         ['network error', json, { networkError: true }],
-        ['alternate endpoint', { data: json }, { url: endpoint + '/messages' }]
+        ['alternate endpoint', { data: json }, { url: endpoint + '/messages' }],
+        ['alternate POST JSON', { items: [{ id: secret, message: { content: secret }, title: secret }] }, { url: endpoint + '/messages', method: 'POST' }],
+        ['alternate stream', json, { url: endpoint + '/messages', method: 'POST', contentType: 'text/event-stream' }]
     ];
     for (const mutate of [j => delete j.mapping['secret-node'].id,
         j => j.mapping['secret-node'].message.author.role = secret,
@@ -71,6 +73,14 @@ async function run(source, fixture, options = {}) {
         }
         if (name === 'wrapped mapping') assert(after.records.some(r => r.event === 'api.capture-skipped' && r.reason === 'mapping-missing'));
         if (name === 'alternate endpoint') assert(after.records.some(r => r.event === 'api.alternative-shape' && r.data.mapping.count === 1));
+        if (name === 'alternate POST JSON') {
+            const response = after.records.find(r => r.event === 'api.alternative-response');
+            const shape = after.records.find(r => r.event === 'api.alternative-shape');
+            assert.equal(shape.diagnosticRequest, response.diagnosticRequest);
+            assert.equal(shape.endpointShape, '/backend-api/conversation/:redacted/messages');
+            assert.equal(shape.arrayItemSchemas.items[0].message.type, 'object');
+        }
+        if (name === 'alternate stream') assert.equal(after.cloned, 0);
         if (name === 'invalid JSON') assert(after.records.some(r => r.event === 'error' && r.stage === 'api.response-json'));
     }
     // Non-GPT pages remain quiet, and repeated identical logs are bounded.
