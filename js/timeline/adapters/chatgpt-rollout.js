@@ -31,6 +31,38 @@ window.AITChatGPTRolloutDOM = {
         return Array.from(candidates.values()).includes('user');
     },
 
+    // display:contents 容器自身没有布局框。合并实际正文子树的矩形，
+    // 保留原消息元素用于文本、ID、观察器；每次测量都重新读取，适配流式重排。
+    rect(element) {
+        const own = element.getBoundingClientRect();
+        if (own.width > 0 && own.height > 0) return own;
+        const boxes = [];
+        const visit = node => {
+            if (node.matches('h4.sr-only, .sr-only, button, nav, script, style, [hidden], [aria-hidden="true"], [data-ait-time], .ait-time-label')) return;
+            const style = getComputedStyle(node);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.position === 'fixed' || style.position === 'absolute') return;
+            const rect = node.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) { boxes.push(rect); return; }
+            for (const child of node.children) visit(child);
+            // contents 中的直接文本没有子元素，使用 Range 获取文本的真实布局框。
+            for (const child of node.childNodes) {
+                if (child.nodeType !== 3 || !child.textContent.trim()) continue;
+                const range = document.createRange();
+                range.selectNodeContents(child);
+                for (const rect of range.getClientRects()) {
+                    if (rect.width > 0 && rect.height > 0) boxes.push(rect);
+                }
+            }
+        };
+        visit(element);
+        if (!boxes.length) return own;
+        const top = Math.min(...boxes.map(r => r.top));
+        const bottom = Math.max(...boxes.map(r => r.bottom));
+        const left = Math.min(...boxes.map(r => r.left));
+        const right = Math.max(...boxes.map(r => r.right));
+        return { x: left, y: top, top, bottom, left, right, width: right - left, height: bottom - top };
+    },
+
     text(element) {
         const content = element.querySelector('.whitespace-pre-wrap');
         if (content) return (content.textContent || '').replace(/\s+/g, ' ').trim();

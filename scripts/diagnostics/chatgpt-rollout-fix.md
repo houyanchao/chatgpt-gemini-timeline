@@ -33,3 +33,17 @@ NODE_PATH=/private/tmp/ait-dom-tests/node_modules node scripts/tests/chatgpt-dia
 ```
 
 合成数据验证不能替代灰度账号的真实浏览器验收，尤其是分页、分支切换和尚未渲染轮次。
+
+## r2：节点位置修复
+
+对新版没有布局框的消息容器（例如 display: contents），使用正文子树的实际矩形合并测量；排除无障碍标题、按钮、隐藏节点和浮层。消息 ID 与文本仍由原消息容器负责。圆点分布、跳转、滚动高亮及布局重算统一调用适配器测量。旧版继续使用原生矩形和 offsetHeight。
+
+新增脱敏字段：timeline.markers-built 的 distinctPositions（不同纵坐标数）、zeroHeightNodes（无有效高度的节点数）。多条分散提问应具有不同坐标，contentSpanPx 不应持续为 1。
+
+新增测试：
+
+```sh
+NODE_PATH=/private/tmp/ait-dom-tests/node_modules node scripts/tests/chatgpt-rollout-geometry.cjs
+```
+
+该测试使用模拟布局坐标验证六个零尺寸容器、嵌套 contents、标题按钮排除、圆点分布、跳转、高亮、滚动坐标不变性、布局重排和旧版测量。仍需灰度用户实际页面验收。

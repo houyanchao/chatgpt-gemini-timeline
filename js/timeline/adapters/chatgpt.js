@@ -412,6 +412,11 @@ class ChatGPTAdapter extends SiteAdapter {
      * 获取时间标签的渲染目标元素
      * ChatGPT: 使用 [data-message-id] 子元素
      */
+    getTimelineMessageRect(element) {
+        if (!element?.hasAttribute('data-ait-heading-turn')) return null;
+        return window.AITChatGPTRolloutDOM?.rect(element) || null;
+    }
+
     getTimeLabelTarget(element) {
         return element.querySelector('[data-message-id]') || null;
     }
