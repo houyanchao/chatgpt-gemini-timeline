@@ -109,9 +109,11 @@
   };
 
   // ---- 解析：按轮分组后提取用户提问文本（消息id → 文本）----
-  const parseUserTexts = (json) => {
+  const parseUserTexts = (json, rolloutNodes = null) => {
     const metrics = { usedLeafFallback: false, missingMessage: 0, missingNodeId: 0, roles: { user: 0, assistant: 0, system: 0, tool: 0, other: 0 }, contentTypes: { text: 0, multimodal_text: 0, other: 0 }, userNamedAuthor: 0, userNonPublicRecipient: 0, userUnsupportedContent: 0, userPartsNotArray: 0, userNoExtractableText: 0, userMissingMessageId: 0 };
-    const chain = linearize(json, metrics);
+    const chain = rolloutNodes || linearize(json, metrics);
+    metrics.source = rolloutNodes ? 'messages' : 'mapping';
+    metrics.chainLength = chain.length;
     const turns = [];
     let currentAssistant = null;
     chain.forEach(node => {
@@ -146,7 +148,7 @@
       }
     });
 
-    const texts = {};
+    const texts = Object.create(null);
     turns.forEach(t => {
       if (t.role !== 'user') return;
       const text = t.messages
@@ -162,13 +164,14 @@
     return texts;
   };
 
-  const capture = (conversationId, json) => {
+  const capture = (conversationId, json, rollout = false) => {
     try {
       diag?.log('api.response-shape', diag.shape(json));
-      if (!json?.mapping) { diag?.log('api.capture-skipped', { reason: 'mapping-missing' }); return false; }
-      diag?.log('api.mapping-shape', { type: diag.type(json.mapping), nodeCount: Object.keys(json.mapping).length });
+      const rolloutNodes = rollout ? window.AITChatGPTRolloutAPI?.nodes(json) : null;
+      if (rollout ? !rolloutNodes : !json?.mapping) { diag?.log('api.capture-skipped', { reason: rollout ? 'messages-missing' : 'mapping-missing' }); return false; }
+      diag?.log('api.mapping-shape', { type: diag.type(json.mapping), nodeCount: Object.keys(json.mapping || {}).length });
       const schema = { inspected: 0, withNodeId: 0, withMessage: 0, withParent: 0, childrenArray: 0, messageHasAuthor: 0, messageHasContent: 0, userMessages: 0, otherRoles: 0 };
-      for (const node of Object.values(json.mapping).slice(0, 10000)) {
+      for (const node of Object.values(json.mapping || {}).slice(0, 10000)) {
         schema.inspected++;
         if (node?.id) schema.withNodeId++;
         if (node?.message) schema.withMessage++;
@@ -180,10 +183,10 @@
         else schema.otherRoles++;
       }
       diag?.log('api.mapping-node-schema', schema);
-      const texts = parseUserTexts(json);
+      const texts = parseUserTexts(json, rolloutNodes);
       replaceTexts(conversationId, texts);
       stats.captured++;
-      diag?.log('api.cache-written', { textEntries: Object.keys(texts).length });
+      diag?.log('api.cache-written', { source: rollout ? 'messages' : 'mapping', textEntries: Object.keys(texts).length });
       // 通知 ISOLATED world：该对话的接口文本已写入缓存。
       // 事件只携带对话 ID，消费方再通过既有 pull 协议读取，避免重复传输整份文本。
       document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-updated', {
@@ -200,14 +203,18 @@
 
   // ---- fetch 补丁 ----
   // 匹配 GET /backend-api/conversation/{uuid}（POST /backend-api/conversation 是发消息的 SSE 流，排除）
-  const CONV_URL_RE = /\/backend-api\/conversation\/([0-9a-f][0-9a-f-]{18,})(?:[?#]|$)/i;
+  const CONV_URL_RE = /^\/backend-api\/conversation\/([0-9a-f][0-9a-f-]{18,})$/i;
   const origFetch = window.fetch;
   window.fetch = function (...args) {
     const p = origFetch.apply(this, args);
     try {
-      const rawUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+      const rawUrl = typeof args[0] === 'string' ? args[0] : (args[0] instanceof URL ? args[0].href : (args[0]?.url || ''));
       const method = String(args[1]?.method || (typeof args[0] === 'object' ? args[0]?.method : '') || 'GET').toUpperCase();
-      const match = rawUrl.match(CONV_URL_RE);
+      const requestUrl = new URL(rawUrl, location.href);
+      const sameOrigin = requestUrl.origin === location.origin;
+      const legacyMatch = sameOrigin && requestUrl.pathname.match(CONV_URL_RE);
+      const rolloutMatch = sameOrigin && window.AITChatGPTRolloutAPI?.match(requestUrl.pathname);
+      const match = legacyMatch || rolloutMatch;
       // Endpoint metadata only; never log raw URL/path, request body or headers.
       let backend = false, conversationLike = false, pathDepth = 0, endpointShape = 'unknown', currentConversationInPath = false;
       try {
@@ -244,7 +251,7 @@
               .then(json => {
                 const latestApplied = latestAppliedRequestByConversation.get(conversationId) || 0;
                 if (requestSequence < latestApplied) { diag?.log('api.stale-response-skipped', { requestSequence, latestApplied }); return; }
-                if (capture(conversationId, json)) {
+                if (capture(conversationId, json, !!rolloutMatch)) {
                   latestAppliedRequestByConversation.set(conversationId, requestSequence);
                 }
               })

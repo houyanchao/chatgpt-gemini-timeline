@@ -1826,7 +1826,10 @@ class TimelineManager {
             if (this._destroyed) return;
             const conversationId = detail?.conversationId;
             if (!conversationId || conversationId !== this.conversationId) return;
-            this.refreshPlaceholderSummaries();
+            // 灰度 DOM 没有 turn-id：接口晚到后可能从索引降级升级为唯一消息 ID。
+            // 只有适配器明确要求时重建，旧版仍只刷新占位文案。
+            if (detail.rebuildMarkers) this.recalculateAndRenderMarkers();
+            else this.refreshPlaceholderSummaries();
         }) || null;
 
         // ✅ 长按标记功能：长按节点切换图钉

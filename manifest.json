@@ -31,6 +31,7 @@
       ],
       "js": [
         "js/global/chatgpt-diagnostics/index.js",
+        "js/apiCapture/chatgpt-rollout.js",
         "js/apiCapture/chatgpt.js"
       ],
       "world": "MAIN",
@@ -144,6 +145,7 @@
         "js/watermark/watermark-manager.js",
         "js/preventAutoScroll/index.js",
         "js/timeline/adapters/base.js",
+        "js/timeline/adapters/chatgpt-rollout.js",
         "js/timeline/adapters/chatgpt.js",
         "js/timeline/adapters/gemini.js",
         "js/timeline/adapters/doubao.js",
