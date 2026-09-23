@@ -18,6 +18,7 @@ const { JSDOM } = require('jsdom');
         open() { this.opened = true; }
         getResponseHeader() { return 'application/json'; }
     };
+    w.__AIT_GPT_DIAG_VERBOSE__ = true;
     w.eval(fs.readFileSync(path.resolve(__dirname, '../../js/global/chatgpt-diagnostics/index.js'), 'utf8'));
     const diag = w.AITGPTDiagnostics;
     const payload = { data: { nodes: [{ [secret]: secret, message: { author: { role: 'user' }, content: { parts: [secret] } } }] } };
@@ -54,5 +55,17 @@ const { JSDOM } = require('jsdom');
     assert(exported.records.some(r => r.event === 'network.json-sample-skipped' && r.reason === 'byte-limit'));
     assert(exported.records.some(r => r.event === 'dom-snapshot' && r.headingRoles.user === 1 && r.headingRoles.unknown === 1));
     w.close();
+    const focused = new JSDOM('<main/>', { url: 'https://chatgpt.com/c/private', runScripts: 'outside-only' });
+    const fw = focused.window;
+    const originalOpen = fw.XMLHttpRequest.prototype.open;
+    fw.console.info = () => {};
+    fw.eval(fs.readFileSync(path.resolve(__dirname, '../../js/global/chatgpt-diagnostics/index.js'), 'utf8'));
+    assert.equal(fw.XMLHttpRequest.prototype.open, originalOpen, 'focused logger must not wrap XHR');
+    fw.AITGPTDiagnostics.log('api.request-observed', { count: 1 });
+    const focusedReport = fw.AITGPTDiagnostics.export();
+    const focusedData = JSON.parse(focusedReport.slice(focusedReport.indexOf('{')));
+    assert.equal(focusedData.revision, 5);
+    assert(!focusedData.records.some(r => r.event.startsWith('network.') || r.event === 'api.request-observed'));
+    focused.window.close();
     console.log('PASS: bounded JSON/SSE copies preserve page response, XHR/resource observations, private nested fields, role counts, merged report export.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -412,6 +412,52 @@ class ChatGPTAdapter extends SiteAdapter {
      * 获取时间标签的渲染目标元素
      * ChatGPT: 使用 [data-message-id] 子元素
      */
+    // 只返回计数和几何值。ID/正文仅在当前页面内比较，不进入 Console 或导出报告。
+    getDiagnosticCoverage() {
+        const conversation = this.extractConversationId(location.pathname);
+        if (this._coverageConversation !== conversation) {
+            this._coverageConversation = conversation;
+            this._coverageSeen = new Set();
+            this._coverageMaxDom = 0;
+        }
+        const cacheCurrent = this._textCacheConvId === conversation;
+        const texts = cacheCurrent ? this._capturedMatchTexts : new Map();
+        const frequencies = new Map();
+        for (const value of texts.values()) {
+            const normalized = value.replace(/\s+/g, ' ').trim();
+            frequencies.set(normalized, (frequencies.get(normalized) || 0) + 1);
+        }
+        const elements = Array.from(document.querySelectorAll(this.getUserMessageSelector()));
+        const domTexts = elements.map(el => this._usesHeadingTurnSelector
+            ? window.AITChatGPTRolloutDOM?.text(el) || '' : this.extractText(el));
+        let uniqueTextMatches = 0, ambiguousTextMatches = 0, unmatchedText = 0, emptyText = 0;
+        const matched = new Set();
+        domTexts.forEach(text => {
+            const normalized = text.replace(/\s+/g, ' ').trim();
+            if (!normalized) { emptyText++; return; }
+            const count = frequencies.get(normalized) || 0;
+            if (!count) unmatchedText++;
+            else if (count > 1 || domTexts.filter(t => t.replace(/\s+/g, ' ').trim() === normalized).length > 1) ambiguousTextMatches++;
+            else {
+                uniqueTextMatches++;
+                for (const [id, value] of texts) {
+                    if (value.replace(/\s+/g, ' ').trim() === normalized) { matched.add(id); this._coverageSeen.add(id); break; }
+                }
+            }
+        });
+        this._coverageMaxDom = Math.max(this._coverageMaxDom, elements.length);
+        const manager = window.timelineManager;
+        const scroll = manager?.scrollContainer;
+        return { mode: this._usesHeadingTurnSelector ? 'headings' : this._usesVirtualizedTurnSelector ? 'virtual' : 'legacy',
+            cacheCurrent, apiTextEntries: texts.size, domUsers: elements.length, maxDomUsersSeen: this._coverageMaxDom,
+            uniqueTextMatches, ambiguousTextMatches, unmatchedText, emptyText,
+            apiTextsWithoutUniqueDomMatch: Math.max(0, texts.size - matched.size),
+            apiTextsSeenAcrossSnapshots: Array.from(texts.keys()).filter(id => this._coverageSeen.has(id)).length,
+            markers: manager?.markers?.length || 0, scrollTop: Math.round(scroll?.scrollTop || 0),
+            scrollHeight: scroll?.scrollHeight || 0, clientHeight: scroll?.clientHeight || 0,
+            scrollConnected: !!scroll?.isConnected };
+    }
+
     getTimelineMessageRect(element) {
         if (!element?.hasAttribute('data-ait-heading-turn')) return null;
         return window.AITChatGPTRolloutDOM?.rect(element) || null;

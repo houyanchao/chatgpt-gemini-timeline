@@ -23,11 +23,11 @@ async function run(source, fixture, options = {}) {
     w.setTimeout = fn => { timers.push(fn); return timers.length; };
     let cloned = 0, consumed = false;
     const response = { ok: !options.httpError, status: options.httpError ? 403 : 200, headers: { get: () => options.contentType || 'application/json' }, clone: () => {
-        cloned++; return { json: async () => { if (options.invalidJson) throw new SyntaxError(secret); return fixture; } };
+        cloned++; if (options.cloneFailure) throw new TypeError('body locked ' + secret); return { json: async () => { if (options.invalidJson) throw new SyntaxError(secret); if (options.readFailure) throw new TypeError('network ' + secret); return fixture; } };
     }, json: async () => { consumed = true; return fixture; } };
     const originalPromise = options.networkError ? Promise.reject(new TypeError(secret)) : Promise.resolve(response);
     w.fetch = () => originalPromise;
-    if (source === current) { w.eval(logger); if (!options.noRollout) w.eval(fs.readFileSync(path.join(root, 'js/apiCapture/chatgpt-rollout.js'), 'utf8')); }
+    if (source === current) { w.__AIT_GPT_DIAG_VERBOSE__ = !options.focused; w.eval(logger); if (!options.noRollout) w.eval(fs.readFileSync(path.join(root, 'js/apiCapture/chatgpt-rollout.js'), 'utf8')); }
     w.eval(source);
     assert.equal(w.fetch(options.url || endpoint, { method: options.method || 'GET' }), originalPromise, 'Fetch must return original promise');
     await new Promise(resolve => setImmediate(resolve));
@@ -99,6 +99,17 @@ async function run(source, fixture, options = {}) {
     }
     assert.deepEqual((await run(current, { messages: [] }, { url: plural })).result.texts, {});
     assert.deepEqual((await run(current, json, { noRollout: true })).result.texts, { 'secret-node': secret });
+    const focused = await run(current, flat, { url: plural, focused: true });
+    assert(focused.records.some(r => r.event === 'api.read-complete' && r.messagesCount === 4));
+    assert(!focused.records.some(r => ['api.request-observed', 'api.response-shape', 'api.mapping-node-schema'].includes(r.event)));
+    const failed = await run(current, flat, { url: plural, focused: true, readFailure: true });
+    const failure = failed.records.find(r => r.event === 'api.read-failed');
+    assert.equal(failure.reason, 'network-read'); assert.equal(failure.stage, 'read-json');
+    assert.equal(failure.requestSequence, 1);
+    const cloneFailed = await run(current, flat, { url: plural, focused: true, cloneFailure: true });
+    assert(cloneFailed.records.some(r => r.event === 'api.read-failed' && r.stage === 'clone' && r.reason === 'body-unavailable'));
+    const unrelated = await run(current, flat, { url: plural + '/messages', focused: true });
+    assert.equal(unrelated.cloned, 0, 'focused diagnostics must not clone unrelated responses');
     // Newer successful snapshot wins even when an older request finishes later.
     const race = new JSDOM('<main/>', { url: `https://chatgpt.com/c/${id}`, runScripts: 'outside-only' });
     const rw = race.window, pending = [];

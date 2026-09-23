@@ -52,7 +52,9 @@ class CEExportManager {
 
     _injectButton() {
         try {
-            if (!this.adapter.isExportablePage()) {
+            const exportable = this.adapter.isExportablePage();
+            window.AITGPTDiagnostics?.log('features.export-page', { exportable });
+            if (!exportable) {
                 this._removeButton();
                 return;
             }
@@ -88,6 +90,7 @@ class CEExportManager {
             }
 
             const target = this.adapter.getButtonInsertTarget();
+            window.AITGPTDiagnostics?.log('features.export-anchor', { found: !!target, parent: !!target?.parentNode });
             if (!target || !target.parentNode) return;
 
             const button = document.createElement('button');

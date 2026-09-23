@@ -69,6 +69,7 @@ class PromptButtonManager {
         await this._checkUpdateStatus();
         this._createUpdateButton();
         
+        window.AITGPTDiagnostics?.log('features.prompt-gate', { supported: this._currentPlatform?.features?.promptButton === true, enabled: this._isPlatformEnabled(), buttonCreated: !!this.buttonElement });
         // 6. 检查是否启用
         if (this._isPlatformEnabled()) {
             this._enable();
@@ -409,6 +410,7 @@ class PromptButtonManager {
         try {
             const selector = this.adapter.getInputSelector();
             const input = document.querySelector(selector);
+            window.AITGPTDiagnostics?.log('features.prompt-anchor', { found: !!input, enabled: this.isEnabled, buttonCreated: !!this.buttonElement });
             
             if (input) {
                 this.inputElement = input;
@@ -416,7 +418,7 @@ class PromptButtonManager {
                 this._observeInputResize();
             }
         } catch (e) {
-            // 忽略
+            window.AITGPTDiagnostics?.error('features.prompt-anchor', e);
         }
     }
     

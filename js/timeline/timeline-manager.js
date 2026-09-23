@@ -745,6 +745,7 @@ class TimelineManager {
     async injectStarChatButton() {
         // 1. 获取Adapter提供的目标元素
         const targetElement = this.adapter.getStarChatButtonTarget?.();
+        window.AITGPTDiagnostics?.log('features.star-anchor', { found: !!targetElement, parent: !!targetElement?.parentNode });
         // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
         const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
             ?? (this.adapter.platformId !== 'chatgpt');

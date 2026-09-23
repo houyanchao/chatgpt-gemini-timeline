@@ -1,0 +1,41 @@
+const { JSDOM } = require('jsdom');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+(async () => {
+    const secret = 'PRIVATE_title_prompt_folder_account';
+    const dom = new JSDOM(`<style>*{opacity:1;visibility:visible}</style><main><form><div role="textbox" contenteditable="true">${secret}</div></form></main><div style="display:none"><div class="smart-input-prompt-btn">${secret}</div></div><nav><div class="ait-sidebar-starred"><div class="ait-ss-header">${secret}</div></div></nav><header><button class="ait-ce-export-btn-native">${secret}</button></header>`, { url: 'https://chatgpt.com/c/private-id', runScripts: 'outside-only' });
+    const w = dom.window;
+    const reads = [];
+    w.chrome = { runtime: { id: 'test', getManifest: () => ({version:'test'}) }, storage: { local: { get: async keys => {
+        reads.push(keys);
+        return { promptButtonPlatformSettings: { chatgpt: false, private: secret } };
+    } }, onChanged: { addListener() {} } } };
+    w.setTimeout = () => 1;
+    const logs = [];
+    w.console.info = text => logs.push(text);
+    w.HTMLElement.prototype.getBoundingClientRect = function() {
+        const top = this.classList.contains('ait-ce-export-btn-native') ? 100000 : 10;
+        return { top, bottom:top+30, left:10, right:110, width:100, height:30 };
+    };
+    w.eval(fs.readFileSync(path.resolve(__dirname, '../../js/global/chatgpt-diagnostics/index.js'), 'utf8'));
+    await new Promise(resolve => setImmediate(resolve));
+    w.AITGPTDiagnostics.featureSnapshot('test');
+    const report = w.AITGPTDiagnostics.export();
+    assert(!report.includes(secret)); assert(!report.includes('private-id'));
+    assert(reads.length > 0);
+    assert(reads.every(keys => keys.length === 4 && keys.every(key => key.endsWith('PlatformSettings'))));
+    const records = JSON.parse(report.slice(report.indexOf('{'))).records;
+    const r = records.find(r => r.event === 'features.snapshot' && r.stage === 'test');
+    assert.equal(r.settings.promptButtonPlatformSettings, false);
+    assert.equal(r.settings.sidebarStarredPlatformSettings, true);
+    assert.equal(r.anchors.legacyInput.count, 0);
+    assert.equal(r.anchors.editableInput.count, 1);
+    assert.equal(r.entries.prompt.samples[0].hiddenByStyle, true);
+    assert.equal(r.entries.folders.samples[0].appearsVisible, true);
+    assert.equal(r.entries.star.count, 0);
+    assert.equal(r.entries.export.samples[0].inViewport, false);
+    assert.equal(r.entries.export.samples[0].appearsVisible, false);
+    w.close();
+    console.log('PASS: feature gates, missing anchors, hidden ancestors, absent buttons, offscreen entry and private content exclusion.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

@@ -2,6 +2,12 @@
 (() => {
     'use strict';
     if (!['chatgpt.com', 'chat.openai.com'].includes(location.hostname) || window.AITGPTDiagnostics) return;
+    // 默认聚焦时间轴。广泛网络结构探测仅供本地测试显式开启。
+    const verbose = window.__AIT_GPT_DIAG_VERBOSE__ === true;
+    const quietEvents = new Set(['api.request-observed', 'api.unmatched-conversation-request',
+        'api.response-shape', 'api.mapping-shape', 'api.mapping-node-schema', 'adapter.text-source',
+        'adapter.api-dom-id-match', 'timeline.render-input', 'timeline.platform', 'timeline.platform-setting',
+        'timeline.i18n-ready', 'timeline.registry-ready', 'timeline.bootstrap-probe', 'timeline.retry-dom-probe']);
     const started = performance.now();
     const world = typeof chrome !== 'undefined' && chrome.runtime?.id ? 'ISOLATED' : 'MAIN';
     const entries = new Map();
@@ -15,6 +21,7 @@
     const type = value => value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
     function log(event, data = {}) {
         try {
+            if (!verbose && quietEvents.has(event)) return;
             const encoded = JSON.stringify(data);
             const previous = entries.get(event);
             const now = performance.now();
@@ -86,7 +93,65 @@
         result.schemaTreeTruncated = truncated;
         return result;
     }
+    const featureSettings = { ready: false };
+    function elementState(selector) {
+        const elements = Array.from(document.querySelectorAll(selector));
+        return { count: elements.length, samples: elements.slice(0, 3).map(el => {
+            const rect = el.getBoundingClientRect();
+            let hiddenByStyle = false, clipped = false, depth = 0, current = el;
+            while (current && depth++ < 16) {
+                const css = getComputedStyle(current);
+                hiddenByStyle ||= css.display === 'none' || css.visibility === 'hidden' || css.visibility === 'collapse' || Number(css.opacity) === 0;
+                if (current !== el && css.display !== 'contents' && /hidden|clip|auto|scroll/.test(css.overflowX + css.overflowY)) {
+                    const parentRect = current.getBoundingClientRect();
+                    clipped ||= rect.right <= parentRect.left || rect.left >= parentRect.right || rect.bottom <= parentRect.top || rect.top >= parentRect.bottom;
+                }
+                current = current.parentElement;
+            }
+            const hasBox = rect.width > 0 && rect.height > 0;
+            const inViewport = hasBox && rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth;
+            const hit = inViewport && document.elementFromPoint?.(
+                (Math.max(0, rect.left) + Math.min(innerWidth, rect.right)) / 2,
+                (Math.max(0, rect.top) + Math.min(innerHeight, rect.bottom)) / 2);
+            const coveredAtCenter = hit ? !(el === hit || el.contains(hit)) : null;
+            return { coveredAtCenter, connected: el.isConnected, width: Math.round(rect.width), height: Math.round(rect.height),
+                hasBox, hiddenByStyle, clipped, inViewport, ancestorScanLimited: !!current,
+                appearsVisible: hasBox && inViewport && !hiddenByStyle && !clipped && coveredAtCenter !== true };
+        }) };
+    }
+    function featureSnapshot(stage) {
+        if (world !== 'ISOLATED') return;
+        try {
+            const prompt = window.smartEnterManager?.promptButtonManager;
+            log('features.snapshot', { stage, settings: { ...featureSettings },
+                dependencies: { smartRegistry: !!window.smartEnterAdapterRegistry, smartManager: !!window.smartEnterManager,
+                    promptManager: !!prompt, sidebarRegistry: !!window.sidebarStarredAdapterRegistry,
+                    headerActions: !!window.AITChatHeaderActions, timelineManager: !!window.timelineManager },
+                promptState: { enabled: prompt?.isEnabled ?? null, destroyed: prompt?.isDestroyed ?? null,
+                    inputConnected: !!prompt?.inputElement?.isConnected, buttonCreated: !!prompt?.buttonElement },
+                anchors: { legacyInput: elementState('#prompt-textarea'), editableInput: elementState('main [contenteditable="true"][role="textbox"]'),
+                    forms: elementState('main form'), shareButton: elementState('[data-testid="share-chat-button"]'),
+                    sidebarSections: elementState('[class~="group/sidebar-expando-section"]'), history: elementState('#history'),
+                    navigation: elementState('nav'), header: elementState('header, [role="banner"]') },
+                entries: { prompt: elementState('.smart-input-prompt-btn'), folders: elementState('.ait-sidebar-starred'),
+                    folderHeader: elementState('.ait-sidebar-starred .ait-ss-header'),
+                    folderAdd: elementState('.ait-sidebar-starred .ait-ss-header-actions > .ait-ss-add-btn:not(.ait-ss-search-btn):not(.ait-ss-settings-btn):not(.ait-ss-help-btn)'),
+                    star: elementState('.ait-timeline-star-chat-btn-native'), export: elementState('.ait-ce-export-btn-native'),
+                    headerActions: elementState('.ait-chat-header-actions-native') } });
+        } catch (err) { error('features.snapshot', err); }
+    }
+    async function readFeatureSettings() {
+        const keys = ['promptButtonPlatformSettings', 'sidebarStarredPlatformSettings', 'conversationExportPlatformSettings', 'timelinePlatformSettings'];
+        try {
+            const values = await chrome.storage.local.get(keys);
+            // 只投影 ChatGPT 开关，不记录其它设置，更不读取提示词/文件夹内容。
+            for (const key of keys) featureSettings[key] = values?.[key]?.chatgpt !== false;
+            featureSettings.ready = true;
+            featureSnapshot('settings-ready');
+        } catch (err) { error('features.settings', err); }
+    }
     function domSnapshot(stage) {
+        featureSnapshot(stage);
         try {
             const count = selector => document.querySelectorAll(selector).length;
             const timeline = document.querySelector('.ait-chat-timeline-wrapper');
@@ -100,13 +165,15 @@
             const manager = window.timelineManager;
             const input = document.querySelector('main [role="textbox"][contenteditable="true"]');
             const parentLayout = [];
-            for (let el = input?.parentElement, depth = 0; el && depth < 8; el = el.parentElement, depth++) {
+            for (let el = input?.parentElement, depth = 0; verbose && el && depth < 8; el = el.parentElement, depth++) {
                 const css = getComputedStyle(el);
                 parentLayout.push({ display: css.display, overflowY: css.overflowY, height: Math.round(el.getBoundingClientRect().height), scrollHeight: el.scrollHeight });
             }
+            const coverage = manager?.adapter?.getDiagnosticCoverage?.();
+            if (coverage) log('timeline.coverage', { stage, ...coverage });
             log('dom-snapshot', {
                 stage, ready: document.readyState, visible: document.visibilityState === 'visible', online: navigator.onLine,
-                headingRoles, inputParentLayout: parentLayout,
+                headingRoles, ...(verbose ? { inputParentLayout: parentLayout } : {}),
                 dependencies: { i18n: !!window.TimelineI18n, domObserver: !!window.DOMObserverManager, aiMonitor: !!window.AIStateMonitor },
                 manager: { present: !!manager, destroyed: !!manager?._destroyed, markers: manager?.markers?.length || 0,
                     containerConnected: !!manager?.conversationContainer?.isConnected, scrollConnected: !!manager?.scrollContainer?.isConnected },
@@ -235,7 +302,7 @@
     function exportReport() {
         document.dispatchEvent(new CustomEvent('ait-gpt-diag-snapshot-request'));
         domSnapshot('export');
-        return '[AIT-GPT-DIAG-REPORT]\n' + JSON.stringify({ revision: 3, dropped, records }, null, 2);
+        return '[AIT-GPT-DIAG-REPORT]\n' + JSON.stringify({ revision: 5, dropped, records }, null, 2);
     }
     // The default MAIN Console context can export both worlds in one copy() call.
     if (world === 'MAIN') document.addEventListener('ait-gpt-diag-record', event => {
@@ -245,12 +312,41 @@
             if (record.world === 'ISOLATED' && typeof record.event === 'string') remember(record);
         } catch {}
     });
-    window.AITGPTDiagnostics = { log, error, type, shape, domSnapshot, readResponseSample, export: exportReport };
-    log('diagnostics-start', { revision: 3, ready: document.readyState });
-    if (world === 'MAIN') observeOtherTransports();
+    window.AITGPTDiagnostics = { verbose, log, error, type, shape, domSnapshot, featureSnapshot, readResponseSample, export: exportReport };
+    log('diagnostics-start', { revision: 5, ready: document.readyState });
+    if (world === 'MAIN' && verbose) observeOtherTransports();
     window.addEventListener('error', e => error('uncaught-' + world, e.error));
     window.addEventListener('unhandledrejection', e => error('unhandled-promise-' + world, e.reason));
     if (world === 'ISOLATED') {
+        void readFeatureSettings();
+        chrome.storage?.onChanged?.addListener(changes => {
+            if (['promptButtonPlatformSettings', 'sidebarStarredPlatformSettings', 'conversationExportPlatformSettings', 'timelinePlatformSettings'].some(key => key in changes)) void readFeatureSettings();
+        });
+        let featureTimer = null;
+        const scheduleFeatures = () => {
+            if (featureTimer !== null) return;
+            featureTimer = setTimeout(() => { featureTimer = null; featureSnapshot('ui-change'); }, 2000);
+        };
+        window.addEventListener('resize', scheduleFeatures);
+        const observeFeatures = () => {
+            if (!document.body) return;
+            const observer = new MutationObserver(scheduleFeatures);
+            observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'hidden', 'aria-expanded'] });
+            setTimeout(() => observer.disconnect(), 180000);
+        };
+        if (document.body) observeFeatures();
+        else document.addEventListener('DOMContentLoaded', observeFeatures, { once: true });
+        let scrollTimer = null, lastScrollSnapshot = -Infinity;
+        document.addEventListener('scroll', event => {
+            if (event.target !== window.timelineManager?.scrollContainer) return;
+            if (scrollTimer !== null) clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                scrollTimer = null;
+                if (performance.now() - lastScrollSnapshot < 5000) return;
+                lastScrollSnapshot = performance.now();
+                domSnapshot('scroll-settled');
+            }, 700);
+        }, { capture: true, passive: true });
         document.addEventListener('ait-gpt-diag-snapshot-request', () => domSnapshot('export-isolated'));
         try { log('extension-version', { version: chrome.runtime.getManifest().version }); } catch {}
         for (const delay of [0, 5000, 15000, 30000, 60000, 120000]) setTimeout(() => domSnapshot(`load-${delay}`), delay);

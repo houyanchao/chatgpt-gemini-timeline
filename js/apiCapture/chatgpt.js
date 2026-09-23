@@ -166,23 +166,25 @@
 
   const capture = (conversationId, json, rollout = false) => {
     try {
-      diag?.log('api.response-shape', diag.shape(json));
+      if (diag?.verbose) diag.log('api.response-shape', diag.shape(json));
       const rolloutNodes = rollout ? window.AITChatGPTRolloutAPI?.nodes(json) : null;
       if (rollout ? !rolloutNodes : !json?.mapping) { diag?.log('api.capture-skipped', { reason: rollout ? 'messages-missing' : 'mapping-missing' }); return false; }
-      diag?.log('api.mapping-shape', { type: diag.type(json.mapping), nodeCount: Object.keys(json.mapping || {}).length });
-      const schema = { inspected: 0, withNodeId: 0, withMessage: 0, withParent: 0, childrenArray: 0, messageHasAuthor: 0, messageHasContent: 0, userMessages: 0, otherRoles: 0 };
-      for (const node of Object.values(json.mapping || {}).slice(0, 10000)) {
-        schema.inspected++;
-        if (node?.id) schema.withNodeId++;
-        if (node?.message) schema.withMessage++;
-        if (node?.parent) schema.withParent++;
-        if (Array.isArray(node?.children)) schema.childrenArray++;
-        if (node?.message?.author) schema.messageHasAuthor++;
-        if (node?.message?.content) schema.messageHasContent++;
-        if (node?.message?.author?.role === 'user') schema.userMessages++;
-        else schema.otherRoles++;
+      if (diag?.verbose) {
+        diag?.log('api.mapping-shape', { type: diag.type(json.mapping), nodeCount: Object.keys(json.mapping || {}).length });
+        const schema = { inspected: 0, withNodeId: 0, withMessage: 0, withParent: 0, childrenArray: 0, messageHasAuthor: 0, messageHasContent: 0, userMessages: 0, otherRoles: 0 };
+        for (const node of Object.values(json.mapping || {}).slice(0, 10000)) {
+          schema.inspected++;
+          if (node?.id) schema.withNodeId++;
+          if (node?.message) schema.withMessage++;
+          if (node?.parent) schema.withParent++;
+          if (Array.isArray(node?.children)) schema.childrenArray++;
+          if (node?.message?.author) schema.messageHasAuthor++;
+          if (node?.message?.content) schema.messageHasContent++;
+          if (node?.message?.author?.role === 'user') schema.userMessages++;
+          else schema.otherRoles++;
+        }
+        diag?.log('api.mapping-node-schema', schema);
       }
-      diag?.log('api.mapping-node-schema', schema);
       const texts = parseUserTexts(json, rolloutNodes);
       replaceTexts(conversationId, texts);
       stats.captured++;
@@ -241,24 +243,43 @@
         stats.matchedRequests++;
         const conversationId = match[1];
         const requestSequence = ++nextRequestSequence;
-        diag?.log('api.request-matched', { requestSequence, diagnosticRequest, endpointShape });
-        p.then(resp => {
+        const startedAt = performance.now();
+        const signal = args[1]?.signal || args[0]?.signal;
+        const requestMeta = { requestSequence, diagnosticRequest, endpointShape, currentConversationInPath };
+        diag?.log('api.request-matched', requestMeta);
+        p.then(async resp => {
           stats.responses++;
           const ct = resp?.headers?.get('content-type') || '';
           diag?.log('api.response', { requestSequence, status: resp?.status, ok: !!resp?.ok, contentType: ct.includes('json') ? 'json' : ct.includes('event-stream') ? 'event-stream' : ct.includes('html') ? 'html' : 'other' });
           if (resp && resp.ok) {
-            resp.clone().json()
-              .then(json => {
-                const latestApplied = latestAppliedRequestByConversation.get(conversationId) || 0;
-                if (requestSequence < latestApplied) { diag?.log('api.stale-response-skipped', { requestSequence, latestApplied }); return; }
-                if (capture(conversationId, json, !!rolloutMatch)) {
-                  latestAppliedRequestByConversation.set(conversationId, requestSequence);
-                }
-              })
-              .catch(error => { stats.parseFailures++; diag?.error('api.response-json', error); });
+            let stage = 'clone', copy;
+            const bodyState = () => ({ bodyUsed: !!resp.bodyUsed, bodyLocked: !!resp.body?.locked,
+              copyBodyUsed: !!copy?.bodyUsed, copyBodyLocked: !!copy?.body?.locked, aborted: !!signal?.aborted,
+              online: navigator.onLine, elapsedMs: Math.round(performance.now() - startedAt) });
+            try {
+              copy = resp.clone();
+              stage = 'read-json';
+              const json = await copy.json();
+              diag?.log('api.read-complete', { ...requestMeta, ...bodyState(),
+                hasMapping: !!json?.mapping, messagesCount: Array.isArray(json?.messages) ? json.messages.length : 0 });
+              const latestApplied = latestAppliedRequestByConversation.get(conversationId) || 0;
+              if (requestSequence < latestApplied) { diag?.log('api.stale-response-skipped', { requestSequence, latestApplied }); return; }
+              if (capture(conversationId, json, !!rolloutMatch)) latestAppliedRequestByConversation.set(conversationId, requestSequence);
+            } catch (error) {
+              stats.parseFailures++;
+              // 只输出固定分类，不输出异常 message/stack（其中可能包含 URL 或正文）。
+              const message = typeof error?.message === 'string' ? error.message : '';
+              const reason = signal?.aborted || error?.name === 'AbortError' ? 'aborted'
+                : /locked|already.*read|already.*used|unusable|disturbed/i.test(message) ? 'body-unavailable'
+                : error?.name === 'SyntaxError' ? 'invalid-json'
+                : /network|failed to fetch|terminated|load failed/i.test(message) ? 'network-read'
+                : 'unknown';
+              diag?.log('api.read-failed', { ...requestMeta, stage, reason, ...bodyState(), status: resp.status });
+              diag?.error('api.response-json', error);
+            }
           }
         }).catch(error => diag?.error('api.fetch', error));
-      } else if (backend) {
+      } else if (backend && diag?.verbose) {
         // Correlate every response with its request. Sample JSON from distinct endpoint
         // families, including POST JSON; never read request bodies or SSE streams.
         const probeKey = safeMethod + ':' + endpointShape;

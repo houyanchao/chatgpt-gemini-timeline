@@ -42,15 +42,20 @@ async function isConversationExportEnabled(platformId) {
             }
 
             const adapter = getConversationExportAdapter();
+            window.AITGPTDiagnostics?.log('features.export-adapter', { found: !!adapter });
             if (!adapter) return; // 当前平台未开启导出
 
-            if (!await isConversationExportEnabled(adapter.platformId)) {
+            const enabled = await isConversationExportEnabled(adapter.platformId);
+            window.AITGPTDiagnostics?.log('features.export-gate', { enabled });
+            if (!enabled) {
                 return; // 用户在设置里关闭了当前平台的导出
             }
 
             manager = new CEExportManager(adapter);
             manager.init();
+            window.AITGPTDiagnostics?.log('features.export-init', { initialized: true });
         } catch (error) {
+            window.AITGPTDiagnostics?.error('features.export-init', error);
             manager = null;
         } finally {
             initInFlight = false;

@@ -33,9 +33,15 @@ w.document.addEventListener('ait-gpt-user-texts-pull', e => {
 });
 a.syncCapturedChatsData();
 assert.equal(a.generateTurnId(first, 0), 'chatgpt-message-first', 'late API match');
+let coverage = a.getDiagnosticCoverage();
+assert.equal(coverage.uniqueTextMatches, 2);
+assert.equal(coverage.apiTextsWithoutUniqueDomMatch, 0);
+assert(!JSON.stringify(coverage).includes('PRIVATE_QUESTION'));
+assert(!JSON.stringify(coverage).includes('message-first'));
 const duplicate = add('You said:', 'PRIVATE_QUESTION');
 a.prepareTimelineNodes({ force: true });
 assert.equal(a.generateTurnId(first, 0), 'chatgpt-0', 'duplicate DOM must not share an ID');
+assert.equal(a.getDiagnosticCoverage().ambiguousTextMatches, 2);
 duplicate.remove();
 texts = { ...texts, 'another-branch': 'PRIVATE_QUESTION' };
 a.handleCapturedChatsDataUpdated('first');
@@ -47,6 +53,7 @@ texts = {};
 w.history.pushState({}, '', '/c/second');
 a.syncCapturedChatsData();
 assert.equal(a._capturedMatchTexts.size, 0);
+assert.equal(a.getDiagnosticCoverage().apiTextsSeenAcrossSnapshots, 0);
 // Legacy wins, even if rollout headings are also present.
 const old = w.document.createElement('article');
 old.setAttribute('data-turn', 'user'); old.setAttribute('data-turn-id', 'legacy');
