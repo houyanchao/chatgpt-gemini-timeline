@@ -409,7 +409,7 @@ class PromptButtonManager {
         
         try {
             const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
+            const input = this.adapter.getInputElement?.() || document.querySelector(selector);
             window.AITGPTDiagnostics?.log('features.prompt-anchor', { found: !!input, enabled: this.isEnabled, buttonCreated: !!this.buttonElement });
             
             if (input) {

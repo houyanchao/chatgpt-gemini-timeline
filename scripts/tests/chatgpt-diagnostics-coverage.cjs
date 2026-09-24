@@ -64,7 +64,7 @@ const { JSDOM } = require('jsdom');
     fw.AITGPTDiagnostics.log('api.request-observed', { count: 1 });
     const focusedReport = fw.AITGPTDiagnostics.export();
     const focusedData = JSON.parse(focusedReport.slice(focusedReport.indexOf('{')));
-    assert.equal(focusedData.revision, 5);
+    assert.equal(focusedData.revision, 6);
     assert(!focusedData.records.some(r => r.event.startsWith('network.') || r.event === 'api.request-observed'));
     focused.window.close();
     console.log('PASS: bounded JSON/SSE copies preserve page response, XHR/resource observations, private nested fields, role counts, merged report export.');

@@ -7,7 +7,9 @@
     const quietEvents = new Set(['api.request-observed', 'api.unmatched-conversation-request',
         'api.response-shape', 'api.mapping-shape', 'api.mapping-node-schema', 'adapter.text-source',
         'adapter.api-dom-id-match', 'timeline.render-input', 'timeline.platform', 'timeline.platform-setting',
-        'timeline.i18n-ready', 'timeline.registry-ready', 'timeline.bootstrap-probe', 'timeline.retry-dom-probe']);
+        'timeline.i18n-ready', 'timeline.registry-ready', 'timeline.bootstrap-probe', 'timeline.retry-dom-probe',
+        'adapter.prepared', 'timeline.render-input', 'timeline.markers-built', 'api.bridge-pull',
+        'adapter.bridge-result', 'api.health', 'api.parsed-branch', 'api.cache-written']);
     const started = performance.now();
     const world = typeof chrome !== 'undefined' && chrome.runtime?.id ? 'ISOLATED' : 'MAIN';
     const entries = new Map();
@@ -96,7 +98,7 @@
     const featureSettings = { ready: false };
     function elementState(selector) {
         const elements = Array.from(document.querySelectorAll(selector));
-        return { count: elements.length, samples: elements.slice(0, 3).map(el => {
+        return { count: elements.length, samples: elements.slice(0, 1).map(el => {
             const rect = el.getBoundingClientRect();
             let hiddenByStyle = false, clipped = false, depth = 0, current = el;
             while (current && depth++ < 16) {
@@ -119,25 +121,41 @@
                 appearsVisible: hasBox && inViewport && !hiddenByStyle && !clipped && coveredAtCenter !== true };
         }) };
     }
+    let lastFeatureSignature = "";
     function featureSnapshot(stage) {
         if (world !== 'ISOLATED') return;
         try {
             const prompt = window.smartEnterManager?.promptButtonManager;
-            log('features.snapshot', { stage, settings: { ...featureSettings },
-                dependencies: { smartRegistry: !!window.smartEnterAdapterRegistry, smartManager: !!window.smartEnterManager,
-                    promptManager: !!prompt, sidebarRegistry: !!window.sidebarStarredAdapterRegistry,
-                    headerActions: !!window.AITChatHeaderActions, timelineManager: !!window.timelineManager },
-                promptState: { enabled: prompt?.isEnabled ?? null, destroyed: prompt?.isDestroyed ?? null,
-                    inputConnected: !!prompt?.inputElement?.isConnected, buttonCreated: !!prompt?.buttonElement },
-                anchors: { legacyInput: elementState('#prompt-textarea'), editableInput: elementState('main [contenteditable="true"][role="textbox"]'),
-                    forms: elementState('main form'), shareButton: elementState('[data-testid="share-chat-button"]'),
-                    sidebarSections: elementState('[class~="group/sidebar-expando-section"]'), history: elementState('#history'),
-                    navigation: elementState('nav'), header: elementState('header, [role="banner"]') },
-                entries: { prompt: elementState('.smart-input-prompt-btn'), folders: elementState('.ait-sidebar-starred'),
-                    folderHeader: elementState('.ait-sidebar-starred .ait-ss-header'),
+            const state = { settings: { ...featureSettings },
+                managers: { smart: !!window.smartEnterManager, prompt: !!prompt,
+                    sidebarRegistry: !!window.sidebarStarredAdapterRegistry, headerActions: !!window.AITChatHeaderActions,
+                    timeline: !!window.timelineManager },
+                promptState: { enabled: prompt?.isEnabled ?? null, inputConnected: !!prompt?.inputElement?.isConnected,
+                    buttonCreated: !!prompt?.buttonElement },
+                anchors: { legacyInput: document.querySelectorAll('#prompt-textarea').length,
+                    composerInput: document.querySelectorAll('main form [role="textbox"][contenteditable="true"]').length,
+                    shareButton: document.querySelectorAll('[data-testid="share-chat-button"]').length,
+                    oldSidebarSections: document.querySelectorAll('[class~="group/sidebar-expando-section"]').length,
+                    oldHistory: document.querySelectorAll('#history').length,
+                    visibleNavCandidates: Array.from(document.querySelectorAll('nav')).filter(el => {
+                        const rect = el.getBoundingClientRect();
+                        return rect.width >= 150 && rect.width <= 500 && rect.height >= 200 && rect.left < 400;
+                    }).length,
+                    visibleHeaderCandidates: Array.from(document.querySelectorAll('header')).filter(el => {
+                        const rect = el.getBoundingClientRect();
+                        return rect.width >= 250 && rect.height >= 24 && rect.height <= 120 && rect.top < 180;
+                    }).length },
+                entries: { prompt: elementState('.smart-input-prompt-btn'),
+                    folders: elementState('.ait-sidebar-starred'),
                     folderAdd: elementState('.ait-sidebar-starred .ait-ss-header-actions > .ait-ss-add-btn:not(.ait-ss-search-btn):not(.ait-ss-settings-btn):not(.ait-ss-help-btn)'),
-                    star: elementState('.ait-timeline-star-chat-btn-native'), export: elementState('.ait-ce-export-btn-native'),
-                    headerActions: elementState('.ait-chat-header-actions-native') } });
+                    star: elementState('.ait-timeline-star-chat-btn-native'),
+                    export: elementState('.ait-ce-export-btn-native'),
+                    headerActions: elementState('.ait-chat-header-actions-native') } };
+            const signature = JSON.stringify(state);
+            if (signature !== lastFeatureSignature || stage.startsWith('export')) {
+                lastFeatureSignature = signature;
+                log('features.snapshot', { stage, ...state });
+            }
         } catch (err) { error('features.snapshot', err); }
     }
     async function readFeatureSettings() {
@@ -302,7 +320,7 @@
     function exportReport() {
         document.dispatchEvent(new CustomEvent('ait-gpt-diag-snapshot-request'));
         domSnapshot('export');
-        return '[AIT-GPT-DIAG-REPORT]\n' + JSON.stringify({ revision: 5, dropped, records }, null, 2);
+        return '[AIT-GPT-DIAG-REPORT]\n' + JSON.stringify({ revision: 6, dropped, records }, null, 2);
     }
     // The default MAIN Console context can export both worlds in one copy() call.
     if (world === 'MAIN') document.addEventListener('ait-gpt-diag-record', event => {
@@ -313,7 +331,7 @@
         } catch {}
     });
     window.AITGPTDiagnostics = { verbose, log, error, type, shape, domSnapshot, featureSnapshot, readResponseSample, export: exportReport };
-    log('diagnostics-start', { revision: 5, ready: document.readyState });
+    log('diagnostics-start', { revision: 6, ready: document.readyState });
     if (world === 'MAIN' && verbose) observeOtherTransports();
     window.addEventListener('error', e => error('uncaught-' + world, e.error));
     window.addEventListener('unhandledrejection', e => error('unhandled-promise-' + world, e.reason));

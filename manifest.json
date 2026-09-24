@@ -43,6 +43,7 @@
       ],
       "js": [
         "js/global/chatgpt-diagnostics/index.js",
+        "js/global/chatgpt-entry-rollout.js",
         "js/global/i18n.js",
         "js/global/constants.js",
         "js/global/resource-loader/index.js",

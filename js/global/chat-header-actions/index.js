@@ -31,7 +31,7 @@
 
     function getInsertTarget() {
         const shareButton = document.querySelector('[data-testid="share-chat-button"]');
-        if (!shareButton) return null;
+        if (!shareButton) return window.AITChatGPTEntryRollout?.header() || null;
 
         let actionBar = shareButton.parentElement;
         for (let depth = 0; actionBar && depth < 6; depth++) {
@@ -52,6 +52,8 @@
     function ensureContainer() {
         const target = getInsertTarget();
         if (!target?.parentNode) return null;
+        const directHeader = target.matches('header, [role="banner"]');
+        const parent = directHeader ? target : target.parentNode;
 
         let container = document.querySelector(`.${CONTAINER_CLASS}`);
         if (!container) {
@@ -62,13 +64,18 @@
                 align-items: center;
                 flex: 0 0 auto;
                 gap: 0;
+                ${directHeader ? 'margin-left: auto;' : ''}
             `;
         }
 
-        if (container.parentNode !== target.parentNode || container.nextSibling !== target) {
-            target.parentNode.insertBefore(container, target);
+        container.style.marginLeft = directHeader ? 'auto' : '';
+        if (container.parentNode !== parent || (!directHeader && container.nextSibling !== target) ||
+            (directHeader && container !== parent.lastElementChild)) {
+            parent.insertBefore(container, directHeader ? null : target);
         }
 
+        window.AITGPTDiagnostics?.log('entry.header-container', { mounted: container.isConnected,
+            directHeader, actions: container.childElementCount });
         return container;
     }
 

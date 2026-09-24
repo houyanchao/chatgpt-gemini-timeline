@@ -17,9 +17,15 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
      * ChatGPT 使用 id="prompt-textarea" 的 contenteditable div
      */
     getInputSelector() {
-        return '#prompt-textarea';
+        return '#prompt-textarea, main form [role="textbox"][contenteditable="true"]';
     }
-    
+
+    getInputElement() {
+        return document.querySelector('#prompt-textarea')
+            || window.AITChatGPTEntryRollout?.input()
+            || null;
+    }
+
     /**
      * 获取发送按钮选择器
      */

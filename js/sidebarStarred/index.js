@@ -48,7 +48,12 @@
         window.AITGPTDiagnostics?.log('features.sidebar-anchor', { found: !!info, parent: !!info?.parent, offsetParent: !!info?.parent?.offsetParent, positiveHeight: (info?.parent?.offsetHeight || 0) > 0 });
         if (!info) return false;
         const { parent } = info;
-        if (!parent || !parent.offsetParent || parent.offsetHeight <= 0) return false;
+        if (!parent) return false;
+        const rolloutNav = platform?.id === 'chatgpt' && info.position === 'prepend';
+        const rect = parent.getBoundingClientRect();
+        const visible = parent.isConnected && rect.width > 0 && rect.height > 0
+            && getComputedStyle(parent).display !== 'none';
+        if (rolloutNav ? !visible : (!parent.offsetParent || parent.offsetHeight <= 0)) return false;
         return true;
     }
 

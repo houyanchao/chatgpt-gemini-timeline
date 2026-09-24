@@ -28,7 +28,7 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         const section = document.querySelector('.group\\/sidebar-expando-section');
         if (section?.parentElement) return section.parentElement;
         const history = document.getElementById('history');
-        return history?.parentElement?.parentElement || null;
+        return history?.parentElement?.parentElement || window.AITChatGPTEntryRollout?.sidebar()?.parent || null;
     }
 
     findInsertionPoint() {
@@ -44,7 +44,7 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         if (history?.parentElement?.parentElement) {
             return { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };
         }
-        return null;
+        return window.AITChatGPTEntryRollout?.sidebar() || null;
     }
 
     getPlatformClass() {
