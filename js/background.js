@@ -29,7 +29,9 @@ const OAUTH_SCOPES = 'https://www.googleapis.com/auth/drive.file';
  * 统一使用 identity.launchWebAuthFlow 方式
  */
 async function getAuthToken(interactive = true) {
-    const stored = await browserAPI.storage.local.get('gdriveToken');
+    // 使用 session storage（内存态，随浏览器关闭清除）而非 local storage，
+    // 避免明文 access_token 被持久化写入磁盘上的浏览器 profile 目录
+    const stored = await browserAPI.storage.session.get('gdriveToken');
     if (stored.gdriveToken?.access_token) {
         const isValid = await validateToken(stored.gdriveToken.access_token);
         if (isValid) return stored.gdriveToken.access_token;
@@ -53,7 +55,7 @@ async function getAuthToken(interactive = true) {
     const accessToken = params.get('access_token');
     if (!accessToken) throw new Error('OAuth failed: no access_token');
 
-    await browserAPI.storage.local.set({
+    await browserAPI.storage.session.set({
         gdriveToken: { access_token: accessToken, obtained_at: Date.now() }
     });
 
