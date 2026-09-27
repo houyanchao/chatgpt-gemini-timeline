@@ -15,6 +15,8 @@ class ChatGPTAdapter extends SiteAdapter {
         // 新版虚拟化会把视口外轮次的 React 子树整体卸载（DOM/fiber 均无文本），
         // 只能在轮次渲染出来时缓存，空壳期回退缓存值
         this._turnTextCache = new Map();
+        this._capturedMatchTexts = new Map();
+        this._usesHeadingTurnSelector = false;
         this._capturedTextIds = new Set(); // 上一份 API 完整快照包含的消息 ID
         this._textCacheConvId = null; // 缓存所属的对话 id
         this._turnRolesDirty = true;
@@ -54,9 +56,11 @@ class ChatGPTAdapter extends SiteAdapter {
         document.removeEventListener('ait-gpt-user-texts-result', handler);
 
         const texts = received ? received.texts : null;
+        window.AITGPTDiagnostics?.log('adapter.bridge-result', { responded: !!received, hasTexts: !!texts, textEntries: texts && typeof texts === 'object' ? Object.keys(texts).length : 0 });
         if (!texts) return 0;
 
         const nextCapturedTextIds = new Set(Object.keys(texts));
+        this._capturedMatchTexts = new Map(Object.entries(texts).filter(([, text]) => typeof text === 'string'));
         let changedCount = 0;
         // 只清理上一份 API 快照拥有、但最新快照已不存在的键。
         // DOM 机会性缓存的新增消息不在 _capturedTextIds 中，因此会被保留。
@@ -71,6 +75,11 @@ class ChatGPTAdapter extends SiteAdapter {
             if (this._turnTextCache.get(id) !== previous) changedCount++;
         });
         this._capturedTextIds = nextCapturedTextIds;
+        if (window.AITGPTDiagnostics) {
+            const elements = Array.from(document.querySelectorAll('[data-turn-id-container], [data-turn-id]'));
+            const ids = new Set(elements.map(el => this._extractNodeIdFromDom(el)).filter(Boolean));
+            window.AITGPTDiagnostics.log('adapter.api-dom-id-match', { apiTextEntries: nextCapturedTextIds.size, domUniqueIds: ids.size, matchedIds: Array.from(ids).filter(id => nextCapturedTextIds.has(id)).length, changedCount });
+        }
         return changedCount;
     }
 
@@ -80,7 +89,7 @@ class ChatGPTAdapter extends SiteAdapter {
         const handler = (event) => {
             const conversationId = typeof event.detail === 'string' ? event.detail : '';
             const changedCount = this.handleCapturedChatsDataUpdated(conversationId);
-            if (changedCount > 0) callback({ conversationId, changedCount });
+            if (changedCount > 0) callback({ conversationId, changedCount, rebuildMarkers: this._usesHeadingTurnSelector });
         };
         document.addEventListener('ait-gpt-user-texts-updated', handler);
         return () => document.removeEventListener('ait-gpt-user-texts-updated', handler);
@@ -142,6 +151,7 @@ class ChatGPTAdapter extends SiteAdapter {
             this._textCacheConvId = convId;
             this._turnTextCache.clear();
             this._capturedTextIds.clear();
+            this._capturedMatchTexts.clear();
         } else if (this._capturedTextIds.size > 0) {
             return; // 同一对话且已成功拉取过接口文本，直接用缓存
         }
@@ -166,6 +176,7 @@ class ChatGPTAdapter extends SiteAdapter {
             this._textCacheConvId = conversationId;
             this._turnTextCache.clear();
             this._capturedTextIds.clear();
+            this._capturedMatchTexts.clear();
         }
 
         return this._pullConvTexts(conversationId);
@@ -231,7 +242,10 @@ class ChatGPTAdapter extends SiteAdapter {
         const hasVirtualizedTurns = this._markTurnRoles();
         this._usesVirtualizedTurnSelector = hasVirtualizedTurns
             && document.querySelector('[data-turn-id-container][data-ait-turn="user"]') !== null;
+        this._usesHeadingTurnSelector = !this._usesVirtualizedTurnSelector
+            && !document.querySelector('[data-turn="user"][data-turn-id]') && !!window.AITChatGPTRolloutDOM?.markTurns();
         this._turnRolesDirty = false;
+        window.AITGPTDiagnostics?.log('adapter.prepared', { headings: this._usesHeadingTurnSelector, headingUsers: document.querySelectorAll('[data-ait-heading-turn="user"]').length, virtualized: this._usesVirtualizedTurnSelector, nativeUsers: document.querySelectorAll('[data-turn="user"][data-turn-id]').length, virtualUsers: document.querySelectorAll('[data-turn-id-container][data-ait-turn="user"]').length });
         return true;
     }
 
@@ -242,7 +256,8 @@ class ChatGPTAdapter extends SiteAdapter {
     getTimelineStructureSelectors() {
         return [
             '[data-turn-id-container]',
-            '[data-turn]'
+            '[data-turn]',
+            ...(window.AITChatGPTRolloutDOM ? ['h4.sr-only', '*:has(> h4.sr-only)'] : [])
         ];
     }
 
@@ -255,6 +270,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     getUserMessageSelector() {
+        if (this._usesHeadingTurnSelector) return '[data-ait-heading-turn="user"]';
         // prepareTimelineNodes() 负责维护模式；getter 保持无副作用。
         if (this._usesVirtualizedTurnSelector) {
             return '[data-turn-id-container][data-ait-turn="user"]';
@@ -263,6 +279,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     getAssistantMessageSelector() {
+        if (this._usesHeadingTurnSelector) return '[data-ait-heading-turn="assistant"]';
         if (document.querySelector('[data-turn-id-container][data-ait-turn="assistant"]')) {
             return '[data-turn-id-container][data-ait-turn="assistant"]';
         }
@@ -284,7 +301,11 @@ class ChatGPTAdapter extends SiteAdapter {
         const nodeId = element.getAttribute('data-turn-id-container')
             || element.getAttribute('data-turn-id')
             || null;
-        return nodeId ? String(nodeId) : null;
+        if (nodeId) return String(nodeId);
+        if (element.getAttribute('data-ait-heading-turn') === 'user') {
+            return window.AITChatGPTRolloutDOM?.matchId(element, this._capturedMatchTexts) || null;
+        }
+        return null;
     }
 
     /**
@@ -368,19 +389,22 @@ class ChatGPTAdapter extends SiteAdapter {
     extractText(element) {
         const nodeId = this._extractNodeIdFromDom(element);
         const textElement = element.querySelector('.whitespace-pre-wrap');
-        const text = (textElement?.textContent || '').replace(/\s+/g, ' ').trim();
+        const text = element.hasAttribute('data-ait-heading-turn') ? window.AITChatGPTRolloutDOM?.text(element) || '' : (textElement?.textContent || '').replace(/\s+/g, ' ').trim();
         if (text) {
             // 渲染期缓存文本，供该轮被虚拟化成空壳后使用
             if (nodeId) this._cacheTurnText(nodeId, text);
+            window.AITGPTDiagnostics?.log('adapter.text-source', { source: 'dom' });
             return text;
         }
         // 虚拟化空壳：React 子树已卸载，DOM/fiber 均无文本，回退会话级缓存
         if (nodeId && this._turnTextCache.has(nodeId)) {
+            window.AITGPTDiagnostics?.log('adapter.text-source', { source: this._capturedTextIds.has(nodeId) ? 'api-cache' : 'dom-cache' });
             return this._turnTextCache.get(nodeId);
         }
         // 区分两种"无文本"：
         // - 空壳（childElementCount=0）：轮次从未渲染过，文本在客户端物理不存在
         // - 已渲染但无文本节点：真的是纯图片/文件消息
+        window.AITGPTDiagnostics?.log('adapter.text-source', { source: 'placeholder', hasNodeId: !!nodeId, emptyElement: element.childElementCount === 0 });
         return element.childElementCount === 0 ? '[未加载的提问]' : '[图片或文件]';
     }
 
@@ -388,6 +412,57 @@ class ChatGPTAdapter extends SiteAdapter {
      * 获取时间标签的渲染目标元素
      * ChatGPT: 使用 [data-message-id] 子元素
      */
+    // 只返回计数和几何值。ID/正文仅在当前页面内比较，不进入 Console 或导出报告。
+    getDiagnosticCoverage() {
+        const conversation = this.extractConversationId(location.pathname);
+        if (this._coverageConversation !== conversation) {
+            this._coverageConversation = conversation;
+            this._coverageSeen = new Set();
+            this._coverageMaxDom = 0;
+        }
+        const cacheCurrent = this._textCacheConvId === conversation;
+        const texts = cacheCurrent ? this._capturedMatchTexts : new Map();
+        const frequencies = new Map();
+        for (const value of texts.values()) {
+            const normalized = value.replace(/\s+/g, ' ').trim();
+            frequencies.set(normalized, (frequencies.get(normalized) || 0) + 1);
+        }
+        const elements = Array.from(document.querySelectorAll(this.getUserMessageSelector()));
+        const domTexts = elements.map(el => this._usesHeadingTurnSelector
+            ? window.AITChatGPTRolloutDOM?.text(el) || '' : this.extractText(el));
+        let uniqueTextMatches = 0, ambiguousTextMatches = 0, unmatchedText = 0, emptyText = 0;
+        const matched = new Set();
+        domTexts.forEach(text => {
+            const normalized = text.replace(/\s+/g, ' ').trim();
+            if (!normalized) { emptyText++; return; }
+            const count = frequencies.get(normalized) || 0;
+            if (!count) unmatchedText++;
+            else if (count > 1 || domTexts.filter(t => t.replace(/\s+/g, ' ').trim() === normalized).length > 1) ambiguousTextMatches++;
+            else {
+                uniqueTextMatches++;
+                for (const [id, value] of texts) {
+                    if (value.replace(/\s+/g, ' ').trim() === normalized) { matched.add(id); this._coverageSeen.add(id); break; }
+                }
+            }
+        });
+        this._coverageMaxDom = Math.max(this._coverageMaxDom, elements.length);
+        const manager = window.timelineManager;
+        const scroll = manager?.scrollContainer;
+        return { mode: this._usesHeadingTurnSelector ? 'headings' : this._usesVirtualizedTurnSelector ? 'virtual' : 'legacy',
+            cacheCurrent, apiTextEntries: texts.size, domUsers: elements.length, maxDomUsersSeen: this._coverageMaxDom,
+            uniqueTextMatches, ambiguousTextMatches, unmatchedText, emptyText,
+            apiTextsWithoutUniqueDomMatch: Math.max(0, texts.size - matched.size),
+            apiTextsSeenAcrossSnapshots: Array.from(texts.keys()).filter(id => this._coverageSeen.has(id)).length,
+            markers: manager?.markers?.length || 0, scrollTop: Math.round(scroll?.scrollTop || 0),
+            scrollHeight: scroll?.scrollHeight || 0, clientHeight: scroll?.clientHeight || 0,
+            scrollConnected: !!scroll?.isConnected };
+    }
+
+    getTimelineMessageRect(element) {
+        if (!element?.hasAttribute('data-ait-heading-turn')) return null;
+        return window.AITChatGPTRolloutDOM?.rect(element) || null;
+    }
+
     getTimeLabelTarget(element) {
         return element.querySelector('[data-message-id]') || null;
     }

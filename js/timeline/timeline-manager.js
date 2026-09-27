@@ -178,6 +178,15 @@ class TimelineManager {
         return this.adapter.getFeatures?.() || this._currentPlatform?.features || {};
     }
 
+    // 默认保持原生测量；仅由平台适配器处理无布局框的消息容器。
+    _getMessageRect(element) {
+        return this.adapter.getTimelineMessageRect?.(element) || element.getBoundingClientRect();
+    }
+
+    _getMessageHeight(element) {
+        return this.adapter.getTimelineMessageRect?.(element)?.height ?? (element.offsetHeight || 0);
+    }
+
     _collectUserTurnElements({ scope = document, forcePrepare = false, reason = '' } = {}) {
         this.adapter.prepareTimelineNodes?.({
             force: forcePrepare,
@@ -205,6 +214,7 @@ class TimelineManager {
         if (this._destroyed) return false;
 
         const elementsFound = await this.findCriticalElements();
+        window.AITGPTDiagnostics?.log('timeline.critical-elements', { found: !!elementsFound, destroyed: !!this._destroyed, conversationContainer: !!this.conversationContainer, scrollContainer: !!this.scrollContainer, scrollFallback: !!this.isScrollContainerFallback });
         if (this._destroyed || !elementsFound) return false;
         this.applyHostScrollContainerClass();
         
@@ -672,7 +682,7 @@ class TimelineManager {
             const firstMsg = this.conversationContainer.querySelector(selector);
             if (!firstMsg) return true;
             
-            const rect = firstMsg.getBoundingClientRect();
+            const rect = this._getMessageRect(firstMsg);
             if (rect.width === 0) return true; // 不可见时默认显示
             
             // 计算距离浏览器右边框的距离
@@ -735,6 +745,7 @@ class TimelineManager {
     async injectStarChatButton() {
         // 1. 获取Adapter提供的目标元素
         const targetElement = this.adapter.getStarChatButtonTarget?.();
+        window.AITGPTDiagnostics?.log('features.star-anchor', { found: !!targetElement, parent: !!targetElement?.parentNode });
         // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
         const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
             ?? (this.adapter.platformId !== 'chatgpt');
@@ -1057,6 +1068,7 @@ class TimelineManager {
             userTurnElements = prepared.userTurnElements;
         }
         
+        window.AITGPTDiagnostics?.log('timeline.render-input', { userElements: userTurnElements.length, previousMarkers: this.markers.length });
         // Reset visible window to avoid cleaning with stale indices after rebuild
         this.visibleRange = { start: 0, end: -1 };
         // If the conversation is transiently empty (branch switching), don't wipe UI immediately
@@ -1112,7 +1124,7 @@ class TimelineManager {
          * 节点确实变化后，再按照页面实际位置排序。批量读取 rect，避免读写交错。
          */
         const rectsMap = new Map();
-        elementsArray.forEach(el => rectsMap.set(el, el.getBoundingClientRect()));
+        elementsArray.forEach(el => rectsMap.set(el, this._getMessageRect(el)));
         userTurnElements = elementsArray.sort((a, b) =>
             rectsMap.get(a).top - rectsMap.get(b).top
         );
@@ -1165,7 +1177,7 @@ class TimelineManager {
             containerScrollTop = Math.abs(containerScrollTop);
         }
         const getOffsetTop = (element) => {
-            const elemRect = rectsMap.get(element) || element.getBoundingClientRect();
+            const elemRect = rectsMap.get(element) || this._getMessageRect(element);
             return elemRect.top - containerRect.top + containerScrollTop;
         };
         
@@ -1238,7 +1250,7 @@ class TimelineManager {
             const offsetTop = nodeOffsets[index];
             
             // offsetBottom: 节点结束位置 = offsetTop + 节点高度（像素）
-            const nodeHeight = el.offsetHeight || 0;
+            const nodeHeight = this._getMessageHeight(el);
             const offsetBottom = offsetTop + nodeHeight;
             
             // visualN: 用于时间轴圆点定位（0~1，保留6位小数）
@@ -1265,6 +1277,7 @@ class TimelineManager {
             return m;
         });
         
+        window.AITGPTDiagnostics?.log('timeline.markers-built', { count: this.markers.length, scrollHeight, clientHeight, contentSpanPx: this.contentSpanPx, distinctPositions: new Set(nodeOffsets.map(n => Math.round(n))).size, zeroHeightNodes: userTurnElements.filter(el => !(rectsMap.get(el)?.height > 0)).length });
         // ✅ 应用收藏状态：根据 starredIndexes 设置 starred 和填充 this.starred
         // 支持 nodeId（字符串）和 index（数字），并有 fallback 逻辑
         this.starredIndexes.forEach(nodeKey => {
@@ -1823,7 +1836,10 @@ class TimelineManager {
             if (this._destroyed) return;
             const conversationId = detail?.conversationId;
             if (!conversationId || conversationId !== this.conversationId) return;
-            this.refreshPlaceholderSummaries();
+            // 灰度 DOM 没有 turn-id：接口晚到后可能从索引降级升级为唯一消息 ID。
+            // 只有适配器明确要求时重建，旧版仍只刷新占位文案。
+            if (detail.rebuildMarkers) this.recalculateAndRenderMarkers();
+            else this.refreshPlaceholderSummaries();
         }) || null;
 
         // ✅ 长按标记功能：长按节点切换图钉
@@ -2415,7 +2431,7 @@ class TimelineManager {
         // 计算初始目标位置
         const getTargetPosition = () => {
             const containerRect = this.scrollContainer.getBoundingClientRect();
-            const targetRect = targetElement.getBoundingClientRect();
+            const targetRect = this._getMessageRect(targetElement);
             return targetRect.top - containerRect.top + this.scrollContainer.scrollTop - scrollOffset;
         };
         
@@ -3463,7 +3479,7 @@ class TimelineManager {
         const containerRect = this.scrollContainer.getBoundingClientRect();
         const containerScrollTop = this.scrollContainer.scrollTop || 0;
         const getOffsetTop = (element) => {
-            const elemRect = element.getBoundingClientRect();
+            const elemRect = this._getMessageRect(element);
             return elemRect.top - containerRect.top + containerScrollTop;
         };
         
@@ -3471,7 +3487,8 @@ class TimelineManager {
         const nodeOffsets = this.markers.map(m => getOffsetTop(m.element));
         const firstOffsetTop = nodeOffsets[0];
         const lastOffsetTop = nodeOffsets[nodeOffsets.length - 1];
-        const contentSpan = lastOffsetTop - firstOffsetTop || 1;
+        const contentSpan = Math.max(1, lastOffsetTop - firstOffsetTop);
+        this.contentSpanPx = contentSpan;
         
         this.debouncedUpdateScrollPadding(lastOffsetTop, cleanMaxScrollTop);
         
@@ -3479,7 +3496,7 @@ class TimelineManager {
         this.markers.forEach((m, index) => {
             m.offsetTop = nodeOffsets[index];
             
-            const nodeHeight = m.element.offsetHeight || 0;
+            const nodeHeight = this._getMessageHeight(m.element);
             m.offsetBottom = m.offsetTop + nodeHeight;
             
             // visualN: 位置比例 0~1
@@ -3517,7 +3534,7 @@ class TimelineManager {
             for (let i = this.markers.length - 1; i >= 0; i--) {
                 const m = this.markers[i];
                 if (!m.element) continue;
-                if (m.element.getBoundingClientRect().top <= activateThreshold) {
+                if (this._getMessageRect(m.element).top <= activateThreshold) {
                     activeId = m.id;
                     break;
                 }

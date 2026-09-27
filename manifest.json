@@ -30,6 +30,8 @@
         "https://chat.openai.com/*"
       ],
       "js": [
+        "js/global/chatgpt-diagnostics/index.js",
+        "js/apiCapture/chatgpt-rollout.js",
         "js/apiCapture/chatgpt.js"
       ],
       "world": "MAIN",
@@ -40,6 +42,8 @@
         "<all_urls>"
       ],
       "js": [
+        "js/global/chatgpt-diagnostics/index.js",
+        "js/global/chatgpt-entry-rollout.js",
         "js/global/i18n.js",
         "js/global/constants.js",
         "js/global/resource-loader/index.js",
@@ -142,6 +146,7 @@
         "js/watermark/watermark-manager.js",
         "js/preventAutoScroll/index.js",
         "js/timeline/adapters/base.js",
+        "js/timeline/adapters/chatgpt-rollout.js",
         "js/timeline/adapters/chatgpt.js",
         "js/timeline/adapters/gemini.js",
         "js/timeline/adapters/doubao.js",
