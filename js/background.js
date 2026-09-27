@@ -245,6 +245,11 @@ chrome.action.onClicked.addListener(async (tab) => {
 // ============================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // 仅接受来自本扩展自身（内容脚本/扩展页面）的消息，拒绝其他扩展或网页发起的消息
+    if (sender.id !== chrome.runtime.id) {
+        return false;
+    }
+
     // --- 当前内容脚本是否位于聚焦窗口的活动标签页 ---
     if (request.type === 'AIT_IS_ACTIVE_FOCUSED_TAB') {
         (async () => {
