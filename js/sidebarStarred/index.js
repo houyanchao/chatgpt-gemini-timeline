@@ -23,6 +23,7 @@
 
     async function resolveSupport() {
         platform = await getCurrentPlatform();
+        window.AITGPTDiagnostics?.log('features.sidebar-support', { platform: !!platform, supported: platform?.features?.sidebarStarred === true });
         if (!platform || platform.features?.sidebarStarred !== true) {
             platform = null;
             adapter = null;
@@ -44,9 +45,15 @@
     function canInject() {
         if (!adapter) return false;
         const info = adapter.findInsertionPoint();
+        window.AITGPTDiagnostics?.log('features.sidebar-anchor', { found: !!info, parent: !!info?.parent, offsetParent: !!info?.parent?.offsetParent, positiveHeight: (info?.parent?.offsetHeight || 0) > 0 });
         if (!info) return false;
         const { parent } = info;
-        if (!parent || !parent.offsetParent || parent.offsetHeight <= 0) return false;
+        if (!parent) return false;
+        const rolloutNav = platform?.id === 'chatgpt' && info.position === 'prepend';
+        const rect = parent.getBoundingClientRect();
+        const visible = parent.isConnected && rect.width > 0 && rect.height > 0
+            && getComputedStyle(parent).display !== 'none';
+        if (rolloutNav ? !visible : (!parent.offsetParent || parent.offsetHeight <= 0)) return false;
         return true;
     }
 
@@ -62,6 +69,7 @@
 
             manager = new SidebarStarredManager(adapter);
             const ok = await manager.init();
+            window.AITGPTDiagnostics?.log('features.sidebar-init', { initialized: !!ok });
 
             if (!ok) {
                 manager.destroy();
@@ -71,6 +79,7 @@
                 }
             }
         } catch (error) {
+            window.AITGPTDiagnostics?.error('features.sidebar-init', error);
             destroyManager();
         } finally {
             initInFlight = false;
@@ -85,7 +94,7 @@
     }
 
     function initWithRetry(retryIndex = 0) {
-        if (retryIndex >= RETRY_DELAYS.length) return;
+        if (retryIndex >= RETRY_DELAYS.length) { window.AITGPTDiagnostics?.log('features.sidebar-retry-exhausted'); return; }
 
         setTimeout(async () => {
             try {
@@ -96,6 +105,7 @@
                     initWithRetry(retryIndex + 1);
                 }
             } catch (error) {
+            window.AITGPTDiagnostics?.error('features.sidebar-init', error);
             }
         }, RETRY_DELAYS[retryIndex]);
     }
@@ -132,6 +142,7 @@
             attachSettingsListener();
 
             const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
+            window.AITGPTDiagnostics?.log('features.sidebar-gate', { enabled: settings?.[platform.id] !== false });
             if (settings && settings[platform.id] === false) return;
 
             if (canInject()) {
@@ -140,6 +151,7 @@
                 initWithRetry();
             }
         } catch (error) {
+            window.AITGPTDiagnostics?.error('features.sidebar-init', error);
         } finally {
             bootstrapInFlight = false;
         }

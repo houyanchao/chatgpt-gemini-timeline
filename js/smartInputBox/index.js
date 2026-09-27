@@ -20,6 +20,7 @@
     async function isPlatformSupported() {
         try {
             const platform = await getCurrentPlatform();
+            window.AITGPTDiagnostics?.log('features.prompt-support', { platform: !!platform, promptSupported: platform?.features?.promptButton === true, smartEnterSupported: platform?.features?.smartEnter === true });
             if (!platform) return false;
 
             // 检查平台是否支持智能输入功能（提示词按钮或智能回车之一）
@@ -33,6 +34,7 @@
     const initSmartInputBox = async () => {
         if (window.smartEnterManager || initInFlight) return;
         initInFlight = true;
+        window.AITGPTDiagnostics?.log('features.prompt-bootstrap', { registryClass: typeof SmartEnterAdapterRegistry !== 'undefined', managerClass: typeof SmartEnterManager !== 'undefined', registry: !!window.smartEnterAdapterRegistry });
         try {
             await TimelineI18n.ready();
 
@@ -52,6 +54,7 @@
             }
             
             const adapter = await registry.getAdapter();
+            window.AITGPTDiagnostics?.log('features.prompt-adapter', { found: !!adapter });
             
             if (!adapter) {
                 // 当前页面不匹配任何适配器，不启用功能
@@ -74,6 +77,7 @@
             window.smartEnterManager = manager;
             
         } catch (error) {
+            window.AITGPTDiagnostics?.error('features.prompt-init', error);
         } finally {
             initInFlight = false;
         }
