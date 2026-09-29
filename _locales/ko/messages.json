@@ -446,6 +446,9 @@
   "conversationExportTitleLabel": {
     "message": "제목"
   },
+  "conversationExportSelectedCount": {
+    "message": "{total}개 중 {count}개 선택"
+  },
   "conversationExportSelectAll": {
     "message": "전체 선택"
   },

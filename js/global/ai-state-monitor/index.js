@@ -70,6 +70,13 @@ class AIStateMonitor {
         
         this._adapter = adapter;
         this._generating = false;
+
+        // 平台可提供更精确的监听（GPT 新版停止按钮可能只改变属性）。
+        if (typeof adapter.observeAIGeneration === 'function') {
+            this._unsubscribe = adapter.observeAIGeneration(() => this._checkState());
+            this._checkState();
+            return;
+        }
         
         // 搭便车在 body observer 上：停止按钮的出现/消失是 DOM 节点变化，
         // body observer 天然能捕获到，不需要额外的 setInterval

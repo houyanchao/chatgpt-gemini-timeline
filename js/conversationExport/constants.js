@@ -38,6 +38,7 @@ const CE_TEXT_FALLBACK = {
     askTimeLabel: '提问时间',
 
     selectAll: '全选',
+    selectedCount: '已选 {count} / {total} 条',
     turnPrefix: '对话',
     // 角色标签：PNG / Markdown / TXT / 选择列表统一使用 Q / A
     exportRoleUser: 'Q',
@@ -92,6 +93,7 @@ const CE_TEXT_I18N_KEYS = {
     askTimeLabel: 'conversationExportAskTimeLabel',
 
     selectAll: 'conversationExportSelectAll',
+    selectedCount: 'conversationExportSelectedCount',
     turnPrefix: 'conversationExportTurnPrefix',
     emptyAssistant: 'conversationExportEmptyAssistant',
     emptyUserPreview: 'conversationExportEmptyUserPreview',

@@ -446,6 +446,9 @@
   "conversationExportTitleLabel": {
     "message": "タイトル"
   },
+  "conversationExportSelectedCount": {
+    "message": "{total} 件中 {count} 件を選択"
+  },
   "conversationExportSelectAll": {
     "message": "すべて選択"
   },

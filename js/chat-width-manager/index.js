@@ -28,6 +28,7 @@ class ChatWidthManager {
         this._floatingEl = null;
         this._floatingStyleEl = null;
         this._originalWidths = null;
+        this._elementObserver = null;
         this._listenersAttached = false;
     }
 
@@ -83,16 +84,23 @@ class ChatWidthManager {
     // ==================== 内部方法 ====================
 
     _watchForElements() {
+        this._elementObserver?.disconnect();
+        this._elementObserver = null;
         if (this._scale <= 100) return;
         const { selectors } = this._config;
+        const hasResponsiveTarget = () => this._config.responsiveRules?.some(rule =>
+            document.querySelector(rule.selector));
+        if (hasResponsiveTarget()) return;
         if (selectors.every(sel => this._originalWidths?.[sel])) return;
 
         const observer = new MutationObserver(() => {
-            if (!selectors.every(sel => document.querySelector(sel))) return;
+            if (!hasResponsiveTarget() && !selectors.every(sel => document.querySelector(sel))) return;
             observer.disconnect();
+            this._elementObserver = null;
             this._apply();
         });
         observer.observe(document.body, { childList: true, subtree: true });
+        this._elementObserver = observer;
     }
 
     _snapshotOriginalWidths() {
@@ -128,6 +136,8 @@ class ChatWidthManager {
 
         if (this._scale <= 100) {
             this._styleEl.textContent = '';
+            this._elementObserver?.disconnect();
+            this._elementObserver = null;
             return;
         }
 
@@ -135,9 +145,11 @@ class ChatWidthManager {
 
         const pct = this._scale;
         const entries = Object.entries(this._originalWidths);
-        if (entries.length === 0) return;
+        // 变量规则无需把响应式宽度快照为固定 px；DOM 重建后 CSS 也会自动匹配。
+        const responsiveEntries = (this._config.responsiveRules || []).map(rule =>
+            [rule.selector, rule.base]);
 
-        const rules = entries.map(([sel, base]) =>
+        const rules = [...entries, ...responsiveEntries].map(([sel, base]) =>
             `${sel} { max-width: calc(${base} * ${pct} / 100) !important; }`
         ).join('\n');
 
@@ -396,6 +408,8 @@ class ChatWidthManager {
     }
 
     destroy() {
+        this._elementObserver?.disconnect();
+        this._elementObserver = null;
         this._hideFloatingSlider();
         if (this._styleEl) {
             this._styleEl.remove();

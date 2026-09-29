@@ -181,15 +181,6 @@
     border-bottom: none;
 }
 
-.ce-export-section-range {
-    border-bottom: none;
-    padding-bottom: 9px;
-}
-
-.ce-export-section-range + .ce-export-section {
-    padding-top: 9px;
-}
-
 .ce-export-section-title {
     font-size: 13px;
     font-weight: 600;
@@ -213,15 +204,27 @@
     gap: 10px 16px;
 }
 
-/* Range + format (+ 预留第三个) 三等分一行 */
+/* 左侧导出格式，右侧更多配置 */
 .ce-export-field-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 16px 32px;
 }
 
 .ce-export-field {
     min-width: 0;
+}
+
+.ce-export-format-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.ce-export-header-options .ce-export-check-group {
+    min-height: 38px;
+    align-items: center;
 }
 
 .ce-export-field .ce-export-select {
@@ -253,6 +256,20 @@
 }
 
 /* Select */
+/* ChatGPT 的全局表单重置会移除原生勾选框和下拉箭头。
+   仅恢复 GPT 导出弹窗内的控件外观，保留 checked / disabled 原生状态。 */
+.ce-export-overlay.ce-platform-chatgpt input[type="checkbox"],
+.ce-export-overlay.ce-platform-chatgpt .ce-export-select {
+    -webkit-appearance: auto;
+    appearance: auto;
+    color-scheme: light;
+}
+
+.ce-export-overlay.ce-platform-chatgpt.ce-dark input[type="checkbox"],
+.ce-export-overlay.ce-platform-chatgpt.ce-dark .ce-export-select {
+    color-scheme: dark;
+}
+
 .ce-export-select {
     width: 100%;
     max-width: 220px;
@@ -280,8 +297,15 @@
    Conversation list
    ============================================ */
 
-.ce-export-select-all {
+.ce-export-selection-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 10px;
+}
+
+.ce-export-select-all {
+    flex-shrink: 0;
     font-weight: 600;
     /* 与列表项内的 checkbox 左对齐：列表 1px 边框 + 列表项 12px 左内边距 */
     padding-left: 13px;
@@ -386,11 +410,13 @@
     color: #7c7c86;
 }
 
-/* Disabled state (range = whole conversation) */
-.ce-export-list-section.ce-disabled .ce-export-list,
-.ce-export-list-section.ce-disabled .ce-export-select-all {
-    opacity: 0.5;
-    pointer-events: none;
+.ce-export-selection-status {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.ce-dark .ce-export-selection-status {
+    color: #9ca3af;
 }
 
 /* ============================================
@@ -470,6 +496,10 @@
    ============================================ */
 
 @media (max-width: 480px) {
+    .ce-export-field-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .ce-export-modal {
         width: 95%;
         max-height: 90vh;

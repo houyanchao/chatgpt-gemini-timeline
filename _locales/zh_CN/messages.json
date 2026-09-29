@@ -491,6 +491,9 @@
   "conversationExportTitleLabel": {
     "message": "标题"
   },
+  "conversationExportSelectedCount": {
+    "message": "已选 {count} / {total} 条"
+  },
   "conversationExportSelectAll": {
     "message": "全选"
   },

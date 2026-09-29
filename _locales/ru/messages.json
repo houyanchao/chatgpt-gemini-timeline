@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "Заголовок"
   },
+  "conversationExportSelectedCount": {
+    "message": "Выбрано {count} / {total}"
+  },
   "conversationExportSelectAll": {
     "message": "Выбрать все"
   },

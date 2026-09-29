@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.7.7",
+  "version": "4.7.8",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -30,7 +30,8 @@
         "https://chat.openai.com/*"
       ],
       "js": [
-        "js/apiCapture/chatgpt.js"
+        "js/apiCapture/chatgpt.js",
+        "js/preventAutoScroll/chatgpt-scroll-guard.js"
       ],
       "world": "MAIN",
       "run_at": "document_start"

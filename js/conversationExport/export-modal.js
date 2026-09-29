@@ -21,6 +21,7 @@ class CEExportModal {
     /**
      * 打开弹窗（初始为加载态）。
      * @param {Object} config
+     * @param {string} config.platformId - 用于限定宿主页面样式兼容
      * @param {string} config.defaultThemeId
      * @param {Function} config.onExport - (request) => void
      * @param {Function} config.onClose - () => void
@@ -67,7 +68,7 @@ class CEExportModal {
         this._refs.footer.style.display = 'flex';
 
         this._renderTurnList();
-        this._syncRangeUI();
+        this._syncSelectAllState();
         this._updateExportButtonState();
     }
 
@@ -110,19 +111,14 @@ class CEExportModal {
      * @returns {Object}
      */
     getExportRequest() {
-        const rangeId = this._refs.rangeSelect?.value === 'select' ? 'select' : 'all';
         const formatId = this._getSelectedFormat();
         const showUrl = !!this._refs.showUrl?.checked;
         const showTime = !!this._refs.showTime?.checked;
         const showConversationTime = !!this._refs.showConversationTime?.checked;
         const themeId = this._refs.themeSelect?.value || CE_DEFAULT_THEME;
 
-        let selectedTurns;
-        if (rangeId === 'select') {
-            selectedTurns = this.turns.filter((_, index) => this._isRowChecked(index));
-        } else {
-            selectedTurns = this.turns.slice();
-        }
+        let selectedTurns = this.turns.filter((_, index) => this._isRowChecked(index));
+        const rangeId = selectedTurns.length === this.turns.length ? 'all' : 'select';
 
         // 重新编号，保持导出内序号从 1 开始连续
         selectedTurns = selectedTurns.map((turn, index) => ({ ...turn, order: index + 1 }));
@@ -135,6 +131,7 @@ class CEExportModal {
     _build(config) {
         const overlay = document.createElement('div');
         overlay.className = 'ce-export-overlay';
+        if (config.platformId === 'chatgpt') overlay.classList.add('ce-platform-chatgpt');
         if (this.dark) overlay.classList.add('ce-dark');
 
         const dialog = document.createElement('div');
@@ -212,8 +209,7 @@ class CEExportModal {
         content.className = 'ce-export-content';
         content.style.display = 'none';
 
-        content.appendChild(this._buildRangeFormatSection(config.defaultThemeId));
-        content.appendChild(this._buildHeaderSection());
+        content.appendChild(this._buildFormatSection(config.defaultThemeId));
         content.appendChild(this._buildListSection());
 
         this._refs.content = content;
@@ -230,19 +226,12 @@ class CEExportModal {
         return section;
     }
 
-    _buildRangeFormatSection(defaultThemeId) {
+    _buildFormatSection(defaultThemeId) {
         const section = document.createElement('div');
-        section.className = 'ce-export-section ce-export-section-range';
+        section.className = 'ce-export-section';
 
         const row = document.createElement('div');
         row.className = 'ce-export-field-row';
-
-        const rangeField = this._buildSelectField(CE_TEXT.sectionRange, [
-            { value: 'all', label: CE_TEXT.rangeAll },
-            { value: 'select', label: CE_TEXT.rangeSelect },
-        ], 'all');
-        rangeField.select.addEventListener('change', () => this._syncRangeUI());
-        this._refs.rangeSelect = rangeField.select;
 
         const formatField = this._buildSelectField(
             CE_TEXT.sectionFormat,
@@ -252,7 +241,7 @@ class CEExportModal {
         formatField.select.addEventListener('change', () => this._syncThemeVisibility());
         this._refs.formatSelect = formatField.select;
 
-        // 图片主题色：第三格，仅 PNG 格式时显示
+        // 图片主题色：PNG 和 PDF 格式时显示
         const themeDefault = CE_THEMES.some(t => t.id === defaultThemeId) ? defaultThemeId : CE_DEFAULT_THEME;
         const themeField = this._buildSelectField(
             CE_TEXT.sectionTheme,
@@ -263,16 +252,20 @@ class CEExportModal {
         this._refs.themeField = themeField.field;
         themeField.field.style.display = 'none'; // 初始按默认格式（markdown）隐藏
 
-        row.appendChild(rangeField.field);
-        row.appendChild(formatField.field);
-        row.appendChild(themeField.field);
+        const formatColumn = document.createElement('div');
+        formatColumn.className = 'ce-export-format-column';
+        formatColumn.appendChild(formatField.field);
+        formatColumn.appendChild(themeField.field);
+
+        row.appendChild(formatColumn);
+        row.appendChild(this._buildHeaderSection());
         section.appendChild(row);
         return section;
     }
 
     _buildHeaderSection() {
-        const section = document.createElement('div');
-        section.className = 'ce-export-section';
+        const section = this._buildSection(CE_TEXT.sectionHeader);
+        section.className = 'ce-export-field ce-export-header-options';
         const group = document.createElement('div');
         group.className = 'ce-export-check-group';
 
@@ -302,7 +295,16 @@ class CEExportModal {
         const list = document.createElement('div');
         list.className = 'ce-export-list';
 
-        section.appendChild(selectAllLabel.label);
+        const selectionStatus = document.createElement('div');
+        selectionStatus.className = 'ce-export-selection-status';
+        selectionStatus.setAttribute('role', 'status');
+
+        const selectionToolbar = document.createElement('div');
+        selectionToolbar.className = 'ce-export-selection-toolbar';
+        selectionToolbar.appendChild(selectAllLabel.label);
+        selectionToolbar.appendChild(selectionStatus);
+        section.appendChild(selectionToolbar);
+        this._refs.selectionStatus = selectionStatus;
         section.appendChild(list);
 
         this._refs.selectAll = selectAllLabel.input;
@@ -355,6 +357,7 @@ class CEExportModal {
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
+            checkbox.checked = true;
             checkbox.className = 'ce-export-list-check';
             checkbox.dataset.index = String(index);
             checkbox.addEventListener('change', () => {
@@ -393,6 +396,7 @@ class CEExportModal {
 
     _onSelectAll(checked) {
         (this._refs.rows || []).forEach(cb => { cb.checked = checked; });
+        this._syncSelectAllState();
         this._updateExportButtonState();
     }
 
@@ -402,30 +406,18 @@ class CEExportModal {
         const checkedCount = rows.filter(cb => cb.checked).length;
         this._refs.selectAll.checked = checkedCount > 0 && checkedCount === rows.length;
         this._refs.selectAll.indeterminate = checkedCount > 0 && checkedCount < rows.length;
+        this._refs.selectAll.disabled = rows.length === 0;
+        if (this._refs.selectionStatus) {
+            const countText = ceFormatText(CE_TEXT.selectedCount, { count: checkedCount, total: rows.length });
+            this._refs.selectionStatus.textContent = checkedCount > 0
+                ? countText
+                : `${countText} · ${CE_TEXT.needSelect}`;
+        }
     }
 
     _isRowChecked(index) {
         const cb = (this._refs.rows || [])[index];
         return !!(cb && cb.checked);
-    }
-
-    _syncRangeUI() {
-        const isSelect = this._refs.rangeSelect?.value === 'select';
-        const listSection = this._refs.list?.closest('.ce-export-list-section');
-        if (listSection) {
-            listSection.classList.toggle('ce-disabled', !isSelect);
-        }
-        // 整个会话：全部勾选并禁用交互；切换到选择对话：全部取消勾选、可交互
-        (this._refs.rows || []).forEach(cb => {
-            cb.checked = !isSelect;
-            cb.disabled = !isSelect;
-        });
-        if (this._refs.selectAll) {
-            this._refs.selectAll.checked = !isSelect;
-            this._refs.selectAll.indeterminate = false;
-            this._refs.selectAll.disabled = !isSelect;
-        }
-        this._updateExportButtonState();
     }
 
     _syncThemeVisibility() {
@@ -441,14 +433,7 @@ class CEExportModal {
         const btn = this._refs.exportBtn;
         if (!btn || btn.dataset.busy === '1') return;
 
-        const isSelect = this._refs.rangeSelect?.value === 'select';
-        let enabled = true;
-        if (this.turns.length === 0) {
-            enabled = false;
-        } else if (isSelect) {
-            enabled = (this._refs.rows || []).some(cb => cb.checked);
-        }
-        btn.disabled = !enabled;
+        btn.disabled = !(this._refs.rows || []).some(cb => cb.checked);
     }
 
     // ==================== 小组件工厂 ====================

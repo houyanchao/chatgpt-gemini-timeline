@@ -40,7 +40,12 @@ const SITE_INFO = [
             sidebarStarred: true,  // 侧边栏收藏列表
             conversationExport: true,  // 对话导出（需存在对应导出适配器）
             chatWidth: { // 对话宽度
-                selectors: ['.text-token-text-primary > div > div']
+                selectors: ['.text-token-text-primary > div > div'],
+                // 新版正文和输入区共用的限宽变量，随站点响应式断点自动变化。
+                responsiveRules: [{
+                    selector: '.thread-scroll-container [class~="max-w-(--thread-body-max-width)"]',
+                    base: 'var(--thread-body-max-width)'
+                }]
             }
         }
     },

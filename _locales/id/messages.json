@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "Judul"
   },
+  "conversationExportSelectedCount": {
+    "message": "Dipilih {count} / {total}"
+  },
   "conversationExportSelectAll": {
     "message": "Pilih semua"
   },

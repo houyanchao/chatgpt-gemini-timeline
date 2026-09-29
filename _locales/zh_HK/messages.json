@@ -446,6 +446,9 @@
   "conversationExportTitleLabel": {
     "message": "標題"
   },
+  "conversationExportSelectedCount": {
+    "message": "已選 {count} / {total} 則"
+  },
   "conversationExportSelectAll": {
     "message": "全選"
   },

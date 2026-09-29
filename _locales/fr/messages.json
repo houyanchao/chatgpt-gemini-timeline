@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "Titre"
   },
+  "conversationExportSelectedCount": {
+    "message": "{count} / {total} sélectionnés"
+  },
   "conversationExportSelectAll": {
     "message": "Tout sélectionner"
   },

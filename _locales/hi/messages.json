@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "शीर्षक"
   },
+  "conversationExportSelectedCount": {
+    "message": "{total} में से {count} चुने गए"
+  },
   "conversationExportSelectAll": {
     "message": "सभी चुनें"
   },

@@ -31,7 +31,12 @@
 
     function getInsertTarget() {
         const shareButton = document.querySelector('[data-testid="share-chat-button"]');
-        if (!shareButton) return null;
+        if (!shareButton) {
+            // 新版分享按钮不再带 testid；只在对话路由中使用右侧原生操作区，
+            // 避免匹配侧栏、消息中的分享按钮或首页工具栏。
+            if (!/\/c\/[^/]+/.test(location.pathname)) return null;
+            return document.querySelector('header [data-app-shell-header-obstacle] .gap-toolbar-action > button');
+        }
 
         let actionBar = shareButton.parentElement;
         for (let depth = 0; actionBar && depth < 6; depth++) {

@@ -16,8 +16,8 @@
  *      长对话下主线程卡顿会拉长帧间隔，该预算机制保证用户实际滚了多少就放行多少，
  *      不会因掉帧把手动滚动误判为平台跳转（见 issue #129）。
  *
- * 平台改变容器 scrollTop 通常绕过 scrollTop/scrollTo/scrollIntoView 等 JS API
- * （疑似缓存了原始引用），因此采用与机制无关的 rAF 拽回方案。
+ * GPT 通过 document_start 的 MAIN world 脚本提前拦截滚动 API，减少先跳后回。
+ * 浏览器原生布局/焦点滚动等不经过这些 API 的路径，仍由 rAF 位置纠正兜底。
  *
  * 时间轴等扩展内导航可通过 window.__aitPreventAutoScroll 声明可信滚动，
  * 避免锚定逻辑把扩展主动跳转误判为平台自动滚动。
@@ -69,10 +69,12 @@
             this._lastTouchY = null;
             this._trustedNavigationUntil = 0;
             this._trustedNavigationId = 0;
+            this._restoringTop = false;
 
             this._onKeydown = this._onKeydown.bind(this);
             this._onClick = this._onClick.bind(this);
             this._onUserScrollIntent = this._onUserScrollIntent.bind(this);
+            this._onProgrammaticScroll = this._onProgrammaticScroll.bind(this);
             this._loop = this._loop.bind(this);
         }
 
@@ -83,6 +85,9 @@
             // 发送动作捕获（capture 阶段，先于平台处理）
             document.addEventListener('keydown', this._onKeydown, true);
             document.addEventListener('click', this._onClick, true);
+            if (this.platformId === 'chatgpt') {
+                document.addEventListener('ait:before-programmatic-scroll', this._onProgrammaticScroll, true);
+            }
 
             // 用户主动滚动 -> 开启「跟随」窗口（程序化 scrollTop 不会触发 wheel/touch）
             window.addEventListener('wheel', this._onUserScrollIntent, { passive: true, capture: true });
@@ -93,12 +98,26 @@
             this._stopPin();
             document.removeEventListener('keydown', this._onKeydown, true);
             document.removeEventListener('click', this._onClick, true);
+            document.removeEventListener('ait:before-programmatic-scroll', this._onProgrammaticScroll, true);
             window.removeEventListener('wheel', this._onUserScrollIntent, { capture: true });
             window.removeEventListener('touchmove', this._onUserScrollIntent, { capture: true });
             this.enabled = false;
         }
 
         // ==================== 发送动作捕获 ====================
+
+        _onProgrammaticScroll(e) {
+            if (!this.pinning || this._restoringTop || !this.scrollContainer
+                || performance.now() < this._trustedNavigationUntil) return;
+            const target = e.target;
+            const movesContainer = target === this.scrollContainer
+                || (e.detail === 'scrollIntoView' && this.scrollContainer !== window
+                    && this.scrollContainer.contains(target));
+            // 子元素自己的滚动（例如代码块）不影响阅读锚点，应正常放行。
+            if (movesContainer) {
+                e.preventDefault();
+            }
+        }
 
         _onKeydown(e) {
             // 锚定期间按下导航键 => 用户想自己滚动，开启跟随窗口
@@ -124,6 +143,14 @@
         }
 
         _onClick(e) {
+            // 已实测的 GPT 原生导航类名，无需匹配本地化 aria-label。
+            // 在原生点击处理器执行前解除保护，也允许其异步/平滑滚动完成。
+            const navigation = e.target?.closest?.('button[class~="group/scroll-to-bottom"]');
+            if (this.platformId === 'chatgpt' && this.pinning && e.isTrusted && navigation
+                && this.scrollContainer?.parentElement?.contains(navigation)) {
+                this._stopPin();
+                return;
+            }
             const sendButtonSelector = this._sendButtonSelector();
             if (!sendButtonSelector) return;
             const target = e.target;
@@ -131,6 +158,12 @@
             if (!btn) return;
             // 生成中点击的是"停止"按钮，不处理
             if (this._isGenerating()) return;
+            if (this.platformId === 'chatgpt') {
+                // 新版主操作区也可能显示语音入口，空输入或禁用按钮不能视为发送。
+                const editor = document.querySelector(this._inputSelector());
+                if (btn.disabled || btn.getAttribute('aria-disabled') === 'true'
+                    || !editor || this._isInputEmpty(editor)) return;
+            }
 
             this._maybeStartPin();
         }
@@ -255,6 +288,9 @@
             // 已在底部 => 让平台正常滚动，不干预
             if (atBottom) return;
 
+            if (this.platformId === 'chatgpt' && this.scrollContainer !== window) {
+                this.scrollContainer?.removeAttribute('data-ait-scroll-anchor');
+            }
             this.scrollContainer = container;
             this.savedTop = top;
             this._startTs = performance.now();
@@ -269,6 +305,9 @@
             if (!this.pinning) {
                 this.pinning = true;
                 this.rafId = requestAnimationFrame(this._loop);
+            }
+            if (this.platformId === 'chatgpt' && container !== window) {
+                container.setAttribute('data-ait-scroll-anchor', '');
             }
         }
 
@@ -330,6 +369,9 @@
 
         _stopPin() {
             this.pinning = false;
+            if (this.platformId === 'chatgpt' && this.scrollContainer !== window) {
+                this.scrollContainer?.removeAttribute('data-ait-scroll-anchor');
+            }
             if (this.rafId) {
                 cancelAnimationFrame(this.rafId);
                 this.rafId = null;
@@ -365,7 +407,21 @@
 
         _readTop(container) {
             if (container === window) return window.scrollY;
+            // GPT 新版底部为 0、向上为负数；统一换算成距内容顶部的坐标。
+            // 这样生成内容增加 scrollHeight 后，保存的阅读位置仍保持不变。
+            if (this._isReverseScroll(container)) {
+                return container.scrollTop + this._scrollRange(container);
+            }
             return container.scrollTop;
+        }
+
+        _isReverseScroll(container) {
+            return this.platformId === 'chatgpt' && container !== window
+                && window.getComputedStyle(container).flexDirection === 'column-reverse';
+        }
+
+        _scrollRange(container) {
+            return Math.max(0, container.scrollHeight - container.clientHeight);
         }
 
         /** 容器在手势方向上是否还有可滚动空间（deltaY > 0 向下） */
@@ -387,7 +443,7 @@
                 const scrollHeight = document.documentElement.scrollHeight;
                 return { top, atBottom: scrollHeight - clientHeight - top < BOTTOM_THRESHOLD };
             }
-            const top = container.scrollTop;
+            const top = this._readTop(container);
             return {
                 top,
                 atBottom: container.scrollHeight - container.clientHeight - top < BOTTOM_THRESHOLD
@@ -395,14 +451,19 @@
         }
 
         _setTop(container, top) {
+            this._restoringTop = true;
             try {
                 if (container === window) {
                     window.scrollTo(0, top);
                 } else {
-                    container.scrollTop = top;
+                    container.scrollTop = this._isReverseScroll(container)
+                        ? top - this._scrollRange(container)
+                        : top;
                 }
             } catch (e) {
                 // 静默处理
+            } finally {
+                this._restoringTop = false;
             }
         }
     }

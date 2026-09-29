@@ -190,6 +190,7 @@ class CEExportManager {
 
         this.modal = new CEExportModal();
         this.modal.open({
+            platformId: this.adapter.platformId,
             defaultThemeId,
             onCancelLoad: () => this._cancelLoad(),
             onClose: () => this._closeModal(),

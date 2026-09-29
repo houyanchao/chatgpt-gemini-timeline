@@ -14,26 +14,30 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
     
     /**
      * 获取输入框选择器
-     * ChatGPT 使用 id="prompt-textarea" 的 contenteditable div
+     * 保留旧版 ID；新版只匹配 Composer 输入区，避免选中正文写作编辑器。
      */
     getInputSelector() {
-        return '#prompt-textarea';
+        return '#prompt-textarea, [class*="ComposerLayoutInput-"] [contenteditable="true"][role="textbox"]';
     }
     
     /**
      * 获取发送按钮选择器
      */
     getSendButtonSelector() {
-        return '#composer-submit-button';
+        return '#composer-submit-button, '
+            + '[data-composer-body] button:has(svg.icon-primary-action), '
+            + '[class*="ComposerLayoutFooter-"] button:has(svg.icon-primary-action)';
     }
     
     /**
      * 获取定位参考元素
-     * 使用输入框最近的 form 祖先元素作为定位参考
+     * 新版使用包含左右操作按钮的 Composer 底栏，旧版使用 form。
      * @param {HTMLElement} inputElement - 输入框元素
      */
     getPositionReferenceElement(inputElement) {
-        return inputElement?.closest('form') || inputElement;
+        return inputElement?.closest('[class*="ComposerLayoutFooter-"]')
+            || inputElement?.closest('form')
+            || inputElement;
     }
     
     /**

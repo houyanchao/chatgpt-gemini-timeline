@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "Tytuł"
   },
+  "conversationExportSelectedCount": {
+    "message": "Wybrano {count} / {total}"
+  },
   "conversationExportSelectAll": {
     "message": "Zaznacz wszystko"
   },

@@ -17,6 +17,9 @@
  */
 
 class CEChatGPTExportAdapter extends CEExportAdapter {
+    static MODERN_MESSAGE_SELECTOR = '[data-thread-find-target="conversation"] [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids]';
+    static MODERN_TURN_SELECTOR = '[data-thread-find-target="conversation"] [data-turn-key]';
+
     constructor() {
         super('chatgpt');
     }
@@ -29,8 +32,25 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
      */
     _getUnrenderedShells() {
         return Array.from(document.querySelectorAll(
-            '[data-turn-id-container][data-is-intersecting="false"]'
+            `[data-turn-id-container][data-is-intersecting="false"], ${CEChatGPTExportAdapter.MODERN_TURN_SELECTOR}`
         ));
+    }
+
+    _getMessageId(element) {
+        return element.getAttribute('data-turn-id')
+            || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0]
+            || null;
+    }
+
+    _getMessageRole(element) {
+        return element.getAttribute('data-turn')
+            || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
+    }
+
+    _getRenderedMessages() {
+        return Array.from(document.querySelectorAll(
+            `[data-turn-id][data-turn], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`
+        )).filter(el => ['user', 'assistant'].includes(this._getMessageRole(el)));
     }
 
     /**
@@ -61,6 +81,11 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
     async collectAllTurns({ onProgress, shouldCancel } = {}) {
         const scroller = this.getScrollContainer();
         const isWin = scroller === window;
+        const reverse = !isWin && scroller.nodeType === 1
+            && getComputedStyle(scroller).flexDirection === 'column-reverse';
+        const scrollRange = () => Math.max(0, (isWin
+            ? document.documentElement.scrollHeight - window.innerHeight
+            : scroller.scrollHeight - scroller.clientHeight) || 0);
         const getScrollTop = () => (isWin ? window.scrollY : scroller.scrollTop);
         const scrollTo = (top) => {
             if (isWin) window.scrollTo(0, top);
@@ -84,10 +109,19 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         const mergeContainerOrder = () => {
             const seen = new Set();
             const current = [];
-            document.querySelectorAll('[data-turn-id-container]').forEach(el => {
-                const id = el.getAttribute('data-turn-id-container');
+            // 新版 data-turn-key 包含一问一答，排序必须使用内部消息 ID，
+            // 不能把整轮的用户 ID 当作两条消息的顺序。
+            document.querySelectorAll(`[data-turn-id-container], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`).forEach(el => {
+                if (el.hasAttribute('data-chatgpt-search-unit-key')
+                    && !['user', 'assistant'].includes(this._getMessageRole(el))) return;
+                const id = el.getAttribute('data-turn-id-container') || this._getMessageId(el);
                 if (id && !seen.has(id)) { seen.add(id); current.push(id); }
             });
+            // 从顶部向下扫描时，无共同节点的新窗口应接到末尾。
+            if (current.length && !current.some(id => masterOrder.includes(id))) {
+                masterOrder.push(...current);
+                return;
+            }
             let ptr = -1; // masterOrder 中最后命中的锚点位置
             for (const id of current) {
                 const idx = masterOrder.indexOf(id);
@@ -112,9 +146,9 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         };
 
         const collectRendered = () => {
-            document.querySelectorAll('[data-turn-id][data-turn]').forEach(element => {
-                const id = element.getAttribute('data-turn-id');
-                const role = element.getAttribute('data-turn');
+            this._getRenderedMessages().forEach(element => {
+                const id = this._getMessageId(element);
+                const role = this._getMessageRole(element);
                 if (!id || (role !== 'user' && role !== 'assistant')) return;
 
                 let content;
@@ -142,14 +176,26 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         // 文档序第一个「未处理过的空壳」（渲染过的容器被虚拟化卸载回空壳时不再重复处理）
         const nextPendingShell = () =>
             this._getUnrenderedShells().find(el => {
-                const id = el.getAttribute('data-turn-id-container');
+                const id = el.getAttribute('data-turn-id-container') || el.getAttribute('data-turn-key');
                 return id && !processedIds.has(id);
             }) || null;
 
         // 从顶部开始（建立全局顺序表的头部）
-        scrollTo(0);
-        await this._wait(1000);              // 顶部渲染启动
-        await this._waitWhileLoading(2000);  // DOM 稳定确认（与 Gemini 同一等待机制）
+        // 顶部历史分页加载后需再次到顶，连续两次确认稳定才开始采集。
+        let stableTop = 0;
+        for (let attempt = 0; attempt < 30 && stableTop < 2; attempt++) {
+            if (shouldCancel?.()) {
+                try { scrollTo(initialScrollTop); } catch {}
+                return [];
+            }
+            const beforeRange = scrollRange();
+            scrollTo(reverse ? -beforeRange : 0);
+            await this._wait(1000);
+            await this._waitWhileLoading(2000);
+            const range = scrollRange();
+            const atTop = Math.abs(getScrollTop() - (reverse ? -range : 0)) <= 2;
+            stableTop = atTop && Math.abs(range - beforeRange) <= 2 ? stableTop + 1 : 0;
+        }
         collectRendered();
 
         // 逐个把未处理空壳滚进视口渲染并采集
@@ -162,7 +208,21 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
             }
 
             const shell = nextPendingShell();
-            if (!shell) break; // 所有容器都渲染并采集过
+            if (!shell) {
+                // 当前 DOM 已采完不代表历史已采完；向下扫屏触发下一窗口渲染。
+                const bottom = reverse ? 0 : scrollRange();
+                const current = getScrollTop();
+                if (bottom - current <= 1) break;
+                const viewport = isWin ? window.innerHeight : (scroller.clientHeight || window.innerHeight);
+                scrollTo(Math.min(bottom, current + Math.max(1, viewport * 0.8)));
+                await this._wait(400);
+                await this._waitWhileLoading(2000);
+                collectRendered();
+                if (Math.abs(getScrollTop() - current) < 1) {
+                    if (++stagnantRounds >= 5) break;
+                } else stagnantRounds = 0;
+                continue;
+            }
 
             const beforeCaptured = capturedMessages.size;
             const beforeProcessed = processedIds.size;
@@ -174,6 +234,11 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
             await this._wait(400);              // 渲染启动
             await this._waitWhileLoading(2000); // DOM 稳定确认
             collectRendered();
+            // 新版每轮都滚动到一次，触发虚拟内容渲染后才标记完成。
+            const modernTurnId = shell.getAttribute('data-turn-key');
+            if (modernTurnId && capturedMessages.has(modernTurnId)) {
+                processedIds.add(modernTurnId);
+            }
 
             // 连续多轮既无新采集也无新渲染 → 虚拟化不再响应，避免死循环
             if (capturedMessages.size === beforeCaptured && processedIds.size === beforeProcessed) {
@@ -281,8 +346,7 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
      * @returns {Array<{userEl:Element, assistantEl:Element|null}>}
      */
     getTurnContainers() {
-        const ordered = Array.from(document.querySelectorAll('[data-turn-id][data-turn]'));
-        return this._pairFlatTurns(ordered, el => el.getAttribute('data-turn'));
+        return this._pairFlatTurns(this._getRenderedMessages(), el => this._getMessageRole(el));
     }
 
     /**
@@ -291,7 +355,7 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
     extractTurn(pair) {
         if (!pair || !pair.userEl) return null;
 
-        const userTurnId = pair.userEl.getAttribute('data-turn-id');
+        const userTurnId = this._getMessageId(pair.userEl);
         const user = this._extractUser(pair.userEl);
         const assistant = this._extractAssistant(pair.assistantEl);
 
@@ -314,12 +378,13 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
 
     _extractAssistant(assistantEl) {
         if (!assistantEl) return { markdown: '', text: '', images: [] };
-        return this._domMarkdownFrom(assistantEl, ['.markdown', '[data-message-author-role="assistant"]']);
+        return this._domMarkdownFrom(assistantEl, ['[data-markdown-text-style="assistant-message"]', '.markdown', '[data-message-author-role="assistant"]']);
     }
 
     _domUserText(userEl) {
         if (!userEl) return '';
-        const textEl = userEl.querySelector('.whitespace-pre-wrap');
+        const textEl = userEl.querySelector('[data-user-message-bubble]')
+            || userEl.querySelector('.whitespace-pre-wrap');
         const raw = textEl ? textEl.textContent : userEl.textContent;
         return (raw || '').replace(/\s+/g, ' ').trim();
     }

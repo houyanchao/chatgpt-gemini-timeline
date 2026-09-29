@@ -422,6 +422,9 @@
   "conversationExportTitleLabel": {
     "message": "ชื่อเรื่อง"
   },
+  "conversationExportSelectedCount": {
+    "message": "เลือกแล้ว {count} / {total}"
+  },
   "conversationExportSelectAll": {
     "message": "เลือกทั้งหมด"
   },

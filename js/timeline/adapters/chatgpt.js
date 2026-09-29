@@ -242,7 +242,9 @@ class ChatGPTAdapter extends SiteAdapter {
     getTimelineStructureSelectors() {
         return [
             '[data-turn-id-container]',
-            '[data-turn]'
+            '[data-turn]',
+            '[data-turn-key]',
+            '[data-chatgpt-search-unit-key]'
         ];
     }
 
@@ -250,7 +252,10 @@ class ChatGPTAdapter extends SiteAdapter {
         return [
             'data-turn-id-container',
             'data-is-intersecting',
-            'data-turn'
+            'data-turn',
+            'data-turn-key',
+            'data-chatgpt-search-unit-key',
+            'data-chatgpt-search-message-ids'
         ];
     }
 
@@ -259,14 +264,14 @@ class ChatGPTAdapter extends SiteAdapter {
         if (this._usesVirtualizedTurnSelector) {
             return '[data-turn-id-container][data-ait-turn="user"]';
         }
-        return '[data-turn="user"][data-turn-id]';
+        return '[data-turn="user"][data-turn-id], [data-thread-find-target="conversation"] [data-chatgpt-search-unit-key$=":user"][data-chatgpt-search-message-ids]';
     }
 
     getAssistantMessageSelector() {
         if (document.querySelector('[data-turn-id-container][data-ait-turn="assistant"]')) {
             return '[data-turn-id-container][data-ait-turn="assistant"]';
         }
-        return '[data-turn="assistant"][data-turn-id]';
+        return '[data-turn="assistant"][data-turn-id], [data-thread-find-target="conversation"] [data-chatgpt-search-unit-key$=":assistant"][data-chatgpt-search-message-ids]';
     }
 
     /**
@@ -283,6 +288,7 @@ class ChatGPTAdapter extends SiteAdapter {
         
         const nodeId = element.getAttribute('data-turn-id-container')
             || element.getAttribute('data-turn-id')
+            || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0]
             || null;
         return nodeId ? String(nodeId) : null;
     }
@@ -367,7 +373,8 @@ class ChatGPTAdapter extends SiteAdapter {
 
     extractText(element) {
         const nodeId = this._extractNodeIdFromDom(element);
-        const textElement = element.querySelector('.whitespace-pre-wrap');
+        const textElement = element.querySelector('[data-user-message-bubble]')
+            || element.querySelector('.whitespace-pre-wrap');
         const text = (textElement?.textContent || '').replace(/\s+/g, ' ').trim();
         if (text) {
             // 渲染期缓存文本，供该轮被虚拟化成空壳后使用
@@ -389,7 +396,7 @@ class ChatGPTAdapter extends SiteAdapter {
      * ChatGPT: 使用 [data-message-id] 子元素
      */
     getTimeLabelTarget(element) {
-        return element.querySelector('[data-message-id]') || null;
+        return element.querySelector('[data-message-id], [data-user-message-bubble]') || null;
     }
 
     isConversationRoute(pathname) {
@@ -464,6 +471,8 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     findConversationContainer(firstMessage, context = {}) {
+        const transcript = firstMessage?.closest('[data-thread-find-target="conversation"]');
+        if (transcript) return transcript;
         /**
          * 查找对话容器
          * 
@@ -540,12 +549,33 @@ class ChatGPTAdapter extends SiteAdapter {
     
     /**
      * 检测 AI 是否正在生成回答
-     * ChatGPT: 当 #composer-submit-button 元素的 data-testid="stop-button" 时，表示正在生成
+     * 兼容旧版 testid；新版按主操作按钮的停止图标识别，不依赖界面语言。
      * @returns {boolean}
      */
     isAIGenerating() {
         const submitButton = document.getElementById('composer-submit-button');
-        // ✅ 必须返回 boolean，找不到按钮视为 false（未生成），而不是 null（未实现）
-        return !!(submitButton && submitButton.getAttribute('data-testid') === 'stop-button');
+        if (submitButton?.getAttribute('data-testid') === 'stop-button') return true;
+
+        // 来自新版停止按钮的圆角方块路径。限定 Composer 主操作图标，
+        // 不以按钮位置或任意方形图标推断状态，避免误认发送、语音、代码停止按钮。
+        // 若站点更换图标资源，需要更新此签名；忽略 SVG 路径中的空格和逗号。
+        const stopPath = 'M4.5 5.75C4.5 5.05964 5.05964 4.5 5.75 4.5H14.25C14.9404 4.5 15.5 5.05964 15.5 5.75V14.25C15.5 14.9404 14.9404 15.5 14.25 15.5H5.75C5.05964 15.5 4.5 14.9404 4.5 14.25V5.75Z';
+        const normalizePath = value => (value || '').replace(/[\s,]+/g, '');
+        return [...document.querySelectorAll(
+            '[data-composer-body] button svg.icon-primary-action path, '
+            + '[class*="ComposerLayoutFooter-"] button svg.icon-primary-action path'
+        )].some(path => normalizePath(path.getAttribute('d')) === normalizePath(stopPath));
+    }
+
+    /** 覆盖图标路径原地更新、图标替换、纯移除与输入区重建。 */
+    observeAIGeneration(onChange) {
+        const observer = new MutationObserver(onChange);
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['d', 'class', 'data-testid'],
+        });
+        return () => observer.disconnect();
     }
 }
