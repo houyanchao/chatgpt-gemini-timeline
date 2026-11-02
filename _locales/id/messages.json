@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Lihat riwayat pembaruan"
+  },
+  "timelineNodeLoading": {
+    "message": "Menggulir ke percakapan tujuan…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Memuat pertanyaan lainnya…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Pertanyaan ini tidak dapat dimuat. Silakan coba lagi."
+  },
+  "timelineNodeRetry": {
+    "message": "Coba lagi"
   }
 }

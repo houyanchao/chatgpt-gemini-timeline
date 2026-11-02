@@ -1156,5 +1156,17 @@
   },
   "viewChangelogTooltip": {
     "message": "查看更新記錄"
+  },
+  "timelineNodeLoading": {
+    "message": "正在捲動至目標對話…"
+  },
+  "timelineHistoryLoading": {
+    "message": "正在載入更多提問…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "無法載入這則提問，請重試。"
+  },
+  "timelineNodeRetry": {
+    "message": "重試"
   }
 }

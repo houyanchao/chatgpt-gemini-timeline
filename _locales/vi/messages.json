@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Xem lịch sử cập nhật"
+  },
+  "timelineNodeLoading": {
+    "message": "Đang cuộn đến cuộc trò chuyện cần tìm…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Đang tải thêm câu hỏi…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Không thể tải câu hỏi này. Vui lòng thử lại."
+  },
+  "timelineNodeRetry": {
+    "message": "Thử lại"
   }
 }

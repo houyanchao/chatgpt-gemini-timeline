@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Voir le journal des modifications"
+  },
+  "timelineNodeLoading": {
+    "message": "Défilement vers la conversation ciblée…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Chargement d’autres questions…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Impossible de charger cette question. Veuillez réessayer."
+  },
+  "timelineNodeRetry": {
+    "message": "Réessayer"
   }
 }

@@ -1101,8 +1101,12 @@ class StarredTreeRenderer {
         if (isSamePage) {
             const tm = window.timelineManager;
             if (needsScroll && tm) {
-                const marker = this._findMarker(tm, nodeKey);
-                if (marker?.element) tm.smoothScrollTo(marker.element);
+                if (tm.adapter?.supportsDeferredNodeNavigation?.() === true) {
+                    tm.navigateToStoredNode(nodeKey);
+                } else {
+                    const marker = this._findMarker(tm, nodeKey);
+                    if (marker?.element) tm.smoothScrollTo(marker.element);
+                }
             }
             this.opts.onAfterNavigate();
         } else if (this._isSameSite(url)) {

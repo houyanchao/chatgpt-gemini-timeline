@@ -19,7 +19,17 @@ class ChatGPTAdapter extends SiteAdapter {
         this._textCacheConvId = null; // 缓存所属的对话 id
         this._turnRolesDirty = true;
         this._usesVirtualizedTurnSelector = false;
+        this._capturedTimeline = null;
+        this._capturedTimelineConvId = null;
+        this._historyLoading = null;
+        this._liveTimelineEntries = new Map();
+        this._supplementalTimelineOrder = { before: [], after: [] };
+        this._liveTimelineRevision = null;
+        this._liveTimelineScopes = new WeakSet();
+        this._timelineEntryRevisions = new Map();
     }
+
+
 
     /**
      * 从 MAIN world 接口拦截模块（apiCapture/chatgpt.js）同步拉取
@@ -36,7 +46,7 @@ class ChatGPTAdapter extends SiteAdapter {
      *
      * @returns {number} 本次发生变化的缓存条目数
      */
-    _pullConvTexts(conversationId) {
+    _pullConvTexts(conversationId, { restartHistory = false } = {}) {
         let received = null;
         const handler = (event) => {
             if (typeof event.detail !== 'string') return;
@@ -49,15 +59,20 @@ class ChatGPTAdapter extends SiteAdapter {
         };
         document.addEventListener('ait-gpt-user-texts-result', handler, { once: true });
         document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-pull', {
-            detail: conversationId
+            detail: restartHistory ? JSON.stringify({ conversationId, restartHistory: true }) : conversationId
         }));
         document.removeEventListener('ait-gpt-user-texts-result', handler);
 
         const texts = received ? received.texts : null;
-        if (!texts) return 0;
+        const previousTimeline = JSON.stringify(this._capturedTimeline);
+        this._capturedTimeline = received?.timeline || null;
+        this._capturedTimelineConvId = conversationId;
+        this._historyLoading = { conversationId, loading: received?.historyLoading === true };
+        const timelineChanged = JSON.stringify(this._capturedTimeline) !== previousTimeline;
+        if (!texts) return timelineChanged ? 1 : 0;
 
         const nextCapturedTextIds = new Set(Object.keys(texts));
-        let changedCount = 0;
+        let changedCount = timelineChanged ? 1 : 0;
         // 只清理上一份 API 快照拥有、但最新快照已不存在的键。
         // DOM 机会性缓存的新增消息不在 _capturedTextIds 中，因此会被保留。
         this._capturedTextIds.forEach(id => {
@@ -74,6 +89,301 @@ class ChatGPTAdapter extends SiteAdapter {
         return changedCount;
     }
 
+    // 只在已有顺序的边界或相邻锚点间插入新节点；没有重叠的历史窗口先等待 API。
+    _mergeSupplementalTimelineOrder(current, observed) {
+        const incoming = [...new Set(observed)];
+        const ranks = new Map(current.map((id, index) => [id, index]));
+        const anchors = incoming.filter(id => ranks.has(id));
+        if (!anchors.length) return current.length ? current : incoming;
+        if (anchors.some((id, index) => index > 0 && ranks.get(id) <= ranks.get(anchors[index - 1]))) return current;
+        const result = [...current];
+        let previousRank = -1, pending = [];
+        for (const id of incoming) {
+            if (!ranks.has(id)) { pending.push(id); continue; }
+            const rank = ranks.get(id);
+            if (rank === previousRank + 1) result.splice(result.indexOf(id), 0, ...pending);
+            pending = [];
+            previousRank = rank;
+        }
+        if (previousRank === current.length - 1) result.push(...pending);
+        return result;
+    }
+
+    supportsDeferredNodeNavigation() {
+        return true;
+    }
+
+    areTimelineIndexesStable() {
+        return this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
+            || !this._capturedTimeline || this._capturedTimeline.complete === true;
+    }
+
+    getCapturedTimelineEntries(userElements) {
+        const conversationId = this.extractConversationId(location.pathname);
+        if (this._capturedTimelineConvId !== conversationId
+            || !this._capturedTimeline?.entries?.length) {
+            this._liveTimelineEntries.clear();
+            this._supplementalTimelineOrder = { before: [], after: [] };
+            this._liveTimelineRevision = null;
+            this._liveTimelineScopes = new WeakSet();
+            return null;
+        }
+        const revision = `${this._capturedTimelineConvId}:${this._capturedTimeline.revision || ''}`;
+        if (this._liveTimelineRevision !== revision) {
+            this._liveTimelineRevision = revision;
+            this._liveTimelineEntries.clear();
+            this._supplementalTimelineOrder = { before: [], after: [] };
+            this._liveTimelineScopes = new WeakSet();
+        }
+        const scopeFor = element => element.closest('[data-thread-find-target="conversation"]')
+            || element.closest('main') || element.parentElement;
+        const confirmScope = element => {
+            const scope = scopeFor(element);
+            if (scope) this._liveTimelineScopes.add(scope);
+        };
+        const elementsById = new Map();
+        for (const element of userElements) {
+            const ids = [this._extractNodeIdFromDom(element),
+                ...(element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/)];
+            element.querySelectorAll('[data-message-id]').forEach(child => ids.push(child.getAttribute('data-message-id')));
+            ids.filter(Boolean).forEach(id => elementsById.set(id, element));
+        }
+        const capturedIdsByElement = new Map();
+        const entries = this._capturedTimeline.entries.map(entry => {
+            this._timelineEntryRevisions.set(`chatgpt-${entry.id}`, revision);
+            this._liveTimelineEntries.delete(`chatgpt-${entry.id}`);
+            const element = elementsById.get(entry.id) || null;
+            if (element) {
+                capturedIdsByElement.set(element, `chatgpt-${entry.id}`);
+                confirmScope(element);
+            }
+            const domText = element ? this.extractText(element) : '';
+            return { id: `chatgpt-${entry.id}`, element,
+                summary: this.isPlaceholderSummary(domText) ? entry.text : domText };
+        });
+        const capturedIds = new Set(entries.map(entry => entry.id));
+        const complete = this._capturedTimeline.complete === true;
+        // 已确认的新提问重新挂载后，也能确认其容器；虚拟化卸载不丢失归属。
+        for (const [id, cached] of this._liveTimelineEntries) {
+            if (complete && cached.side === 'before') continue;
+            const element = elementsById.get(id.slice('chatgpt-'.length));
+            if (element) confirmScope(element);
+        }
+        // SPA 切换时新 URL/快照可能先于旧 DOM 更新。只有当前快照确认过的
+        // 对话容器才能补入新提问，且不能重新收录其他会话或旧分支的消息。
+        const groups = new Map();
+        for (const [index, element] of userElements.entries()) {
+            const id = capturedIdsByElement.get(element) || this.generateTurnId(element, index);
+            const knownRevision = this._timelineEntryRevisions.get(id);
+            const scope = scopeFor(element);
+            if (!scope || !this._liveTimelineScopes.has(scope) || (knownRevision && knownRevision !== revision)) continue;
+            if (!groups.has(scope)) groups.set(scope, new Map());
+            const group = groups.get(scope);
+            if (!group.has(id)) group.set(id, { id, element });
+        }
+        const observed = { before: [], after: [] }, candidates = new Map();
+        for (const records of groups.values()) {
+            const group = [...records.values()];
+            const apiPositions = [], beforePositions = [], afterPositions = [];
+            group.forEach(({ id }, index) => {
+                if (capturedIds.has(id)) apiPositions.push(index);
+                else if (this._liveTimelineEntries.get(id)?.side === 'before') beforePositions.push(index);
+                else if (this._liveTimelineEntries.get(id)?.side === 'after') afterPositions.push(index);
+            });
+            group.forEach(({ id, element }, index) => {
+                if (capturedIds.has(id)) return;
+                let side = this._liveTimelineEntries.get(id)?.side;
+                if (!side && apiPositions.length) {
+                    if (index < apiPositions[0]) side = 'before';
+                    else if (index > apiPositions[apiPositions.length - 1]) side = 'after';
+                } else if (!side && (beforePositions.length || afterPositions.length)) {
+                    if (beforePositions.length && index <= beforePositions[beforePositions.length - 1]) side = 'before';
+                    else if (afterPositions.length && index >= afterPositions[0]) side = 'after';
+                    else if (complete) side = 'after';
+                } else if (!side && complete) side = 'after';
+                if (!side) return; // 部分历史缺少顺序锚点时不猜测位置。
+                this._timelineEntryRevisions.set(id, revision);
+                observed[side].push(id);
+                candidates.set(id, { summary: this.extractText(element), side });
+            });
+        }
+        for (const side of ['before', 'after']) {
+            const current = this._supplementalTimelineOrder[side].filter(id => this._liveTimelineEntries.has(id));
+            const ordered = this._mergeSupplementalTimelineOrder(current, observed[side]);
+            this._supplementalTimelineOrder[side] = ordered;
+            for (const id of ordered) {
+                if (candidates.has(id)) this._liveTimelineEntries.set(id, candidates.get(id));
+            }
+        }
+        const supplement = side => this._supplementalTimelineOrder[side].map(id => ({ id,
+            summary: this._liveTimelineEntries.get(id).summary,
+            element: elementsById.get(id.slice('chatgpt-'.length)) || null }));
+        return [...(complete ? [] : supplement('before')), ...entries, ...supplement('after')];
+    }
+
+    isTimelineTargetReady(element) {
+        if (!element?.isConnected || element.childElementCount === 0) return false;
+        const hasUserContent = element.matches('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]')
+            || element.querySelector('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]');
+        if (element.matches('[data-turn-id-container], [data-turn-key]') && !hasUserContent) return false;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return rect.height > 0 && rect.width > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    }
+
+    _findTimelineTarget(targetId) {
+        // 同一提问可能同时有外层空壳和已渲染的内层元素，优先采用可定位的内容。
+        let shell = null;
+        for (const element of document.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
+            const matches = this._extractNodeIdFromDom(element) === targetId
+                || element.getAttribute('data-turn-key') === targetId
+                || (element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/).includes(targetId)
+                || [...element.querySelectorAll('[data-message-id]')].some(child => child.getAttribute('data-message-id') === targetId);
+            if (!matches) continue;
+            if (this.isTimelineTargetReady(element)) return element;
+            shell ||= element;
+        }
+        return shell;
+    }
+
+    // 与导出相同：先给虚拟内容启动渲染的时间，再等待 DOM 安静，设置硬超时。
+    _waitForTimelineRender(signal) {
+        if (signal.aborted) return Promise.resolve();
+        return new Promise(resolve => {
+            const startedAt = Date.now();
+            let quietTimer, maxTimer, done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                observer.disconnect(); clearTimeout(quietTimer); clearTimeout(maxTimer);
+                signal.removeEventListener('abort', finish); resolve();
+            };
+            const schedule = () => {
+                clearTimeout(quietTimer);
+                quietTimer = setTimeout(finish, Math.max(180, 580 - (Date.now() - startedAt)));
+            };
+            const observer = new MutationObserver(schedule);
+            observer.observe(document.querySelector('[data-thread-find-target="conversation"]') || document.body, {
+                childList: true, subtree: true, attributes: true,
+                attributeFilter: ['data-is-intersecting', 'data-turn', 'data-turn-key']
+            });
+            signal.addEventListener('abort', finish, { once: true });
+            maxTimer = setTimeout(finish, 2000);
+            schedule();
+            if (signal.aborted) finish();
+        });
+    }
+
+    async resolveTimelineTarget(marker, scrollContainer, signal, onProgress, navigation = {}) {
+        const conversationId = this.extractConversationId(location.pathname);
+        const targetId = marker.id.slice('chatgpt-'.length);
+        const initialScrollTop = scrollContainer.scrollTop;
+        // 多次重挂载仍属于同一次导航，共用总超时，避免不断重新计时。
+        const deadline = Math.min(Date.now() + 120000, navigation.deadline ?? Infinity);
+        const checkedIds = new Set();
+        let maxKnownEntries = 0, seenTargetShell = false, maxTargetChildren = 0;
+        let foundTarget = null, lastSignature = '', lastProgressAt = Date.now();
+        let lowerPosition = null, upperPosition = null, searchSnapshot = '';
+        try {
+            while (!signal.aborted && Date.now() < deadline
+                && this.extractConversationId(location.pathname) === conversationId) {
+                const target = this._findTimelineTarget(targetId);
+                if (this.isTimelineTargetReady(target)) {
+                    foundTarget = target;
+                    return target;
+                }
+                const userElements = [...document.querySelectorAll(this.getUserMessageSelector())];
+                const entries = this.getCapturedTimelineEntries(userElements) || userElements.map((element, index) => ({
+                    id: this.generateTurnId(element, index), element
+                }));
+                const targetIndex = entries.findIndex(entry => entry.id === marker.id);
+                const entryTarget = entries[targetIndex]?.element;
+                if (this.isTimelineTargetReady(entryTarget)) {
+                    foundTarget = entryTarget;
+                    return entryTarget;
+                }
+                const loadedIndexes = [];
+                entries.forEach((entry, index) => {
+                    if (!this.isTimelineTargetReady(entry.element)) return;
+                    checkedIds.add(entry.id); loadedIndexes.push(index);
+                });
+                onProgress?.({ checked: checkedIds.size, targetIndex, total: entries.length });
+                maxKnownEntries = Math.max(maxKnownEntries, entries.length);
+                seenTargetShell ||= !!target;
+                maxTargetChildren = Math.max(maxTargetChildren, target?.childElementCount || 0);
+                // 仅新内容或目标结构变化算进展；顶底切换、空白高度变化不能反复延长加载。
+                const signature = `${checkedIds.size}:${maxKnownEntries}:${seenTargetShell}:${maxTargetChildren}`;
+                if (signature !== lastSignature) {
+                    lastProgressAt = Date.now(); lastSignature = signature;
+                }
+                // 收藏定位由外层两分钟期限控制，不能因正文暂未到达在 20 秒提前结束。
+                else if (!navigation.waitForTarget && Date.now() - lastProgressAt > 20000) {
+                    return null;
+                }
+                if (!target && (targetIndex < 0 || !loadedIndexes.length)) {
+                    // 虚拟列表重排时可能暂时没有可用锚点，等待恢复，不盲目滚动。
+                    await this._waitForTimelineRender(signal);
+                    continue;
+                }
+                window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
+                const from = scrollContainer.scrollTop;
+                if (target) {
+                    // 已有目标空壳时直接锚定它；重排后每轮重新读取其位置。
+                    scrollContainer.scrollTop += target.getBoundingClientRect().top
+                        - scrollContainer.getBoundingClientRect().top - 80;
+                } else {
+                    const containerTop = scrollContainer.getBoundingClientRect().top;
+                    // 首次向顶/底查找；两侧都越过目标后，在两次落点之间查找。
+                    // 虚拟列表只挂载附近消息，反复跳顶底会始终跳过中间目标。
+                    const preceding = loadedIndexes.filter(index =>
+                        entries[index].element.getBoundingClientRect().top <= containerTop);
+                    const currentIndex = preceding.length ? preceding[preceding.length - 1] : loadedIndexes[0];
+                    const direction = targetIndex < currentIndex ? 'top' : 'bottom';
+                    const maxScrollTop = Math.max(0, scrollContainer.scrollHeight
+                        - (scrollContainer.clientHeight || window.innerHeight));
+                    const snapshot = `${entries.length}:${targetIndex}`;
+                    if (snapshot !== searchSnapshot) {
+                        lowerPosition = upperPosition = null;
+                        searchSnapshot = snapshot;
+                    }
+                    // 保存比例，避免懒加载图片或历史插入改变总高度后沿用旧像素位置。
+                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, from / maxScrollTop)) : 0;
+                    if (direction === 'top') {
+                        if (lowerPosition !== null && position <= lowerPosition) lowerPosition = null;
+                        upperPosition = position;
+                    } else {
+                        if (upperPosition !== null && position >= upperPosition) upperPosition = null;
+                        lowerPosition = position;
+                    }
+                    if (lowerPosition !== null && upperPosition !== null) {
+                        scrollContainer.scrollTop = (lowerPosition + upperPosition) / 2 * maxScrollTop;
+                    } else {
+                        scrollContainer.scrollTop = direction === 'top' ? 0 : maxScrollTop;
+                    }
+                }
+                await this._waitForTimelineRender(signal);
+            }
+            return null;
+        } finally {
+            // 手动取消或加载失败时回到出发位置；切换目标或离开页面时不抢位置。
+            if (!foundTarget && this.extractConversationId(location.pathname) === conversationId
+                && (!signal.aborted || signal.reason === 'cancel-navigation')) scrollContainer.scrollTop = initialScrollTop;
+        }
+    }
+
+    isTimelineHistoryLoading() {
+        return this._historyLoading?.conversationId === this.extractConversationId(location.pathname)
+            && this._historyLoading.loading === true && this._capturedTimeline?.complete !== true;
+    }
+
+    isTimelineHistoryRenderPending(markers = []) {
+        if (this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
+            || this._capturedTimeline?.complete !== true) return false;
+        // 数据返回不等于节点已更新；按 ID 核对，避免旧节点数量相同却误判已完成。
+        const renderedIds = new Set(markers.map(marker => marker.id));
+        return this._capturedTimeline.entries?.some(entry => !renderedIds.has(`chatgpt-${entry.id}`)) === true;
+    }
+
     subscribeCapturedChatsDataUpdated(callback) {
         if (typeof callback !== 'function') return () => {};
 
@@ -82,8 +392,27 @@ class ChatGPTAdapter extends SiteAdapter {
             const changedCount = this.handleCapturedChatsDataUpdated(conversationId);
             if (changedCount > 0) callback({ conversationId, changedCount });
         };
+        const loadingHandler = event => {
+            let state;
+            try { state = JSON.parse(event.detail); } catch {
+                return;
+            }
+            if (state?.conversationId !== this.extractConversationId(location.pathname)
+                || typeof state.loading !== 'boolean') {
+                return;
+            }
+            const wasLoading = this.isTimelineHistoryLoading();
+            this._historyLoading = state;
+            if (wasLoading !== this.isTimelineHistoryLoading()) {
+                callback({ conversationId: state.conversationId, historyLoadingChanged: true });
+            }
+        };
         document.addEventListener('ait-gpt-user-texts-updated', handler);
-        return () => document.removeEventListener('ait-gpt-user-texts-updated', handler);
+        document.addEventListener('ait-gpt-history-loading', loadingHandler);
+        return () => {
+            document.removeEventListener('ait-gpt-user-texts-updated', handler);
+            document.removeEventListener('ait-gpt-history-loading', loadingHandler);
+        };
     }
 
     getConflictingTimelineSelectors() {
@@ -135,19 +464,19 @@ class ChatGPTAdapter extends SiteAdapter {
      * 前提：时间轴渲染时拦截模块已完成拦截，故每个对话拉取一次即可，不做轮询/节流。
      * 未拉到时静默降级（渲染期缓存 → 占位符）。
      */
-    syncCapturedChatsData() {
+    syncCapturedChatsData({ force = false, restartHistory = false } = {}) {
         const convId = this.extractConversationId(location.pathname);
         if (convId !== this._textCacheConvId) {
             // 切换对话：失效缓存归属
             this._textCacheConvId = convId;
             this._turnTextCache.clear();
             this._capturedTextIds.clear();
-        } else if (this._capturedTextIds.size > 0) {
+        } else if (!force && this._capturedTextIds.size > 0) {
             return; // 同一对话且已成功拉取过接口文本，直接用缓存
         }
         // 首次拉取，或上次拉取时接口尚未返回（SPA 切换时 pull 常早于响应，
         // 且「更新事件」可能落在时间轴销毁/重建的空窗被漏掉）→ 每次重建时廉价重试
-        this._pullConvTexts(convId);
+        this._pullConvTexts(convId, { restartHistory });
     }
 
     /**

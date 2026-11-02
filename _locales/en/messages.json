@@ -1216,5 +1216,17 @@
   },
   "viewChangelogTooltip": {
     "message": "View changelog"
+  },
+  "timelineNodeLoading": {
+    "message": "Scrolling to the target conversation…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Loading more questions…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "This question could not be loaded. Please try again."
+  },
+  "timelineNodeRetry": {
+    "message": "Retry"
   }
 }

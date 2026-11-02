@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "ดูประวัติการอัปเดต"
+  },
+  "timelineNodeLoading": {
+    "message": "กำลังเลื่อนไปยังบทสนทนาที่ต้องการ…"
+  },
+  "timelineHistoryLoading": {
+    "message": "กำลังโหลดคำถามเพิ่มเติม…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "ไม่สามารถโหลดคำถามนี้ได้ โปรดลองอีกครั้ง"
+  },
+  "timelineNodeRetry": {
+    "message": "ลองอีกครั้ง"
   }
 }

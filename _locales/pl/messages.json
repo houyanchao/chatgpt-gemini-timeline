@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Zobacz historię zmian"
+  },
+  "timelineNodeLoading": {
+    "message": "Przewijanie do wybranej rozmowy…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Wczytywanie kolejnych pytań…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Nie udało się wczytać tego pytania. Spróbuj ponownie."
+  },
+  "timelineNodeRetry": {
+    "message": "Spróbuj ponownie"
   }
 }

@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Visualizza la cronologia degli aggiornamenti"
+  },
+  "timelineNodeLoading": {
+    "message": "Scorrimento alla conversazione selezionata…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Caricamento di altre domande…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Impossibile caricare questa domanda. Riprova."
+  },
+  "timelineNodeRetry": {
+    "message": "Riprova"
   }
 }

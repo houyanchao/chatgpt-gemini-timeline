@@ -1150,5 +1150,17 @@
   },
   "viewChangelogTooltip": {
     "message": "更新履歴を見る"
+  },
+  "timelineNodeLoading": {
+    "message": "対象の会話までスクロールしています…"
+  },
+  "timelineHistoryLoading": {
+    "message": "他の質問を読み込んでいます…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "この質問を読み込めませんでした。もう一度お試しください。"
+  },
+  "timelineNodeRetry": {
+    "message": "再試行"
   }
 }

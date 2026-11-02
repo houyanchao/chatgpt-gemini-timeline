@@ -14,6 +14,95 @@
    时间轴核心样式
    ============================================ */
 
+/* 定点加载历史消息：轻量提示，不遮挡对话和时间轴。 */
+.ait-node-navigation-loading {
+    --ait-navigation-accent: #111;
+    --ait-navigation-muted: #6b7280;
+    --ait-navigation-icon-bg: rgb(17 24 39 / 4%);
+    --ait-navigation-button-bg: rgb(17 24 39 / 4%);
+    --ait-navigation-button-hover: rgb(17 24 39 / 8%);
+    position: fixed;
+    left: 50%;
+    top: calc(15px + env(safe-area-inset-top, 0px));
+    transform: translateX(-50%);
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    max-width: min(440px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border: 1px solid rgb(17 24 39 / 8%);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 96%);
+    color: #1f2937;
+    box-shadow: 0 8px 32px rgb(17 24 39 / 10%), 0 2px 6px rgb(17 24 39 / 4%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font: 13px/1.5 system-ui, sans-serif;
+}
+.ait-node-navigation-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--ait-navigation-icon-bg);
+}
+.ait-node-navigation-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ait-node-navigation-title { font-weight: 600; line-height: 1.5; }
+.ait-node-navigation-loading button {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--ait-navigation-button-bg);
+    color: var(--ait-navigation-muted);
+    font: 12px/1.5 system-ui, sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ait-node-navigation-loading button:hover { background: var(--ait-navigation-button-hover); color: inherit; }
+.ait-node-navigation-loading button:focus-visible { outline: 2px solid var(--ait-navigation-accent); outline-offset: 2px; }
+.ait-node-navigation-spinner {
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--ait-navigation-accent);
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: ait-node-navigation-spin 0.8s linear infinite;
+}
+@keyframes ait-node-navigation-spin { to { transform: rotate(360deg); } }
+html[data-timeline-theme="dark"] .ait-node-navigation-loading {
+    --ait-navigation-muted: #a8abb4;
+    --ait-navigation-icon-bg: rgb(255 255 255 / 6%);
+    --ait-navigation-accent: #f3f4f6;
+    --ait-navigation-button-bg: rgb(255 255 255 / 6%);
+    --ait-navigation-button-hover: rgb(255 255 255 / 11%);
+    background: rgb(36 36 40 / 96%);
+    color: #f3f4f6;
+    border-color: rgb(255 255 255 / 10%);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 24%), 0 2px 6px rgb(0 0 0 / 12%);
+}
+@media (max-width: 480px) {
+    .ait-node-navigation-loading {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        width: calc(100vw - 32px);
+        gap: 8px 12px;
+    }
+    .ait-node-navigation-icon { align-self: start; margin-top: 2px; }
+    .ait-node-navigation-loading button { grid-column: 2; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ait-node-navigation-spinner { animation: none; }
+}
+
 /* ✅ 时间轴包装容器（包含时间轴和收藏按钮） */
 .ait-chat-timeline-wrapper {
     position: fixed;
@@ -122,6 +211,34 @@ html[data-timeline-theme="dark"] .timeline-toggle-btn:active {
     contain: layout;
 }
 
+/* 首个节点上方的历史加载状态，独立于节点轨道。 */
+.ait-timeline-history-loading {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    color: #111;
+    cursor: progress;
+    z-index: 1;
+}
+.ait-timeline-history-loading::after {
+    content: '';
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: ait-node-navigation-spin 0.8s linear infinite;
+}
+html[data-timeline-theme="dark"] .ait-timeline-history-loading { color: #f3f4f6; }
+@media (prefers-reduced-motion: reduce) {
+    .ait-timeline-history-loading::after { animation: none; }
+}
+
 /* Scrollable track to host all dots (long canvas) */
 .ait-timeline-track {
     position: relative;
@@ -147,12 +264,20 @@ html[data-timeline-theme="dark"] .timeline-toggle-btn:active {
     );
     transform: translate(-50%, -50%);
     width: var(--timeline-hit-size);   /* enlarged hit area */
-    height: var(--timeline-hit-size);  /* enlarged hit area */
+    /* 命中区域随节点间距收缩，避免下方节点遮住当前节点。 */
+    height: min(var(--timeline-hit-size), var(--timeline-node-hit-height, var(--timeline-hit-size)));
+    min-height: 0;
     background: transparent;           /* visible dot drawn via ::after */
     border: none;
     outline: none;  /* ✅ 移除浏览器默认的 focus/active 边框 */
-    cursor: pointer;
+    cursor: default;
     padding: 0;
+}
+
+.ait-timeline-dot::before,
+.ait-timeline-dot::after {
+    /* 可见图形可能超出密集节点的命中区域，只由按钮本身接收鼠标事件。 */
+    pointer-events: none;
 }
 
 .ait-timeline-dot::after {

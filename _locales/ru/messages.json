@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Посмотреть историю обновлений"
+  },
+  "timelineNodeLoading": {
+    "message": "Прокрутка к нужному диалогу…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Загрузка дополнительных вопросов…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Не удалось загрузить этот вопрос. Попробуйте ещё раз."
+  },
+  "timelineNodeRetry": {
+    "message": "Повторить"
   }
 }

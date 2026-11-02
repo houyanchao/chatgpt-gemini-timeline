@@ -1216,5 +1216,17 @@
   },
   "viewChangelogTooltip": {
     "message": "查看更新记录"
+  },
+  "timelineNodeLoading": {
+    "message": "正在滚动到目标对话…"
+  },
+  "timelineHistoryLoading": {
+    "message": "正在加载更多提问…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "该提问暂未加载，请稍后重试"
+  },
+  "timelineNodeRetry": {
+    "message": "重试"
   }
 }

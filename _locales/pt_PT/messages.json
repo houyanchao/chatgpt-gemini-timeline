@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Ver registo de alterações"
+  },
+  "timelineNodeLoading": {
+    "message": "A deslocar para a conversa pretendida…"
+  },
+  "timelineHistoryLoading": {
+    "message": "A carregar mais perguntas…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Não foi possível carregar esta pergunta. Tente novamente."
+  },
+  "timelineNodeRetry": {
+    "message": "Tentar novamente"
   }
 }

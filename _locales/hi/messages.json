@@ -1099,5 +1099,17 @@
   },
   "viewChangelogTooltip": {
     "message": "अपडेट इतिहास देखें"
+  },
+  "timelineNodeLoading": {
+    "message": "लक्षित बातचीत तक स्क्रॉल किया जा रहा है…"
+  },
+  "timelineHistoryLoading": {
+    "message": "और सवाल लोड हो रहे हैं…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "यह सवाल लोड नहीं हो सका। कृपया फिर से कोशिश करें।"
+  },
+  "timelineNodeRetry": {
+    "message": "फिर से कोशिश करें"
   }
 }

@@ -84,7 +84,8 @@ class GeminiSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     // ==================== 原生菜单注入 ====================
 
     getClickDelegateSelector() {
-        return 'button[data-test-id="actions-menu-button"]';
+        // 新版属性位于 gem-icon-button；不限定标签，同时兼容旧版 button。
+        return '[data-test-id="actions-menu-button"]';
     }
 
     /**

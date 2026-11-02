@@ -82,6 +82,11 @@ class SiteAdapter {
     syncCapturedChatsData() {
     }
 
+    // 平台明确开启后，收藏才使用等待正文和失败重试流程。
+    supportsDeferredNodeNavigation() {
+        return false;
+    }
+
     /**
      * Subscribe to platform-specific captured-data updates.
      * @param {(detail:Object)=>void} callback

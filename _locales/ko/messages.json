@@ -1150,5 +1150,17 @@
   },
   "viewChangelogTooltip": {
     "message": "업데이트 기록 보기"
+  },
+  "timelineNodeLoading": {
+    "message": "대상 대화로 스크롤하는 중…"
+  },
+  "timelineHistoryLoading": {
+    "message": "질문을 더 불러오는 중…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "이 질문을 불러오지 못했습니다. 다시 시도해 주세요."
+  },
+  "timelineNodeRetry": {
+    "message": "다시 시도"
   }
 }

@@ -1201,5 +1201,17 @@
   },
   "viewChangelogTooltip": {
     "message": "Änderungsprotokoll ansehen"
+  },
+  "timelineNodeLoading": {
+    "message": "Zum gewünschten Gespräch scrollen…"
+  },
+  "timelineHistoryLoading": {
+    "message": "Weitere Fragen werden geladen…"
+  },
+  "timelineNodeLoadFailed": {
+    "message": "Diese Frage konnte nicht geladen werden. Bitte erneut versuchen."
+  },
+  "timelineNodeRetry": {
+    "message": "Erneut versuchen"
   }
 }
