@@ -16,7 +16,6 @@ class NotepadManager {
 
         this.activeNoteId = null;
         this.currentView = 'edit'; // 'edit' | 'list'
-        this.MAX_NOTES = 50;
 
         // 笔记数组 [{id, content, updatedAt}]
         // 文件夹和标题信息存在 chatTimelineStars 中，key 格式：chatTimelineStar:notepad:{noteId}
@@ -86,6 +85,8 @@ class NotepadManager {
 
         const panel = document.createElement('div');
         panel.className = 'ait-notepad-panel';
+        // 关闭状态不依赖样式表或透明度，避免面板文字混入网页全选复制。
+        panel.hidden = true;
 
         panel.innerHTML = `
             <div class="ait-notepad-header">
@@ -420,11 +421,6 @@ class NotepadManager {
         if (this.activeNoteId) {
             const current = this._getNoteById(this.activeNoteId);
             if (current && !current.content.trim()) return;
-        }
-
-        if (this.notes.length >= this.MAX_NOTES) {
-            const sorted = [...this.notes].sort((a, b) => a.updatedAt - b.updatedAt);
-            this.notes = this.notes.filter(n => n.id !== sorted[0].id);
         }
 
         const note = {
@@ -825,6 +821,7 @@ class NotepadManager {
         }
 
         this.applyState();
+        this.panel.hidden = false;
         this.panel.classList.add('ait-notepad-visible');
         this._setFocused(true);
         this._syncBtnActive();
@@ -877,6 +874,7 @@ class NotepadManager {
     close() {
         if (!this.isOpen) return;
         this.isOpen = false;
+        this.panel.hidden = true;
         this._flushCurrentNote();
         this._setFocused(false);
         this.panel.classList.remove('ait-notepad-visible');

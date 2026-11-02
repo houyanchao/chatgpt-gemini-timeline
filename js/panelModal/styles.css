@@ -44,6 +44,11 @@
     pointer-events: auto !important;
 }
 
+/* 防止面板的 display 规则覆盖浏览器原生 hidden 状态。 */
+.ait-panel-modal[hidden] {
+    display: none !important;
+}
+
 /* ========== 遮罩层 ========== */
 .ait-panel-modal-overlay {
     position: absolute !important;

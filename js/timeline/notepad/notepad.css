@@ -54,6 +54,11 @@
     overflow: hidden;
 }
 
+/* display: flex 不能让已关闭的面板重新参与布局和文字选区。 */
+.ait-notepad-panel[hidden] {
+    display: none !important;
+}
+
 body.dark-theme .ait-notepad-panel,
 html[data-timeline-theme="dark"] .ait-notepad-panel {
     --ait-notepad-bg: #1f1f23;

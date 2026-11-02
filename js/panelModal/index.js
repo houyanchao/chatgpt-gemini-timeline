@@ -57,6 +57,8 @@ class PanelModal {
         // 主容器
         this.container = document.createElement('div');
         this.container.className = 'ait-panel-modal';
+        // 即使扩展样式未注入，未打开的面板也不能暴露在网页和复制选区中。
+        this.container.hidden = true;
         
         // 遮罩层
         this.overlay = document.createElement('div');
@@ -455,6 +457,7 @@ class PanelModal {
             // 先显示面板外壳：tab 的同步渲染会立即出现，异步 mounted 之后再填充，
             // 避免等待 mounted 完成导致面板延迟显示。
             this.container.classList.add('visible');
+            this.container.hidden = false;
             this.isVisible = true;
 
             // 禁用 body 滚动
@@ -543,6 +546,7 @@ class PanelModal {
      * 隐藏面板
      */
     hide() {
+        this.container.hidden = true;
         this.container.classList.remove('visible');
         this.isVisible = false;
         

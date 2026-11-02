@@ -4,7 +4,8 @@
  * 网页文字标注功能核心模块
  * - 选中文字后创建高亮标注（<mark> 包裹）
  * - 序列化：TextQuoteSelector (exact + prefix + suffix) + TextPositionSelector (start + end)
- * - 页面加载时恢复高亮：三级匹配（精确 → 模糊前缀锚定 → 模糊直接匹配）
+ * - 页面加载及正文重建时恢复高亮，节流并跳过自身 DOM 修改
+ * - 三级匹配（精确 → 模糊前缀锚定 → 模糊直接匹配）
  * - 使用 diff-match-patch 做模糊匹配，容忍页面渲染差异
  *
  * 存储结构（chrome.storage.local）：
@@ -14,6 +15,12 @@
  */
 
 const _HL_INVISIBLE_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'IFRAME']);
+const _HL_RESTORE_IGNORE_SELECTOR = [
+    'input', 'textarea', 'select', '[contenteditable="true"]',
+    '.ait-hl-popover', '.ait-highlight-standalone-btn', '.ait-quick-ask-btn',
+    '.ait-panel-modal', '.ait-notepad-panel', '.ait-chat-timeline-wrapper',
+    '.timeline-tooltip-overlay'
+].join(',');
 
 class HighlightManager {
     constructor() {
@@ -28,6 +35,19 @@ class HighlightManager {
         this._dmp = new diff_match_patch();
         this._dmp.Match_Threshold = 0.4;
         this._dmp.Match_Distance = 500;
+        this._restoreObserver = null;
+        this._observerActive = false;
+        this._observerPauseDepth = 0;
+        this._restoreTimer = null;
+        this._restorePromise = null;
+        this._restoreAgain = false;
+        this._restoreDeferred = false;
+        this._pageHighlights = null;
+        this._pageHighlightsKey = null;
+        this._dataRevision = 0;
+        this._removedHighlightIds = new Set();
+        this._obsoleteHighlightIds = new Set();
+        this._destroyed = false;
     }
 
     async init() {
@@ -36,16 +56,16 @@ class HighlightManager {
         if (result[this._colorKey]) this.currentColor = result[this._colorKey];
         if (result[this._styleKey]) this.currentStyle = result[this._styleKey];
 
-        if (this.isEnabled) {
-            this.restoreHighlights();
-        }
-
-        chrome.storage.onChanged.addListener((changes, area) => {
+        this._onStorageChange = (changes, area) => {
             if (area !== 'local') return;
             if (changes[this._enabledKey]) {
                 this.isEnabled = changes[this._enabledKey].newValue !== false;
-                if (this.isEnabled) this.restoreHighlights();
-                else this.clearAllMarks();
+                if (this.isEnabled) this.scheduleRestore();
+                else {
+                    this._stopObserving();
+                    this._cancelRestore();
+                    this.clearAllMarks();
+                }
             }
             if (changes[this._colorKey]) {
                 this.currentColor = changes[this._colorKey].newValue || HIGHLIGHT_DEFAULT_COLORS[0];
@@ -53,7 +73,30 @@ class HighlightManager {
             if (changes[this._styleKey]) {
                 this.currentStyle = changes[this._styleKey].newValue || 'solid';
             }
-        });
+            if (changes[this._storageKey]) {
+                this._dataRevision++;
+                this._pageHighlights = null;
+                const storedIds = new Set((changes[this._storageKey].newValue?.[this._getPageKey()] || []).map(hl => hl.id));
+                const previousHighlights = changes[this._storageKey].oldValue?.[this._getPageKey()] || [];
+                // 只清理确实从存储中移除的记录，避免误删尚在保存中的新标记。
+                for (const hl of previousHighlights) {
+                    if (!storedIds.has(hl.id)) this._obsoleteHighlightIds.add(hl.id);
+                }
+                for (const id of storedIds) this._obsoleteHighlightIds.delete(id);
+                for (const id of this._removedHighlightIds) {
+                    if (!storedIds.has(id)) this._removedHighlightIds.delete(id);
+                }
+                this.scheduleRestore();
+            }
+        };
+        chrome.storage.onChanged.addListener(this._onStorageChange);
+        this._onSelectionChange = () => {
+            if (this._restoreDeferred && window.getSelection()?.isCollapsed !== false) {
+                this.scheduleRestore();
+            }
+        };
+        document.addEventListener('selectionchange', this._onSelectionChange);
+        await this.restoreHighlights();
     }
 
     // ==================== TreeWalker 工具 ====================
@@ -198,12 +241,14 @@ class HighlightManager {
     // ==================== 删除高亮 ====================
 
     _unwrapHighlight(id) {
-        const marks = document.querySelectorAll(`mark.ait-highlight[data-hl-id="${id}"]`);
-        marks.forEach(mark => {
-            const parent = mark.parentNode;
-            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-            parent.removeChild(mark);
-            parent.normalize();
+        this._withObserverPaused(() => {
+            const marks = document.querySelectorAll(`mark.ait-highlight[data-hl-id="${id}"]`);
+            marks.forEach(mark => {
+                const parent = mark.parentNode;
+                while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                parent.removeChild(mark);
+                parent.normalize();
+            });
         });
     }
 
@@ -214,50 +259,174 @@ class HighlightManager {
 
     // ==================== 恢复高亮 ====================
 
-    async restoreHighlights(retryCount = 0) {
-        const url = this._getPageKey();
-        const allData = await this._loadAllData();
-        const highlights = allData[url];
-        if (!highlights || highlights.length === 0) return;
+    scheduleRestore(delay = 300) {
+        if (!this.isEnabled || this._destroyed || this._restoreTimer !== null) return;
+        // 不重置已有计时器，流式输出持续变化时也能定期恢复。
+        this._restoreTimer = setTimeout(() => {
+            this._restoreTimer = null;
+            this.restoreHighlights().catch(() => {});
+        }, delay);
+    }
 
-        const { textArr, nodes, text } = this._collectTextNodes();
+    _cancelRestore() {
+        clearTimeout(this._restoreTimer);
+        this._restoreTimer = null;
+        this._restoreAgain = false;
+        this._restoreDeferred = false;
+    }
 
-        let restored = 0;
-        for (const hl of highlights) {
-            if (document.querySelector(`mark.ait-highlight[data-hl-id="${hl.id}"]`)) {
-                restored++;
-                continue;
+    _isRestoreContentNode(node) {
+        const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+        return !element?.closest(_HL_RESTORE_IGNORE_SELECTOR)
+            && !element?.closest('script, style, noscript, template, iframe');
+    }
+
+    _handleContentMutations(mutations) {
+        if (mutations.some(mutation => this._isRestoreContentNode(mutation.target)
+            && (mutation.type === 'characterData'
+                || [...mutation.addedNodes, ...mutation.removedNodes].some(node =>
+                    this._isRestoreContentNode(node) && node.textContent?.trim())))) {
+            this.scheduleRestore();
+        }
+    }
+
+    _startObserving() {
+        if (!this.isEnabled || this._destroyed || this._observerPauseDepth
+            || !this._pageHighlights?.length || this._pageHighlightsKey !== this._getPageKey()) return;
+        if (!this._restoreObserver) {
+            this._restoreObserver = new MutationObserver(mutations => this._handleContentMutations(mutations));
+        }
+        if (!this._observerActive) {
+            this._restoreObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+            this._observerActive = true;
+        }
+    }
+
+    _stopObserving() {
+        this._restoreObserver?.disconnect();
+        this._observerActive = false;
+    }
+
+    _withObserverPaused(callback) {
+        if (this._observerActive) {
+            // 先保留尚未派发的正文变化，再屏蔽本次高亮自身的 DOM 写入。
+            this._handleContentMutations(this._restoreObserver.takeRecords());
+            this._stopObserving();
+        }
+        this._observerPauseDepth++;
+        try {
+            return callback();
+        } finally {
+            this._observerPauseDepth--;
+            this._startObserving();
+        }
+    }
+
+    handlePageChange() {
+        this._stopObserving();
+        this._cancelRestore();
+        this._dataRevision++;
+        this._pageHighlights = null;
+        this._pageHighlightsKey = null;
+        this._removedHighlightIds.clear();
+        this._obsoleteHighlightIds.clear();
+        this.clearAllMarks();
+        this.scheduleRestore();
+    }
+
+    restoreHighlights() {
+        if (!this.isEnabled || this._destroyed) return Promise.resolve();
+        if (this._restorePromise) {
+            this._restoreAgain = true;
+            return this._restorePromise;
+        }
+        this._restorePromise = this._restoreHighlights().finally(() => {
+            this._restorePromise = null;
+            if (this._restoreAgain) {
+                this._restoreAgain = false;
+                this.scheduleRestore();
             }
+        });
+        return this._restorePromise;
+    }
 
-            const range = this._findRangeIn(text, textArr, nodes, hl);
+    async _restoreHighlights() {
+        const url = this._getPageKey();
+        if (this._pageHighlights === null || this._pageHighlightsKey !== url) {
+            const revision = this._dataRevision;
+            const allData = await this._loadAllData();
+            if (!this.isEnabled || this._destroyed || url !== this._getPageKey()
+                || revision !== this._dataRevision) {
+                this.scheduleRestore();
+                return;
+            }
+            this._pageHighlights = allData[url] || [];
+            this._pageHighlightsKey = url;
+        }
+        const highlights = this._pageHighlights;
+        this._startObserving();
+        // 不在用户选区或临时高亮上写入，避免破坏正在编辑的 Range。
+        this._restoreDeferred = window.getSelection()?.isCollapsed === false
+            || !!document.querySelector('mark.ait-highlight-pending');
+        if (this._restoreDeferred) return;
+
+        // 同步/导入可能用新 ID 替换同一段文字，先移除旧标记，再定位新高亮。
+        // 空列表也要执行清理；选区和临时标注则沿用上面的延后处理。
+        for (const id of this._obsoleteHighlightIds) this._unwrapHighlight(id);
+        this._obsoleteHighlightIds.clear();
+        if (!highlights.length) {
+            this._stopObserving();
+            return;
+        }
+
+        let content = null;
+        for (const hl of highlights) {
+            if (this._removedHighlightIds.has(hl.id)) continue;
+            const marks = [...document.querySelectorAll(`mark.ait-highlight[data-hl-id="${hl.id}"]`)];
+            const markedText = marks.map(mark => mark.textContent).join('');
+            if (marks.length && (markedText === hl.text || markedText === hl.text.replace(/\*\*|__/g, ''))) continue;
+
+            // 尚未挂载的多条消息共用一次正文扫描；只有修改 DOM 后才重新采集节点。
+            if (!content) content = this._collectTextNodes();
+            let range = this._findRangeIn(content.text, content.textArr, content.nodes, hl);
+            if (range && marks.length) {
+                this._unwrapHighlight(hl.id);
+                content = this._collectTextNodes();
+                range = this._findRangeIn(content.text, content.textArr, content.nodes, hl);
+            }
             if (range) {
                 const hlStyle = hl.style || 'solid';
                 const hlNote = hl.annotation || '';
                 try {
                     this._wrapRange(range, hl.id, hl.color, hlStyle, hlNote);
-                    restored++;
                 } catch (e1) {
                     try {
                         this._wrapRangeComplex(range, hl.id, hl.color, hlStyle, hlNote);
-                        restored++;
                     } catch { /* skip */ }
                 }
+                // mark 会切分文本节点，后面的高亮不能沿用本轮修改前的节点。
+                content = null;
             }
-        }
-
-        if (restored < highlights.length && retryCount < 5) {
-            const delay = [500, 1000, 2000, 4000, 8000][retryCount];
-            setTimeout(() => this.restoreHighlights(retryCount + 1), delay);
         }
     }
 
     clearAllMarks() {
-        document.querySelectorAll('mark.ait-highlight').forEach(mark => {
-            const parent = mark.parentNode;
-            while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-            parent.removeChild(mark);
-            parent.normalize();
+        this._withObserverPaused(() => {
+            document.querySelectorAll('mark.ait-highlight').forEach(mark => {
+                const parent = mark.parentNode;
+                while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+                parent.removeChild(mark);
+                parent.normalize();
+            });
         });
+    }
+
+    destroy() {
+        this._destroyed = true;
+        this._cancelRestore();
+        this._stopObserving();
+        if (this._onStorageChange) chrome.storage.onChanged.removeListener(this._onStorageChange);
+        if (this._onSelectionChange) document.removeEventListener('selectionchange', this._onSelectionChange);
     }
 
     // ==================== 序列化（TextQuoteSelector + TextPositionSelector） ====================
@@ -484,28 +653,32 @@ class HighlightManager {
     }
 
     _wrapRange(range, id, color, style, annotation) {
-        const mark = this._createMark(id, color, style, annotation);
-        try {
-            range.surroundContents(mark);
-        } catch {
-            this._wrapRangeComplex(range, id, color, style, annotation);
-            return;
-        }
-        this._bindMarkEvents(mark);
+        return this._withObserverPaused(() => {
+            const mark = this._createMark(id, color, style, annotation);
+            try {
+                range.surroundContents(mark);
+            } catch {
+                this._wrapRangeComplex(range, id, color, style, annotation);
+                return;
+            }
+            this._bindMarkEvents(mark);
+        });
     }
 
     _wrapRangeComplex(range, id, color, style, annotation) {
-        const nodes = this._getTextNodesInRange(range);
-        if (nodes.length === 0) return;
+        return this._withObserverPaused(() => {
+            const nodes = this._getTextNodesInRange(range);
+            if (nodes.length === 0) return;
 
-        for (let i = 0; i < nodes.length; i++) {
-            const mark = this._createMark(id, color, style, annotation);
-            const subRange = document.createRange();
-            subRange.setStart(nodes[i].node, nodes[i].start);
-            subRange.setEnd(nodes[i].node, nodes[i].end);
-            subRange.surroundContents(mark);
-            this._bindMarkEvents(mark);
-        }
+            for (let i = 0; i < nodes.length; i++) {
+                const mark = this._createMark(id, color, style, annotation);
+                const subRange = document.createRange();
+                subRange.setStart(nodes[i].node, nodes[i].start);
+                subRange.setEnd(nodes[i].node, nodes[i].end);
+                subRange.surroundContents(mark);
+                this._bindMarkEvents(mark);
+            }
+        });
     }
 
     _getTextNodesInRange(range) {
@@ -567,6 +740,8 @@ class HighlightManager {
     }
 
     async _removeFromStorage(id) {
+        // 存储写入完成前，已排队的恢复任务也不能重新画出刚删除的高亮。
+        this._removedHighlightIds.add(id);
         const url = this._getPageKey();
         const allData = await this._loadAllData();
         if (!allData[url]) return;
@@ -613,9 +788,13 @@ class HighlightManager {
 
     async setEnabled(enabled) {
         this.isEnabled = enabled;
+        if (!enabled) {
+            this._stopObserving();
+            this._cancelRestore();
+            this.clearAllMarks();
+        }
         await chrome.storage.local.set({ [this._enabledKey]: enabled });
-        if (enabled) this.restoreHighlights();
-        else this.clearAllMarks();
+        if (enabled) await this.restoreHighlights();
     }
 }
 

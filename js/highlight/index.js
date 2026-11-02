@@ -731,10 +731,7 @@
         currentUrl = location.href;
 
         hidePopover();
-        manager?.clearAllMarks();
-        setTimeout(() => {
-            if (manager?.isEnabled) manager.restoreHighlights();
-        }, 1000);
+        manager?.handlePageChange();
     }
 
     // ==================== 初始化 ====================
