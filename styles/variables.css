@@ -30,6 +30,9 @@
     --timeline-bar-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
     --ait-timeline-dot-size: 14px;
     --timeline-star-size: 17px; /* 五角星盒子尺寸（增加1px） */
+    --timeline-marker-icon-size: 14px; /* 横线收藏星标与图钉共用尺寸 */
+    --timeline-marker-icon-gap: 2px;
+    --timeline-marker-line-gap: 3px;
     --timeline-active-ring: 3px;
     --timeline-star-ring: 5px; /* 五角星边框环宽度（增加1px，使边框更明显） */
     --ait-timeline-track-padding: 16px;

@@ -16,7 +16,7 @@
  *      长对话下主线程卡顿会拉长帧间隔，该预算机制保证用户实际滚了多少就放行多少，
  *      不会因掉帧把手动滚动误判为平台跳转（见 issue #129）。
  *
- * GPT 通过 document_start 的 MAIN world 脚本提前拦截滚动 API，减少先跳后回。
+ * GPT、Claude 通过 document_start 的 MAIN world 脚本提前拦截滚动 API，减少先跳后回。
  * 浏览器原生布局/焦点滚动等不经过这些 API 的路径，仍由 rAF 位置纠正兜底。
  *
  * 时间轴等扩展内导航可通过 window.__aitPreventAutoScroll 声明可信滚动，
@@ -70,9 +70,11 @@
             this._trustedNavigationUntil = 0;
             this._trustedNavigationId = 0;
             this._restoringTop = false;
+            this._pointerSend = null;
 
             this._onKeydown = this._onKeydown.bind(this);
             this._onClick = this._onClick.bind(this);
+            this._onPointerDown = this._onPointerDown.bind(this);
             this._onUserScrollIntent = this._onUserScrollIntent.bind(this);
             this._onProgrammaticScroll = this._onProgrammaticScroll.bind(this);
             this._loop = this._loop.bind(this);
@@ -85,7 +87,10 @@
             // 发送动作捕获（capture 阶段，先于平台处理）
             document.addEventListener('keydown', this._onKeydown, true);
             document.addEventListener('click', this._onClick, true);
-            if (this.platformId === 'chatgpt') {
+            if (this.platformId === 'claude') {
+                document.addEventListener('pointerdown', this._onPointerDown, true);
+            }
+            if (this._usesProgrammaticGuard()) {
                 document.addEventListener('ait:before-programmatic-scroll', this._onProgrammaticScroll, true);
             }
 
@@ -98,6 +103,7 @@
             this._stopPin();
             document.removeEventListener('keydown', this._onKeydown, true);
             document.removeEventListener('click', this._onClick, true);
+            document.removeEventListener('pointerdown', this._onPointerDown, true);
             document.removeEventListener('ait:before-programmatic-scroll', this._onProgrammaticScroll, true);
             window.removeEventListener('wheel', this._onUserScrollIntent, { capture: true });
             window.removeEventListener('touchmove', this._onUserScrollIntent, { capture: true });
@@ -142,12 +148,28 @@
             this._maybeStartPin();
         }
 
+        _onPointerDown(e) {
+            if (e.button !== 0 || this._isGenerating()) return;
+            const selector = this._sendButtonSelector();
+            const button = selector && e.target?.closest?.(selector);
+            const editor = document.querySelector(this._inputSelector());
+            if (!button || button.disabled || button.getAttribute('aria-disabled') === 'true'
+                || !editor || this._isInputEmpty(editor)) return;
+            // Claude 的按钮焦点会先滚动正文，必须在 pointerdown 的默认行为前保存位置。
+            this._maybeStartPin();
+            this._pointerSend = this.pinning ? { button, at: performance.now() } : null;
+        }
+
         _onClick(e) {
-            // 已实测的 GPT 原生导航类名，无需匹配本地化 aria-label。
+            // 使用已实测的原生导航标记，无需匹配本地化 aria-label。
             // 在原生点击处理器执行前解除保护，也允许其异步/平滑滚动完成。
             const navigation = e.target?.closest?.('button[class~="group/scroll-to-bottom"]');
-            if (this.platformId === 'chatgpt' && this.pinning && e.isTrusted && navigation
-                && this.scrollContainer?.parentElement?.contains(navigation)) {
+            const claudeNavigation = this.platformId === 'claude'
+                && e.target?.closest?.('button[data-testid="jump-to-latest"]');
+            const nativeNavigation = (this.platformId === 'chatgpt' && navigation
+                && this.scrollContainer?.parentElement?.contains(navigation))
+                || (claudeNavigation && claudeNavigation.closest('main'));
+            if (this.pinning && e.isTrusted && nativeNavigation) {
                 this._stopPin();
                 return;
             }
@@ -158,13 +180,17 @@
             if (!btn) return;
             // 生成中点击的是"停止"按钮，不处理
             if (this._isGenerating()) return;
-            if (this.platformId === 'chatgpt') {
+            if (this.platformId === 'chatgpt' || this.platformId === 'claude') {
                 // 新版主操作区也可能显示语音入口，空输入或禁用按钮不能视为发送。
                 const editor = document.querySelector(this._inputSelector());
                 if (btn.disabled || btn.getAttribute('aria-disabled') === 'true'
                     || !editor || this._isInputEmpty(editor)) return;
             }
 
+            const pointerSend = this._pointerSend;
+            this._pointerSend = null;
+            if (this.platformId === 'claude' && this.pinning && pointerSend?.button === btn
+                && performance.now() - pointerSend.at < 1500) return;
             this._maybeStartPin();
         }
 
@@ -277,6 +303,10 @@
 
         // ==================== 锚定逻辑 ====================
 
+        _usesProgrammaticGuard() {
+            return this.platformId === 'chatgpt' || this.platformId === 'claude';
+        }
+
         _maybeStartPin() {
             if (!settingEnabled) return;
 
@@ -288,7 +318,7 @@
             // 已在底部 => 让平台正常滚动，不干预
             if (atBottom) return;
 
-            if (this.platformId === 'chatgpt' && this.scrollContainer !== window) {
+            if (this._usesProgrammaticGuard() && this.scrollContainer !== window) {
                 this.scrollContainer?.removeAttribute('data-ait-scroll-anchor');
             }
             this.scrollContainer = container;
@@ -306,7 +336,7 @@
                 this.pinning = true;
                 this.rafId = requestAnimationFrame(this._loop);
             }
-            if (this.platformId === 'chatgpt' && container !== window) {
+            if (this._usesProgrammaticGuard() && container !== window) {
                 container.setAttribute('data-ait-scroll-anchor', '');
             }
         }
@@ -369,7 +399,7 @@
 
         _stopPin() {
             this.pinning = false;
-            if (this.platformId === 'chatgpt' && this.scrollContainer !== window) {
+            if (this._usesProgrammaticGuard() && this.scrollContainer !== window) {
                 this.scrollContainer?.removeAttribute('data-ait-scroll-anchor');
             }
             if (this.rafId) {
@@ -377,6 +407,7 @@
                 this.rafId = null;
             }
             this.scrollContainer = null;
+            this._pointerSend = null;
             this._pendingUserDelta = 0;
             this._lastTouchY = null;
             this._trustedNavigationUntil = 0;

@@ -116,10 +116,9 @@ class SmartInputBoxTab extends BaseTab {
             const siteInfoList = typeof getSiteInfoList === 'function'
                 ? await getSiteInfoList()
                 : [];
-            // 平台列表（过滤掉 Claude，因其 Enter 键行为无法被拦截）
+            // 按平台能力显示换行与发送设置。
             const smartInputPlatforms = siteInfoList
-                .filter(p => p.features?.promptButton === true || p.features?.smartEnter === true)
-                .filter(p => p.id !== 'claude');
+                .filter(p => p.features?.promptButton === true || p.features?.smartEnter === true);
 
             const listContainer = document.querySelector('.smart-input-box-settings .platform-list-container');
             if (!listContainer) return;

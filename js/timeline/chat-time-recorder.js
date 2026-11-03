@@ -104,8 +104,12 @@ class ChatTimeRecorder {
         // 监听 AI 状态变化（由 AIStateMonitor 派发）
         window.addEventListener('ai:stateChange', this._boundOnAIStateChange);
         
-        // 初始渲染（页面已有节点时）
-        this._renderTimeLabels();
+        // 初始化期间可能已经进入生成状态，补上首次提问，避免漏掉开始事件。
+        if (window.AIStateMonitor?.getInstance().isGenerating) {
+            await this._recordNewNodeTime();
+        } else {
+            this._renderTimeLabels();
+        }
     }
 
     /**

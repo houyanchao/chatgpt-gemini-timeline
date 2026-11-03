@@ -44,6 +44,7 @@ class SmartEnterManager {
         // 使用 WeakMap 跟踪已附加的元素及其事件处理器
         // WeakMap 的好处：当元素被移除时会自动清理，不会造成内存泄漏
         this.attachedElements = new WeakMap();
+        this._externalKeydownInput = null;
         
         // ✅ 健康检查定时器
         this.healthCheckInterval = null;
@@ -126,11 +127,6 @@ class SmartEnterManager {
                 return false; // 平台不支持该功能
             }
             
-            // ✅ Claude 平台硬编码禁用（其 Enter 键行为无法被拦截）
-            if (platform.id === 'claude') {
-                return false;
-            }
-            
             // 从缓存中检查（默认关闭）
             return this.platformSettings[platform.id] === true;
         } catch (e) {
@@ -146,10 +142,12 @@ class SmartEnterManager {
             if (areaName === 'local') {
                 // ✅ 监听平台设置变化
                 if (changes.smartInputPlatformSettings) {
+                    this._resetState();
                     this.platformSettings = changes.smartInputPlatformSettings.newValue || {};
                 }
                 // ✅ 监听发送模式变化
                 if (changes.smartEnterMode) {
+                    this._resetState();
                     this.smartEnterMode = changes.smartEnterMode.newValue || SMART_ENTER_MODES.DOUBLE_ENTER;
                 }
             }
@@ -267,13 +265,23 @@ class SmartEnterManager {
      */
     _attachListener(inputElement) {
         if (!inputElement) return;
+
+        // 使用祖先监听时，编辑器替换后也必须移除旧闭包，避免重复处理。
+        if (this._externalKeydownInput && this._externalKeydownInput !== inputElement) {
+            this._detachListener(this._externalKeydownInput);
+        }
         
         // 创建绑定的事件处理器
-        const handleKeyDown = this._handleKeyDown.bind(this, inputElement);
+        const keydownTarget = this.adapter.getKeydownEventTarget(inputElement);
+        const handleKeyDown = (e) => {
+            if (e.target !== inputElement && !inputElement.contains(e.target)) return;
+            this._handleKeyDown(inputElement, e);
+        };
         const handleInput = this._handleInput.bind(this);
         
         // 附加 keydown 监听器（使用 capture 模式优先拦截）
-        inputElement.addEventListener('keydown', handleKeyDown, { capture: true });
+        keydownTarget.addEventListener('keydown', handleKeyDown, { capture: true });
+        if (keydownTarget !== inputElement) this._externalKeydownInput = inputElement;
         
         // 附加 input 监听器（检测内容变化）
         inputElement.addEventListener('input', handleInput);
@@ -281,7 +289,8 @@ class SmartEnterManager {
         // 保存事件处理器引用到 WeakMap，方便后续清理
         this.attachedElements.set(inputElement, {
             handleKeyDown,
-            handleInput
+            handleInput,
+            keydownTarget
         });
     }
     
@@ -295,13 +304,16 @@ class SmartEnterManager {
         // 从 WeakMap 获取事件处理器引用
         const handlers = this.attachedElements.get(inputElement);
         if (!handlers) return;
+
+        this._resetState();
         
         // 移除事件监听器
-        inputElement.removeEventListener('keydown', handlers.handleKeyDown, { capture: true });
+        handlers.keydownTarget.removeEventListener('keydown', handlers.handleKeyDown, { capture: true });
         inputElement.removeEventListener('input', handlers.handleInput);
         
         // 从 WeakMap 中删除
         this.attachedElements.delete(inputElement);
+        if (this._externalKeydownInput === inputElement) this._externalKeydownInput = null;
     }
     
     /**
@@ -329,6 +341,12 @@ class SmartEnterManager {
         if (e.key !== 'Enter') {
             return;
         }
+
+        // 输入法确认候选词的 Enter 不能触发换行或发送。
+        if (e.isComposing || e.keyCode === 229) {
+            this._resetState();
+            return;
+        }
         
         // 如果是我们触发的 Enter（用于发送或插入换行），允许通过
         if (this.state.allowNextEnter || this.state.isInsertingNewline) {
@@ -337,6 +355,13 @@ class SmartEnterManager {
         
         // ✅ 检查当前平台是否启用
         if (!this._isPlatformEnabled()) {
+            return;
+        }
+
+        // 长按产生的重复事件不能被识别为双击发送。
+        if (e.repeat) {
+            e.preventDefault();
+            e.stopPropagation();
             return;
         }
         
@@ -641,7 +666,7 @@ class SmartEnterManager {
     
     /**
      * 触发发送消息
-     * 直接模拟普通的 Enter 键事件，让平台原生处理发送
+     * 使用平台发送适配；默认模拟普通 Enter，让平台原生处理发送。
      * @param {HTMLElement} inputElement - 输入框元素
      */
     _triggerSend(inputElement) {
@@ -654,6 +679,12 @@ class SmartEnterManager {
             // 确保元素有焦点
             if (document.activeElement !== inputElement) {
                 inputElement.focus();
+            }
+
+            // 平台可使用原生发送按钮，避免合成 Enter 被编辑器忽略。
+            if (typeof this.adapter.sendMessage === 'function') {
+                this.adapter.sendMessage(inputElement);
+                return;
             }
             
             // 设置标记，允许下一次 Enter 通过
@@ -721,6 +752,7 @@ class SmartEnterManager {
         
         // 清理输入框的事件监听器
         try {
+            if (this._externalKeydownInput) this._detachListener(this._externalKeydownInput);
             const selector = this.adapter.getInputSelector();
             const input = document.querySelector(selector);
             if (input) {

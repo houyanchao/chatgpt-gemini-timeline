@@ -1110,19 +1110,30 @@ class StarredTreeRenderer {
             }
             this.opts.onAfterNavigate();
         } else if (this._isSameSite(url)) {
-            if (needsScroll && window.timelineManager) {
-                await window.timelineManager.setNavigateDataForUrl(url, nodeKey);
-            }
+            if (needsScroll) await this._saveNodeNavigationTarget(url, nodeKey);
             const adapter = await window.sidebarStarredAdapterRegistry?.getAdapter();
             if (!adapter?.navigateToConversation(url)) {
                 location.href = url;
             }
             this.opts.onAfterNavigate();
         } else {
-            if (needsScroll && window.timelineManager) {
-                await window.timelineManager.setNavigateDataForUrl(url, nodeKey);
-            }
+            if (needsScroll) await this._saveNodeNavigationTarget(url, nodeKey);
             window.open(url, '_blank');
+        }
+    }
+
+    async _saveNodeNavigationTarget(url, nodeKey) {
+        // 首页也有收藏列表，但没有时间轴实例；先保存目标，再打开会话。
+        const urlKey = url.replace(/^https?:\/\//, '');
+        const timestamp = Date.now();
+        try {
+            await StorageAdapter.set(`chatTimelineCrossNavigate:${urlKey}`, {
+                targetIndex: nodeKey,
+                timestamp,
+                expires: timestamp + 60000
+            });
+        } catch {
+            // 保持原有行为：存储失败时仍允许打开会话。
         }
     }
 

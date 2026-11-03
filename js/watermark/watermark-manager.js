@@ -24,6 +24,7 @@ class GeminiWatermarkRemover {
         // 状态
         this._processing = false;
         this._scanPending = false;
+        this._scanRafId = null;
         this._downloadButtonHandlers = new Map();
         this._nativeDownloadPassThrough = new WeakSet();
 
@@ -109,7 +110,7 @@ class GeminiWatermarkRemover {
         this._setRuntimeState('enabled');
 
         this._scanControls();
-        this._observer = new MutationObserver(() => this._scheduleScanControls());
+        this._observer = new MutationObserver(mutations => this._handleControlsMutations(mutations));
         this._observer.observe(document.body, {
             childList: true,
             subtree: true
@@ -125,15 +126,49 @@ class GeminiWatermarkRemover {
             this._observer.disconnect();
             this._observer = null;
         }
+        if (this._scanRafId !== null) cancelAnimationFrame(this._scanRafId);
+        this._scanRafId = null;
+        this._scanPending = false;
         this._unpatchDownloadButtons();
     }
 
     // ==================== 原生图片 controls 按钮 ====================
 
+    _handleControlsMutations(mutations) {
+        if (!this.isEnabled) return;
+        for (const mutation of mutations) {
+            const target = mutation.target.nodeType === 1
+                ? mutation.target : mutation.target.parentElement;
+            if (target?.closest(this.config.controlsSelector)) {
+                this._scheduleScanControls();
+                return;
+            }
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1 &&
+                    (node.matches(this.config.controlsSelector) || node.querySelector(this.config.controlsSelector))) {
+                    this._scheduleScanControls();
+                    return;
+                }
+            }
+            // 控件整体被移除时，target 已不在控件内部，仍需解绑失效按钮。
+            if (mutation.removedNodes.length && this._downloadButtonHandlers.size) {
+                for (const node of mutation.removedNodes) {
+                    for (const button of this._downloadButtonHandlers.keys()) {
+                        if (node === button || node.contains(button)) {
+                            this._scheduleScanControls();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     _scheduleScanControls() {
         if (this._scanPending || !this.isEnabled) return;
         this._scanPending = true;
-        requestAnimationFrame(() => {
+        this._scanRafId = requestAnimationFrame(() => {
+            this._scanRafId = null;
             this._scanPending = false;
             this._scanControls();
         });

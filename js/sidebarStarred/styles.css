@@ -46,7 +46,11 @@ nav:has([data-app-action-sidebar-section]) .ait-sidebar-starred.chatgpt {
 .ait-sidebar-starred.kimi { margin-left: -12px; }
 .ait-sidebar-starred.kimi .ait-ss-header { padding-left: 5px; padding-right: 7px; }
 .ait-sidebar-starred.deepseek { padding-top: 18px; padding-left: 0; padding-bottom: 0; margin-left: -6px; margin-bottom: -5px; }
-.ait-sidebar-starred.claude { padding: 8px 0 0 0; margin-left: -10px; }
+.ait-sidebar-starred.claude { padding: 4px 0 8px; margin-left: 0; }
+/* 标题栏向两侧展开，箭头和新增按钮对齐 Claude 原生侧栏控件。 */
+.ait-sidebar-starred.claude .ait-ss-header { padding-left: 6px; padding-right: 2px; }
+.ait-sidebar-starred.claude .ait-ss-chevron { margin-right: 6px; }
+.ait-sidebar-starred.claude .ait-ss-list { max-height: 220px; overflow-y: auto; }
 .ait-sidebar-starred.tongyi { padding-top: 5px; }
 .ait-sidebar-starred.qwen { padding-top: 0px; padding-left: 5px; margin-top: -5px; }
 .ait-sidebar-starred.deepseek .ait-ss-list { max-height: 220px; overflow-y: scroll; margin-right: -5px; padding-right: 5px; }
@@ -240,5 +244,11 @@ a[data-sidebar-item] > div > .ait-conv-starred-icon {
 /* 新版 GPT 的星标直接位于聊天链接内、标题滚动容器前。 */
 nav .sidebar-item a[data-interactive-row-link] > .ait-conv-starred-icon {
     align-self: center;
+    top: 0;
+}
+
+[data-testid="sidebar"] a[data-row-main-button] > .ait-claude-conv-starred-icon {
+    align-self: center;
+    margin-right: 0;
     top: 0;
 }

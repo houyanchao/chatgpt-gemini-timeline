@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.8.0",
+  "version": "4.8.1",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -24,6 +24,15 @@
   },
   
   "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": [
+        "js/apiCapture/claude.js",
+        "js/preventAutoScroll/chatgpt-scroll-guard.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "https://chatgpt.com/*",

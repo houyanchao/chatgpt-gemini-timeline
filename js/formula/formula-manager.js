@@ -38,6 +38,22 @@ class FormulaManager {
         
         // DOMObserverManager 取消订阅函数
         this._unsubscribeObserver = null;
+        this._formulaSourceObserver = null;
+        this._pendingFormulaRoots = new Set();
+        this._formulaScanTimer = null;
+        const formulaSelectors = [
+            '.katex', '.math-inline', '.mwe-math-element',
+            '.MathJax_SVG', '.MathJax', '[data-mathml]'
+        ];
+        if (location.hostname.endsWith('meta.ai')) {
+            formulaSelectors.push('[data-testid="assistant-message"] .markdown-content img[alt]');
+        }
+        this._formulaSelector = formulaSelectors.join(', ');
+        this._unprocessedFormulaSelector = formulaSelectors
+            .map(selector => `${selector}:not([data-latex-source])`).join(', ');
+        this._mathJaxScriptSelector = 'script[type^="math/tex"], script[type^="math/mml"]';
+        this._formulaScanCandidateSelector = `${this._unprocessedFormulaSelector}, ${this._mathJaxScriptSelector}`;
+        this._formulaContextSelector = `${this._formulaSelector}, ${this._mathJaxScriptSelector}, .qwen-markdown-latex`;
         
         // ✅ URL 变化监听（组件自治）
         this._currentUrl = location.href;
@@ -609,69 +625,106 @@ class FormulaManager {
 
     /**
      * 监听新增的公式元素
-     * 使用 DOMObserverManager 的 节流+防抖 策略：
-     * - 节流：持续变化时每 2 秒扫描一次（实时渲染）
-     * - 防抖：变化结束后 2 秒兜底扫描（确保不遗漏）
+     * 立即收集每批变更，再每 2 秒合并扫描变更子树。
+     * 不在共享观察器上防抖，避免较早批次的节点被后续批次覆盖。
      */
     observeNewFormulas() {
-        if (this._unsubscribeObserver) return;
-
         // 使用 DOMObserverManager 统一管理
-        if (window.DOMObserverManager) {
+        if (!this._unsubscribeObserver && window.DOMObserverManager) {
             this._unsubscribeObserver = window.DOMObserverManager.getInstance().subscribeBody('formula-manager', {
-                callback: () => {
-                    if (this.isEnabled) {
-                        this.scanAndAttachFormulas();
-                    }
-                },
-                filter: { hasAddedNodes: true },
-                throttle: 2000,  // 持续变化时每 2 秒执行一次
-                debounce: 2000   // 变化结束后 2 秒兜底执行
+                callback: mutationData => this._collectFormulaMutations(mutationData),
+                characterData: true
+            });
+        }
+
+        // 共享观察器只监听节点/文本；源码也可能稍后写入公式自身或祖先的属性。
+        // 仅监听解析器使用的源码属性，排除插件写入的 data-latex-source/class。
+        if (!this._formulaSourceObserver) {
+            this._formulaSourceObserver = new MutationObserver(mutations =>
+                this._collectFormulaMutations({ mutations }));
+            this._formulaSourceObserver.observe(document.body, {
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['data-math', 'data-math-source', 'data-latex', 'copy-text',
+                    'data-mathml', 'alt', 'encoding', 'type']
             });
         }
     }
 
     /**
-     * 扫描并附加所有未处理的公式
+     * 正文可以先插入公式外壳，再补充 annotation/script 文本。
+     * 除新增子树外，也收集变更目标所在的公式，避免漏掉这种分步渲染。
      */
-    scanAndAttachFormulas() {
+    _collectFormulaMutations(mutationData) {
         if (!this.isEnabled) return;
-        
-        // 扫描 KaTeX 公式（ChatGPT, Gemini, DeepSeek, Grok）
-        const katexFormulas = document.querySelectorAll('.katex:not([data-latex-source])');
-        katexFormulas.forEach(formula => this.attachFormulaListeners(formula));
-        
-        // 扫描豆包的 .math-inline 公式
-        const doubaoFormulas = document.querySelectorAll('.math-inline:not([data-latex-source])');
-        doubaoFormulas.forEach(formula => this.attachFormulaListeners(formula));
-        
-        // 扫描维基百科的 .mwe-math-element 公式
-        const wikiFormulas = document.querySelectorAll('.mwe-math-element:not([data-latex-source])');
-        wikiFormulas.forEach(formula => this.attachFormulaListeners(formula));
-        
-        // 扫描 MathJax 公式 - 查找 script[type="math/tex"] 的兄弟元素
-        const mathJaxScripts = document.querySelectorAll('script[type^="math/tex"]');
-        mathJaxScripts.forEach(script => {
-            if (!script.parentElement) return;
-            
-            // 查找兄弟元素中的 .MathJax_SVG 或 .MathJax
-            const mathJaxElement = script.parentElement.querySelector('.MathJax_SVG:not([data-latex-source]), .MathJax:not([data-latex-source])');
-            if (mathJaxElement) {
-                this.attachFormulaListeners(mathJaxElement);
+        const records = mutationData.mutations || [];
+        for (const mutation of records) {
+            if (!['childList', 'characterData', 'attributes'].includes(mutation.type)) continue;
+            const target = mutation.target.nodeType === 1
+                ? mutation.target : mutation.target.parentElement;
+            // Qwen 的源码和可见公式可为兄弟节点，需要回看同一个公式容器。
+            const formula = target?.closest(this._formulaContextSelector);
+            if (formula) this._queueFormulaRoot(formula);
+            if (mutation.type === 'attributes') this._queueFormulaRoot(target);
+            for (const node of mutation.addedNodes || []) {
+                if (node.nodeType === 1) this._queueFormulaRoot(node);
             }
-        });
-        
-        // 扫描带 data-mathml 属性的 MathJax 公式（覆盖仅有 MathML、无 LaTeX 的场景）
-        const mathmlElements = document.querySelectorAll('[data-mathml]:not([data-latex-source])');
-        mathmlElements.forEach(formula => this.attachFormulaListeners(formula));
-
-        // Meta.ai：img[alt] 公式（LaTeX 源码在 alt 属性中）
-        if (location.hostname.endsWith('meta.ai')) {
-            const metaImgs = document.querySelectorAll(
-                '[data-testid="assistant-message"] .markdown-content img[alt]:not([data-latex-source])'
-            );
-            metaImgs.forEach(img => this.attachFormulaListeners(img));
         }
+        if (!records.length) {
+            (mutationData.addedNodes || []).forEach(node => this._queueFormulaRoot(node));
+        }
+    }
+
+    _queueFormulaRoot(root) {
+        if (!root?.isConnected || (root.nodeType !== 1 && root !== document)) return;
+        if (root.nodeType === 1 && root.closest('.formula-tooltip, .timeline-copy-feedback')) return;
+        // 普通流式文本不进入队列，避免按 token 累积大量无关根节点。
+        if (root !== document && !root.matches(this._formulaScanCandidateSelector) &&
+            !root.querySelector(this._formulaScanCandidateSelector)) return;
+        for (const pendingRoot of this._pendingFormulaRoots) {
+            if (pendingRoot.contains(root)) return;
+            if (root.contains(pendingRoot)) this._pendingFormulaRoots.delete(pendingRoot);
+        }
+        this._pendingFormulaRoots.add(root);
+        if (this._formulaScanTimer !== null) return;
+        this._formulaScanTimer = setTimeout(() => {
+            this._formulaScanTimer = null;
+            const roots = Array.from(this._pendingFormulaRoots);
+            this._pendingFormulaRoots.clear();
+            for (const pendingRoot of roots) {
+                if (pendingRoot.isConnected) this.scanAndAttachFormulas(pendingRoot);
+            }
+        }, 2000);
+    }
+
+    _clearPendingFormulaScans() {
+        if (this._formulaScanTimer !== null) clearTimeout(this._formulaScanTimer);
+        this._formulaScanTimer = null;
+        this._pendingFormulaRoots.clear();
+    }
+
+    /**
+     * 默认全量扫描；动态更新只扫描根节点自身及后代。
+     */
+    scanAndAttachFormulas(root = document) {
+        if (!this.isEnabled || !root?.isConnected) return;
+        const scanRoot = candidateRoot => {
+            if (candidateRoot.nodeType === 1 && candidateRoot.matches(this._unprocessedFormulaSelector)) {
+                this.attachFormulaListeners(candidateRoot);
+            }
+            candidateRoot.querySelectorAll(this._unprocessedFormulaSelector)
+                .forEach(formula => this.attachFormulaListeners(formula));
+        };
+        scanRoot(root);
+
+        // MathJax 可能先渲染输出，再在其后插入源码 script；此时输出不在新增子树中。
+        const scanScriptNeighbor = script => {
+            for (const output of [script.previousElementSibling, script.nextElementSibling]) {
+                if (output && !root.contains(output)) scanRoot(output);
+            }
+        };
+        if (root.nodeType === 1 && root.matches(this._mathJaxScriptSelector)) scanScriptNeighbor(root);
+        root.querySelectorAll(this._mathJaxScriptSelector).forEach(scanScriptNeighbor);
     }
     
     /**
@@ -679,6 +732,7 @@ class FormulaManager {
      * 用于功能重新开启时，识别在关闭期间生成的新公式
      */
     rescan() {
+        this._clearPendingFormulaScans();
         this.scanAndAttachFormulas();
     }
 
@@ -688,6 +742,7 @@ class FormulaManager {
     destroy() {
         // ✅ 先设置为 false，阻止所有异步回调继续执行
         this.isEnabled = false;
+        this._clearPendingFormulaScans();
         
         // ✅ 移除 Storage 监听器
         this.detachStorageListener();
@@ -697,6 +752,8 @@ class FormulaManager {
             this._unsubscribeObserver();
             this._unsubscribeObserver = null;
         }
+        this._formulaSourceObserver?.disconnect();
+        this._formulaSourceObserver = null;
 
         // 清除所有其他定时器
         if (this.tooltipTimer) {
@@ -765,7 +822,9 @@ class FormulaManager {
             this._currentUrl = newUrl;
             
             // 清理所有公式的交互标记
+            this._clearPendingFormulaScans();
             this._cleanupFormulaMarkers();
+            if (this.isEnabled) this._queueFormulaRoot(document);
         }
     }
     

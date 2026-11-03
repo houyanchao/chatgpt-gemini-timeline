@@ -898,13 +898,49 @@ class ChatGPTAdapter extends SiteAdapter {
 
     /** 覆盖图标路径原地更新、图标替换、纯移除与输入区重建。 */
     observeAIGeneration(onChange) {
-        const observer = new MutationObserver(onChange);
+        const composerSelector = '[data-composer-body], [class*="ComposerLayoutFooter-"]';
+        const controlSelector = `#composer-submit-button, ${composerSelector}`;
+        const isControl = node => node.nodeType === Node.ELEMENT_NODE
+            && (node.matches(controlSelector) || node.querySelector(controlSelector));
+        const isInComposer = node => node.nodeType === Node.ELEMENT_NODE
+            && !!node.closest(controlSelector);
+        const isRelevant = mutation => {
+            const target = mutation.target;
+            if (mutation.type === 'childList') {
+                // 同时检查移除节点，输入框被祖先容器整体替换时也要检测结束状态。
+                return isInComposer(target)
+                    || [...mutation.addedNodes, ...mutation.removedNodes].some(isControl);
+            }
+            if (target.nodeType !== Node.ELEMENT_NODE) return false;
+            if (mutation.attributeName === 'id') {
+                return target.id === 'composer-submit-button'
+                    || mutation.oldValue === 'composer-submit-button';
+            }
+            if (mutation.attributeName === 'data-composer-body') return true;
+            if (mutation.attributeName === 'class') {
+                // 输入框外层及主操作图标的类名可能原地改变；旧值覆盖“移除类名”。
+                return target.matches(composerSelector)
+                    || (mutation.oldValue || '').includes('ComposerLayoutFooter-')
+                    || (isInComposer(target) && !!target.closest('button'));
+            }
+            return isInComposer(target);
+        };
+        let stopped = false;
+        const observer = new MutationObserver(mutations => {
+            // MutationObserver 已按批次合并；不再因时间轴圆点/正文的 class 变化扫描全页。
+            // 保持同步检查，后台标签页也不会等待暂停的 requestAnimationFrame。
+            if (!stopped && mutations.some(isRelevant)) onChange();
+        });
         observer.observe(document.body, {
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['d', 'class', 'data-testid'],
+            attributeFilter: ['d', 'class', 'data-testid', 'id', 'data-composer-body'],
+            attributeOldValue: true,
         });
-        return () => observer.disconnect();
+        return () => {
+            stopped = true;
+            observer.disconnect();
+        };
     }
 }

@@ -251,10 +251,11 @@ const SITE_INFO = [
             notepad: true,
             promptButton: true,
             smartEnter: true,
-            inputAnimation: false,
+            inputAnimation: true,
             quickAsk: true,
             quickAskPosition: 'bottomLeft',
-            chatTimes: false,  // 提问时间记录
+            chatTimes: true,  // 提问时间记录
+            useStableNodeId: true,  // 用户消息 UUID，不受虚拟列表挂载顺序影响
             sidebarStarred: true  // 侧边栏收藏列表
         }
     },

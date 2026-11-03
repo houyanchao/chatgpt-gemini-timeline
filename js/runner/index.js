@@ -78,6 +78,11 @@
     let unsubscribeObserver = null;  // DOMObserverManager 取消订阅函数
     let initialized = false;
     let initInFlight = false;
+    let scanTimer = null;
+    let scanEpoch = 0;
+    const pendingScanRoots = new Set();
+    const CODE_CONTAINER_SELECTOR = 'pre, code, code-block, .md-code-block, [class*="code-area-"], .cnblogs_code, .CodeMirror';
+    const RUNNER_UI_SELECTOR = '.runner-code-run-btn, .runner-container, .runner-panel, .floating-runner-container, .runner-mermaid-preview';
 
     // ===== 工具函数 =====
 
@@ -708,38 +713,32 @@
     /**
      * 扫描并处理所有代码块
      */
-    async function scanCodeBlocks() {
-        // 检查各语言是否启用
-        const [jsEnabled, tsEnabled, sqlEnabled, htmlEnabled, jsonEnabled, mdEnabled, mermaidEnabled] = await Promise.all([
-            isJavaScriptRunnerEnabled(),
-            isTypeScriptRunnerEnabled(),
-            isSQLRunnerEnabled(),
-            isHtmlRunnerEnabled(),
-            isJsonRunnerEnabled(),
-            isMarkdownRunnerEnabled(),
-            isMermaidRendererEnabled()
-        ]);
-        
-        // 如果所有功能都禁用，不扫描
-        if (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled) {
-            return;
-        }
-        
-        const enabledLanguages = {
-            javascript: jsEnabled,
-            typescript: tsEnabled,
-            sql: sqlEnabled,
-            html: htmlEnabled,
-            json: jsonEnabled,
-            markdown: mdEnabled,
-            mermaid: mermaidEnabled
+    async function scanCodeBlocks(roots = [document]) {
+        const epoch = scanEpoch;
+        const storageKeys = {
+            javascript: 'runnerJsEnabled', typescript: 'runnerTypeScriptEnabled',
+            sql: 'runnerSQLEnabled', html: 'runnerHtmlEnabled', json: 'runnerJsonEnabled',
+            markdown: 'runnerMarkdownEnabled', mermaid: window.MermaidRenderer?.STORAGE_KEY || 'mermaidRendererEnabled'
         };
+        let settings;
+        try {
+            // 一批代码块只读取一次设置，避免每轮扫描产生七次扩展消息。
+            settings = await chrome.storage.local.get(Object.values(storageKeys));
+        } catch { return; }
+        if (epoch !== scanEpoch) return;
+        const enabledLanguages = Object.fromEntries(Object.entries(storageKeys).map(([language, key]) => [language, settings[key] !== false]));
+        if (!Object.values(enabledLanguages).some(Boolean)) return;
+        const scopes = Array.isArray(roots) ? roots : [roots];
         
         // 遍历配置，按优先级匹配代码块
         for (const config of CODE_BLOCK_CONFIGS) {
-            const codeElements = document.querySelectorAll(
-                `${config.codeSelector}:not([${CONFIG.processedAttr}])`
-            );
+            const selector = `${config.codeSelector}:not([${CONFIG.processedAttr}])`;
+            const codeElements = new Set();
+            for (const root of scopes) {
+                if (root !== document && !root?.isConnected) continue;
+                if (root.matches?.(selector)) codeElements.add(root);
+                root.querySelectorAll(selector).forEach(element => codeElements.add(element));
+            }
             
             codeElements.forEach(codeElement => {
                 // 获取布局容器
@@ -749,6 +748,46 @@
                 }
             });
         }
+    }
+
+    function queueCodeScan(root) {
+        if (!root?.isConnected || root.closest?.(RUNNER_UI_SELECTOR)) return false;
+        // 只查询新增子树；流式文本变化只回看它所属的代码容器。
+        const scope = root.closest?.(CODE_CONTAINER_SELECTOR) || root;
+        if (!scope.matches?.(CODE_CONTAINER_SELECTOR) && !scope.querySelector?.(CODE_CONTAINER_SELECTOR)) return false;
+        for (const pending of pendingScanRoots) {
+            if (pending.contains(scope)) return true;
+            if (scope.contains(pending)) pendingScanRoots.delete(pending);
+        }
+        pendingScanRoots.add(scope);
+        return true;
+    }
+
+    function handleCodeMutations({ mutations }) {
+        let touchedCode = false;
+        for (const mutation of mutations) {
+            const target = mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement;
+            if (target?.closest(RUNNER_UI_SELECTOR)) continue;
+            if (mutation.type === 'childList') {
+                const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+                // 按钮直接插在 pre 下，target 本身不是 Runner UI；也排除这类自身写入。
+                if (changedNodes.length && changedNodes.every(node =>
+                    node.nodeType === Node.ELEMENT_NODE && node.matches(RUNNER_UI_SELECTOR))) continue;
+            }
+            const container = target?.closest(CODE_CONTAINER_SELECTOR);
+            if (container) touchedCode = queueCodeScan(container) || touchedCode;
+            for (const node of mutation.addedNodes || []) {
+                if (node.nodeType === Node.ELEMENT_NODE) touchedCode = queueCodeScan(node) || touchedCode;
+            }
+        }
+        if (!touchedCode || !pendingScanRoots.size) return;
+        clearTimeout(scanTimer);
+        scanTimer = setTimeout(() => {
+            scanTimer = null;
+            const roots = [...pendingScanRoots];
+            pendingScanRoots.clear();
+            void scanCodeBlocks(roots).catch(() => {});
+        }, CONFIG.stableDelay);
     }
 
     /**
@@ -770,6 +809,7 @@
     async function initialize() {
         if (initialized || initInFlight) return;
         initInFlight = true;
+        const epoch = scanEpoch;
         try {
             await TimelineI18n.ready();
 
@@ -789,7 +829,7 @@
                 isMermaidRendererEnabled()
             ]);
 
-            if (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled) {
+            if (epoch !== scanEpoch || (!jsEnabled && !tsEnabled && !sqlEnabled && !htmlEnabled && !jsonEnabled && !mdEnabled && !mermaidEnabled)) {
                 return;
             }
 
@@ -807,13 +847,14 @@
 
             // 初始扫描
             await scanCodeBlocks();
+            if (epoch !== scanEpoch) return;
 
             // 使用 DOMObserverManager 监听 DOM 变化
             // 防抖 500ms：等代码块输出完整后再添加 Run 按钮
             unsubscribeObserver = window.DOMObserverManager.getInstance().subscribeBody('runner', {
-                callback: () => scanCodeBlocks(),
-                filter: { hasAddedNodes: true },
-                debounce: CONFIG.stableDelay  // 500ms 防抖
+                callback: handleCodeMutations,
+                // 字符节点原地追加也可能让一个空代码块变成可识别的代码。
+                characterData: true
             });
             initialized = true;
         } catch (error) {
@@ -826,6 +867,10 @@
      * 清理资源
      */
     function cleanup() {
+        scanEpoch++;
+        clearTimeout(scanTimer);
+        scanTimer = null;
+        pendingScanRoots.clear();
         // 取消 DOMObserverManager 订阅
         if (unsubscribeObserver) {
             unsubscribeObserver();

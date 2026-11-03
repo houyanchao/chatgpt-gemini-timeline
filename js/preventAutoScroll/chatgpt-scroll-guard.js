@@ -1,4 +1,4 @@
-/** GPT MAIN world / document_start：在页面缓存原生滚动方法前安装拦截。 */
+/** GPT / Claude MAIN world / document_start：在页面缓存原生滚动方法前安装拦截。 */
 (function () {
     'use strict';
 

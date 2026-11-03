@@ -746,11 +746,11 @@ const ChatTimeStorageManager = {
 
     /**
      * 按节点时间数量清理最早的节点时间记录
-     * @param {number} maxNodeTimes - 最大保留节点时间数（默认1000个）
+     * @param {number} maxNodeTimes - 最大保留节点时间数（默认2000个）
      * @param {number} cleanupCount - 超限后清理的节点时间数（默认50个）
      * @returns {Promise<number>} - 清理的节点时间数量
      */
-    async cleanup(maxNodeTimes = 1000, cleanupCount = 50) {
+    async cleanup(maxNodeTimes = 2000, cleanupCount = 50) {
         const all = await this.getAllRecords();
         const nodeTimeEntries = [];
         
@@ -789,5 +789,5 @@ const ChatTimeStorageManager = {
 // 在脚本加载时立即执行迁移检查（异步，不阻塞）
 StorageAdapter.migrateFromSyncToLocal();
 
-// chatTimes 节点时间超过 1000 个时，清理最早的 50 个节点时间（每次加载时检查）
-ChatTimeStorageManager.cleanup(1000, 50).catch(() => {});
+// chatTimes 节点时间超过 2000 个时，清理最早的 50 个节点时间（每次加载时检查）
+ChatTimeStorageManager.cleanup(2000, 50).catch(() => {});

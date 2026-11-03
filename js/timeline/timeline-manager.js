@@ -118,6 +118,10 @@ class TimelineManager {
         this.contentHeight = 0;
         this.yPositions = [];
         this.visibleRange = { start: 0, end: -1 };
+        this._timelineGeometryVersion = 0;
+        this._virtualRenderState = null;
+        this._pinRenderRafId = null;
+        this._pinElements = new Map();
         this.firstUserTurnOffset = 0;
         this.contentSpanPx = 1;
         this.usePixelTop = false;
@@ -125,6 +129,7 @@ class TimelineManager {
 
         // ✅ 紧凑模式状态
         this.isCompactMode = false;
+        this._compactMarkerIconTier = null;
         
         // ✅ 节点激活配置
         this.ACTIVATE_AHEAD = 120; // 提前激活距离（像素）：scrollTop >= offsetTop - 120 时激活
@@ -2134,7 +2139,10 @@ class TimelineManager {
         // Tooltip interactions (delegated)
         this.onTimelineBarOver = (e) => {
             const dot = e.target.closest('.ait-timeline-dot');
-            if (dot) this.showTooltipForDot(dot);
+            if (dot) {
+                this._pinElements.get(dot.dataset.targetTurnId)?.classList.add('ait-node-hovered');
+                this.showTooltipForDot(dot);
+            }
         };
         
         // ✅ 需求2：修改逻辑 - 只在鼠标不是移到 tooltip 时才隐藏
@@ -2142,6 +2150,9 @@ class TimelineManager {
             const fromDot = e.target.closest('.ait-timeline-dot');
             const toDot = e.relatedTarget?.closest?.('.ait-timeline-dot');
             const toTooltip = e.relatedTarget?.closest?.('.timeline-tooltip');
+            if (fromDot && fromDot !== toDot) {
+                this._pinElements.get(fromDot.dataset.targetTurnId)?.classList.remove('ait-node-hovered');
+            }
             
             // 如果从圆点移出，且不是移到另一个圆点或 tooltip，才隐藏
             if (fromDot && !toDot && !toTooltip) {
@@ -2843,6 +2854,36 @@ class TimelineManager {
         return this.getCSSVarNumber(this.ui.timelineBar, '--timeline-compact-gap', 30);
     }
 
+    /** 横线图标按实际间距分为 16 / 14 / 12px，放大时预留 2px 切换缓冲。 */
+    updateCompactMarkerIconSize(actualGap) {
+        const bar = this.ui.timelineBar;
+        if (!bar) return;
+        if (!this.isCompactMode) {
+            this._compactMarkerIconTier = null;
+            bar.style.removeProperty('--timeline-marker-icon-size');
+            return;
+        }
+        if (!Number.isFinite(actualGap) || actualGap <= 0) return;
+
+        const thresholds = [20, 16];
+        const sizes = [16, 14, 12];
+        let tier = this._compactMarkerIconTier;
+        if (tier === null) {
+            tier = actualGap >= thresholds[0] ? 0 : actualGap >= thresholds[1] ? 1 : 2;
+        } else {
+            while (tier < 2 && actualGap < thresholds[tier]) tier++;
+            while (tier > 0 && actualGap >= thresholds[tier - 1] + 2) tier--;
+        }
+        this._compactMarkerIconTier = tier;
+
+        // 极密集时再限制图标高度，给上下相邻图标至少留出 2px。
+        const size = Math.max(0, Math.min(sizes[tier], actualGap - 2));
+        const value = `${Math.floor(size * 100) / 100}px`;
+        if (bar.style.getPropertyValue('--timeline-marker-icon-size') !== value) {
+            bar.style.setProperty('--timeline-marker-icon-size', value);
+        }
+    }
+
     /**
      * ✅ 判断是否应该使用紧凑模式
      * 简单逻辑：平均空间 = 时间轴高度 / 节点数
@@ -3268,7 +3309,8 @@ class TimelineManager {
         this.ui.wrapper.style.top = topValue;
         
         // 设置时间轴高度
-        this.ui.timelineBar.style.height = `max(200px, calc(100vh - ${topValue} - ${bottomValue}))`;
+        const minHeight = Number.isFinite(position.minHeight) ? Math.max(0, position.minHeight) : 200;
+        this.ui.timelineBar.style.height = `max(${minHeight}px, calc(100vh - ${topValue} - ${bottomValue}))`;
         
         // ✅ 收藏按钮使用相对定位，不需要动态调整位置
     }
@@ -3317,12 +3359,14 @@ class TimelineManager {
             const actualGap = (N <= 1) ? defaultGap : 
                 (requiredHeight > usableH) ? (usableH / Math.max(1, N - 1)) : defaultGap;
             this.ui.timelineBar.style.setProperty('--timeline-node-hit-height', `${actualGap}px`);
+            this.updateCompactMarkerIconSize(actualGap);
             
             const totalHeight = Math.max(0, N - 1) * actualGap;
             const startY = (H - totalHeight) / 2; // 垂直居中
             adjusted = this.markers.map((_, i) => startY + i * actualGap);
         } else {
             // 正常模式：原有逻辑
+            this.updateCompactMarkerIconSize();
             const minGap = this.getMinGap();
             this.ui.timelineBar.style.setProperty('--timeline-node-hit-height', `${minGap}px`);
             const desired = Math.max(H, (N > 0 ? (2 * pad + Math.max(0, N - 1) * minGap) : H));
@@ -3352,6 +3396,7 @@ class TimelineManager {
             this._cssVarTopSupported = this.detectCssVarTopSupport(pad, usableForN);
             this.usePixelTop = !this._cssVarTopSupported;
         }
+        this._timelineGeometryVersion++;
     }
 
     detectCssVarTopSupport(pad, usableC) {
@@ -3404,6 +3449,18 @@ class TimelineManager {
         const maxY = st + vh + buffer;
         const start = this.lowerBound(this.yPositions, minY);
         const end = Math.max(start - 1, this.upperBound(this.yPositions, maxY));
+        const previousRender = this._virtualRenderState;
+        if (previousRender?.markersVersion === localVersion
+            && previousRender.geometryVersion === this._timelineGeometryVersion
+            && previousRender.start === start && previousRender.end === end
+            && previousRender.usePixelTop === this.usePixelTop
+            && previousRender.trackContent === this.ui.trackContent) {
+            // 轻量节点重算可能重置跟踪窗口，但实际圆点仍是缓存描述的这一批。
+            if (this.visibleRange.start !== start || this.visibleRange.end !== end) {
+                this.visibleRange = { start, end };
+            }
+            return;
+        }
 
         let prevStart = this.visibleRange.start;
         let prevEnd = this.visibleRange.end;
@@ -3463,11 +3520,16 @@ class TimelineManager {
         if (localVersion !== this.markersVersion) return; // stale pass, abort
         if (frag.childNodes.length) this.ui.trackContent.appendChild(frag);
         this.visibleRange = { start, end };
+        this._virtualRenderState = {
+            markersVersion: localVersion,
+            geometryVersion: this._timelineGeometryVersion,
+            start, end,
+            usePixelTop: this.usePixelTop,
+            trackContent: this.ui.trackContent
+        };
         
-        // ✅ 节点渲染完成后，重新渲染图钉
-        requestAnimationFrame(() => {
-            this.renderPinMarkers();
-        });
+        // 只在可见节点或布局变化后更新图钉，同一帧的多次请求合并执行。
+        this._schedulePinRender();
     }
 
     lowerBound(arr, x) {
@@ -4024,6 +4086,10 @@ class TimelineManager {
         this._initialSecondRenderTimer = TimelineUtils.clearTimerSafe(this._initialSecondRenderTimer);
         this._initialStarredBtnRaf1 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf1);
         this._initialStarredBtnRaf2 = TimelineUtils.clearRafSafe(this._initialStarredBtnRaf2);
+        this._pinRenderRafId = TimelineUtils.clearRafSafe(this._pinRenderRafId);
+        this._pinElements.forEach(pin => pin.remove());
+        this._pinElements.clear();
+        this._virtualRenderState = null;
         this._timelineMutationTimer = TimelineUtils.clearTimerSafe(this._timelineMutationTimer);
         this._timelineStructureDirty = false;
         this._timelineLayoutDirty = false;
@@ -4933,29 +4999,49 @@ class TimelineManager {
         }
     }
     
-    /**
-     * ✅ 渲染所有图钉（独立于节点渲染）
-     */
+    _schedulePinRender() {
+        if (this._destroyed || this._pinRenderRafId !== null) return;
+        this._pinRenderRafId = requestAnimationFrame(() => {
+            this._pinRenderRafId = null;
+            if (!this._destroyed) this.renderPinMarkers();
+        });
+    }
+
+    /** 复用可见图钉，避免滚动时遍历全部历史节点并删除重建。 */
     renderPinMarkers() {
-        // 清除所有旧的图钉
-        const oldPins = this.ui.timelineBar.querySelectorAll('.timeline-pin-marker');
-        oldPins.forEach(pin => pin.remove());
-        
-        // 为所有标记的节点渲染图钉
-        this.markers.forEach(marker => {
-            if (marker.pinned && marker.dotElement) {
-                const pinMarker = document.createElement('span');
+        this._pinRenderRafId = TimelineUtils.clearRafSafe(this._pinRenderRafId);
+        if (this._destroyed || !this.ui.timelineBar) return;
+        const visiblePins = new Set();
+        const fragment = document.createDocumentFragment();
+        const start = Math.max(0, this.visibleRange.start);
+        const end = Math.min(this.markers.length - 1, this.visibleRange.end);
+        for (let i = start; i <= end; i++) {
+            const marker = this.markers[i];
+            if (!marker?.pinned || !marker.dotElement) continue;
+            visiblePins.add(marker.id);
+            let pinMarker = this._pinElements.get(marker.id);
+            if (pinMarker && pinMarker.parentNode !== this.ui.timelineBar) {
+                pinMarker.remove();
+                this._pinElements.delete(marker.id);
+                pinMarker = null;
+            }
+            if (!pinMarker) {
+                pinMarker = document.createElement('span');
                 pinMarker.className = 'timeline-pin-marker';
                 pinMarker.dataset.markerId = marker.id;
-                
-                // 使用节点的 dotN 来定位图钉（与圆点位置一致）
-                const n = marker.dotN || 0;
-                pinMarker.style.setProperty('--n', String(n));
-                
-                // 添加到 timelineBar
-                this.ui.timelineBar.appendChild(pinMarker);
+                this._pinElements.set(marker.id, pinMarker);
+                fragment.appendChild(pinMarker);
             }
+            pinMarker.classList.toggle('ait-node-hovered', marker.dotElement.matches(':hover'));
+            const n = String(marker.dotN || 0);
+            if (pinMarker.style.getPropertyValue('--n') !== n) pinMarker.style.setProperty('--n', n);
+        }
+        this._pinElements.forEach((pin, id) => {
+            if (visiblePins.has(id)) return;
+            pin.remove();
+            this._pinElements.delete(id);
         });
+        if (fragment.childNodes.length) this.ui.timelineBar.appendChild(fragment);
     }
 
     // ✅ 移除：cancelLongPress 方法已删除，长按收藏功能已移除

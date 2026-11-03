@@ -379,10 +379,17 @@ class HighlightManager {
             return;
         }
 
+        const marksById = new Map();
+        document.querySelectorAll('mark.ait-highlight[data-hl-id]').forEach(mark => {
+            const id = mark.dataset.hlId;
+            if (!marksById.has(id)) marksById.set(id, []);
+            marksById.get(id).push(mark);
+        });
         let content = null;
         for (const hl of highlights) {
             if (this._removedHighlightIds.has(hl.id)) continue;
-            const marks = [...document.querySelectorAll(`mark.ait-highlight[data-hl-id="${hl.id}"]`)];
+            // wrap/unwrap 会移动其它 ID 的 mark，节点引用仍有效；跳过已移除的节点。
+            const marks = (marksById.get(hl.id) || []).filter(mark => mark.isConnected);
             const markedText = marks.map(mark => mark.textContent).join('');
             if (marks.length && (markedText === hl.text || markedText === hl.text.replace(/\*\*|__/g, ''))) continue;
 

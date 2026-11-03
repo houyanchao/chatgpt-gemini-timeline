@@ -21,6 +21,13 @@ class BaseSmartEnterAdapter {
     getInputSelector() {
         throw new Error('BaseSmartEnterAdapter.getInputSelector() must be implemented');
     }
+
+    /**
+     * 获取键盘事件监听目标，平台可提前到祖先节点的捕获阶段。
+     */
+    getKeydownEventTarget(inputElement) {
+        return inputElement;
+    }
     
     /**
      * 获取发送按钮的 CSS 选择器
