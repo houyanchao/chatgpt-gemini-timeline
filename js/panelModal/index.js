@@ -33,6 +33,7 @@ class PanelModal {
         this.tabs = new Map(); // tabId -> tab instance
         this.currentTabId = null;
         this.isVisible = false;
+        this._showRequestId = 0;
         
         // URL 变化监听器
         this._currentUrl = location.href;
@@ -354,6 +355,7 @@ class PanelModal {
         const newUrl = location.href;
         if (newUrl !== this._currentUrl) {
             this._currentUrl = newUrl;
+            this._showRequestId++;
             
             // URL 变化时自动关闭面板
             if (this.isVisible) {
@@ -423,8 +425,12 @@ class PanelModal {
      * @param {string} tabId - 要显示的 tab ID（可选）
      */
     async show(tabId = null) {
+        const requestId = ++this._showRequestId;
+        const url = location.href;
+        const isCurrent = () => requestId === this._showRequestId && url === location.href;
         try {
             await TimelineI18n.ready();
+            if (!isCurrent()) return;
             this._refreshLanguageControl();
             this.shareBtn?.setAttribute(
                 'aria-label',
@@ -435,6 +441,7 @@ class PanelModal {
             if (typeof registerAllTabs === 'function') {
                 await registerAllTabs();
             }
+            if (!isCurrent()) return;
 
             // 确定要显示的 tab（带 fallback）
             let targetTabId = tabId;
@@ -460,18 +467,24 @@ class PanelModal {
             this.container.hidden = false;
             this.isVisible = true;
 
-            // 禁用 body 滚动
-            document.body.style.overflow = 'hidden';
+            if (!this._bodyOverflow) {
+                const style = document.body.style;
+                this._bodyOverflow = {
+                    style,
+                    properties: ['overflow-x', 'overflow-y'].map(name => [name, style.getPropertyValue(name), style.getPropertyPriority(name)])
+                };
+                style.setProperty('overflow', 'hidden');
+            }
 
             // 切换到指定 tab（等待其 mounted 完成）。
             // 若切换失败（unmounted()/render() 抛错或返回 false），回滚可见状态，
             // 避免面板卡在空内容、且 body 滚动被锁死的状态。
             const switched = await this.switchTab(targetTabId);
-            if (!switched) {
+            if (isCurrent() && !switched) {
                 this.hide();
             }
         } catch (error) {
-            this.hide();
+            if (isCurrent()) this.hide();
         }
     }
     
@@ -546,12 +559,21 @@ class PanelModal {
      * 隐藏面板
      */
     hide() {
+        this._showRequestId++;
         this.container.hidden = true;
         this.container.classList.remove('visible');
         this.isVisible = false;
         
         // 恢复 body 滚动
-        document.body.style.overflow = '';
+        if (this._bodyOverflow) {
+            const { style, properties } = this._bodyOverflow;
+            for (const [name, value, priority] of properties) {
+                if (style.getPropertyValue(name) === 'hidden' && !style.getPropertyPriority(name)) {
+                    style.setProperty(name, value, priority);
+                }
+            }
+            this._bodyOverflow = null;
+        }
         
         // 隐藏 tooltip
         if (window.globalTooltipManager) {
@@ -586,6 +608,7 @@ class PanelModal {
      * 销毁
      */
     destroy() {
+        this._showRequestId++;
         // 移除 URL 监听
         this._detachUrlListeners();
         
@@ -612,15 +635,14 @@ class PanelModal {
 // ✅ 自动初始化：创建全局单例
 // 脚本加载时立即创建，其他模块可直接使用 window.panelModal
 if (typeof window !== 'undefined') {
-    window.panelModal = new PanelModal();
+    const panel = window.panelModal = new PanelModal();
+    window.AITContentSession?.onStop(() => {
+        try { if (panel.isVisible) panel.hide(); } finally { panel.destroy(); }
+    });
     
     // ✅ 注意：所有 Tabs 在 Timeline 初始化后统一注册，确保顺序正确
     // 见 tab-registry.js 中的 registerTimelineTabs()
 
-    // 监听来自 background 的消息（点击扩展图标时触发）
-    chrome.runtime.onMessage.addListener((request) => {
-        if (request.type === 'OPEN_PANEL_MODAL' && window.panelModal) {
-            void window.panelModal.show();
-        }
-    });
+    // Background messages are handled by the lightweight content bootstrap,
+    // which also opens the panel before this deferred module has been loaded.
 }

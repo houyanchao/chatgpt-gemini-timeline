@@ -329,6 +329,11 @@
     if (typeof window !== 'undefined') {
         window.FloatingRunnerContainer = FloatingRunnerContainer;
         window.FloatingRunnerPanel = FloatingRunnerContainer; // 兼容旧代码
+        window.AITContentSession?.onStop(() => {
+            const instance = FloatingRunnerContainer.instance;
+            instance?.onMouseUp();
+            instance?.panel?.destroy();
+        });
     }
 
 })();

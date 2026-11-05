@@ -31,8 +31,10 @@ class CustomSiteFloatButton {
         await TimelineI18n.ready();
 
         await this._loadPrompts();
+        if (this.isDestroyed) return;
         this._createButton();
         await this._loadPosition();
+        if (this.isDestroyed) return;
         this._initDrag();
         this._attachStorageListener();
     }
@@ -62,6 +64,7 @@ class CustomSiteFloatButton {
         if (this.buttonElement) return;
 
         const btn = document.createElement('div');
+        btn.setAttribute('data-ait-owned-ui', '');
         btn.className = 'custom-site-float-btn';
         btn.innerHTML = `<img src="${chrome.runtime.getURL('images/logo.png')}" alt="Timeline" class="custom-site-float-logo">`;
         document.body.appendChild(btn);
@@ -176,11 +179,6 @@ class CustomSiteFloatButton {
             window.globalDropdownManager.hide(true);
         }
 
-        this._promptOverlay = document.createElement('div');
-        this._promptOverlay.className = 'prompt-dropdown-overlay';
-        this._promptOverlay.addEventListener('click', () => this._hidePromptDropdown());
-        document.body.appendChild(this._promptOverlay);
-
         const filteredPrompts = this.prompts.filter(p => !p.platformId);
 
         this._promptDropdown = createPromptDropdownUI({
@@ -196,7 +194,10 @@ class CustomSiteFloatButton {
             }
         });
 
-        document.body.appendChild(this._promptDropdown);
+        this._promptOverlay = document.createElement('div');
+        this._promptOverlay.className = 'prompt-dropdown-overlay';
+        this._promptOverlay.setAttribute('data-ait-owned-ui', 'prompt-menu');
+        document.body.append(this._promptOverlay, this._promptDropdown);
         this._positionDropdown();
 
         requestAnimationFrame(() => {
@@ -294,7 +295,7 @@ class CustomSiteFloatButton {
         this._hidePromptDropdown();
 
         if (this._storageListener) {
-            chrome.storage.onChanged.removeListener(this._storageListener);
+            try { chrome.storage.onChanged.removeListener(this._storageListener); } catch {}
             this._storageListener = null;
         }
         if (this._boundOnPointerMove) {

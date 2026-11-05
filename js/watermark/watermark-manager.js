@@ -50,6 +50,7 @@ class GeminiWatermarkRemover {
         }
 
         await this._loadSettings();
+        if (window.AITContentSession?.active === false) return;
         this._attachStorageListener();
 
         if (this._enabledSetting) {
@@ -214,6 +215,7 @@ class GeminiWatermarkRemover {
                 this._nativeDownloadPassThrough.delete(button);
                 return;
             }
+            if (window.AITExtensionContext?.isActive() === false) return;
 
             e.preventDefault();
             e.stopPropagation();
@@ -505,7 +507,7 @@ class GeminiWatermarkRemover {
         this.isDestroyed = true;
         this._disable();
         if (this._storageListener) {
-            chrome.storage.onChanged.removeListener(this._storageListener);
+            try { chrome.storage.onChanged.removeListener(this._storageListener); } catch {}
             this._storageListener = null;
         }
     }
@@ -522,9 +524,12 @@ class GeminiWatermarkRemover {
         try {
             await TimelineI18n.ready();
 
+            if (window.AITContentSession?.active === false) return;
             remover = new GeminiWatermarkRemover();
             await remover.init();
         } catch (e) {
+            cleanup();
+            throw e;
         }
     }
 
@@ -535,11 +540,9 @@ class GeminiWatermarkRemover {
         }
     }
 
-    window.addEventListener('beforeunload', cleanup);
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
-    } else {
-        setTimeout(init, 500);
-    }
+    window.AITContentSession?.onStop(cleanup);
+    window.AITPlatformFeatures.register('watermark', () => {
+        window.addEventListener('beforeunload', cleanup);
+        return init();
+    }, { delay: 500 });
 })();

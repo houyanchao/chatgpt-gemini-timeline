@@ -560,6 +560,9 @@
   "runBtn": {
     "message": "运行"
   },
+  "settingsLoadFailed": {
+    "message": "设置打开失败，请刷新页面后重试。"
+  },
   "runnerLoadFailed": {
     "message": "运行器加载失败，请刷新页面后重试"
   },
@@ -1053,7 +1056,7 @@
     "message": "适配新的 AI 平台"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "不适配你在用的 AI 对话网站？比如公司内部 AI 对话网站、小众 AI 对话网站，都可申请适配，适配后可解锁「时间轴、提示词、闪记」等功能。"
+    "message": "公司内部 AI 对话网站、小众 AI 对话网站，都可申请适配，可解锁「时间轴、提示词、闪记」等功能。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "开始配置"

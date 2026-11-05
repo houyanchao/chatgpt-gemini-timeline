@@ -25,6 +25,7 @@ class BaseSidebarStarredAdapter {
         this._trackedAt = 0;
         this._menuFolderManager = null;
         this._menuInited = false;
+        this._nativeDisplay = new WeakMap();
     }
 
     // ==================== 必须实现 ====================
@@ -166,11 +167,26 @@ class BaseSidebarStarredAdapter {
     /** 获取需要隐藏/显示的目标元素（平台可覆盖，例如需要隐藏父级 li） */
     getHideTarget(convEl) { return convEl; }
 
+    _restoreNativeDisplay(element) {
+        const previous = this._nativeDisplay.get(element);
+        if (!previous) return;
+        this._nativeDisplay.delete(element);
+        element.removeAttribute(BaseSidebarStarredAdapter.HIDDEN_ATTR);
+        if (element.style.display === 'none') element.style.setProperty('display', ...previous);
+    }
+
+    restoreNativeList() {
+        document.querySelectorAll(`[${BaseSidebarStarredAdapter.HIDDEN_ATTR}]`).forEach(element => this._restoreNativeDisplay(element));
+    }
+
     async refreshStarredIcons() {
+        const context = window.AITExtensionContext;
+        if (context?.invalidated) return;
         const [items, shouldHide] = await Promise.all([
             StarStorageManager.getAll(),
             StorageAdapter.get('hideStarredFromNativeList'),
         ]);
+        if (context?.invalidated) return;
         const starredPaths = new Set();
         for (const item of items) {
             if (item.index !== -1) continue;
@@ -194,11 +210,14 @@ class BaseSidebarStarredAdapter {
 
             const hideTarget = this.getHideTarget(el);
             if (isStarred && shouldHide) {
+                if (!this._nativeDisplay.has(hideTarget)) {
+                    const style = hideTarget.style;
+                    this._nativeDisplay.set(hideTarget, [style.display, style.getPropertyPriority('display')]);
+                }
                 hideTarget.setAttribute(BaseSidebarStarredAdapter.HIDDEN_ATTR, '');
                 hideTarget.style.display = 'none';
-            } else if (hideTarget.hasAttribute(BaseSidebarStarredAdapter.HIDDEN_ATTR)) {
-                hideTarget.removeAttribute(BaseSidebarStarredAdapter.HIDDEN_ATTR);
-                hideTarget.style.display = '';
+            } else {
+                this._restoreNativeDisplay(hideTarget);
             }
         }
     }

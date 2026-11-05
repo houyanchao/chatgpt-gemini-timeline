@@ -28,6 +28,12 @@ function applyFormulaFormat(formula, formatId) {
 // ==================== FormulaManager 类 ====================
 
 class FormulaManager {
+    // Also used by the lightweight all-site entry, via generated configuration.
+    static getDetectionSelectors() {
+        return ['.katex', '.math-inline', '.mwe-math-element',
+            '.MathJax_SVG', '.MathJax', '[data-mathml]'];
+    }
+
     constructor() {
         this.tooltip = null;
         this.copyFeedback = null;
@@ -41,10 +47,7 @@ class FormulaManager {
         this._formulaSourceObserver = null;
         this._pendingFormulaRoots = new Set();
         this._formulaScanTimer = null;
-        const formulaSelectors = [
-            '.katex', '.math-inline', '.mwe-math-element',
-            '.MathJax_SVG', '.MathJax', '[data-mathml]'
-        ];
+        const formulaSelectors = FormulaManager.getDetectionSelectors();
         if (location.hostname.endsWith('meta.ai')) {
             formulaSelectors.push('[data-testid="assistant-message"] .markdown-content img[alt]');
         }
@@ -100,6 +103,7 @@ class FormulaManager {
         } catch (e) {}
 
         // ✅ 始终创建降级方案的 tooltip 和反馈元素（以防全局管理器失败）
+        if (window.AITContentSession?.active === false) return;
         this.createTooltip();
         this.createCopyFeedback();
         
@@ -151,7 +155,7 @@ class FormulaManager {
      */
     detachStorageListener() {
         if (this.storageListener) {
-            chrome.storage.onChanged.removeListener(this.storageListener);
+            try { chrome.storage.onChanged.removeListener(this.storageListener); } catch {}
             this.storageListener = null;
         }
     }

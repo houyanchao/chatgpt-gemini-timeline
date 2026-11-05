@@ -948,7 +948,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Situs chat AI yang Anda gunakan belum didukung? Baik itu chat AI internal perusahaan, atau situs AI khusus, Anda dapat mengajukan adaptasi. Setelah berhasil, Anda dapat membuka fitur seperti Timeline, prompt, dan catatan cepat."
+    "message": "Anda dapat mengajukan dukungan untuk situs chat AI internal perusahaan maupun situs chat AI khusus untuk membuka fitur seperti Timeline, prompt, dan catatan cepat."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

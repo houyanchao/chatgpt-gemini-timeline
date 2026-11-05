@@ -64,12 +64,14 @@ class NotepadManager {
 
     async init() {
         await TimelineI18n.ready();
+        if (window.AITContentSession?.active === false) return;
 
         try {
             this.folderManager = new FolderManager(StorageAdapter);
         } catch (e) {}
         this.createPanel();
         await this.loadNotes();
+        if (window.AITContentSession?.active === false) return;
         if (!this.notes.length) {
             this.createNote();
         } else {
@@ -204,6 +206,10 @@ class NotepadManager {
         document.addEventListener('mouseup', this._onMouseUp);
 
         this.textarea.addEventListener('input', () => this.scheduleSave());
+        window.addEventListener('blur', () => {
+            // Leaving the tab to reload the extension can invalidate its storage API.
+            if (this.isOpen) this._flushCurrentNote();
+        });
 
         this.textarea.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
@@ -933,6 +939,7 @@ class NotepadManager {
 
     destroy() {
         this.isOpen = false;
+        this.onMouseUp();
         if (this._onMouseMove) {
             document.removeEventListener('mousemove', this._onMouseMove);
             document.removeEventListener('mouseup', this._onMouseUp);
@@ -944,7 +951,7 @@ class NotepadManager {
             this._onFocusCheck = null;
         }
         if (this._onStorageChange) {
-            chrome.storage.onChanged.removeListener(this._onStorageChange);
+            try { chrome.storage.onChanged.removeListener(this._onStorageChange); } catch {}
             this._onStorageChange = null;
         }
         if (this._onWindowResize) {
@@ -970,4 +977,5 @@ class NotepadManager {
 
 // Auto-initialize as singleton
 window.notepadManager = new NotepadManager();
+window.AITContentSession?.onStop(() => window.notepadManager.destroy());
 window.notepadManager.init().catch(() => {});

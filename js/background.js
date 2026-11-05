@@ -21,6 +21,9 @@ try {
     importScripts(browserAPI.runtime.getURL('js/timeline/adapters/custom-sites.js'));
 } catch {}
 
+// Chromium rehydrates an old tab in a new isolated world after an extension update.
+if (typeof importScripts === 'function') importScripts('content/recover-tabs.js');
+
 const OAUTH_CLIENT_ID = '945798922226-jve664u0ibs7lsji89kr8s7f9lsnilla.apps.googleusercontent.com';
 const OAUTH_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 

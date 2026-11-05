@@ -139,15 +139,55 @@ Timeline currently includes 19 language packs:
 
 ## Local Development
 
-This repository is a browser extension project and does not require a frontend build step. Load the source directory directly during development:
+This browser extension uses a dependency-free build script. Start watch mode from the project root when developing:
+
+```bash
+node scripts/build-content.js --watch
+```
+
+It builds once on startup, then regenerates deferred content resources when JavaScript sources listed in the config or the config itself change. Keep the terminal running and press `Ctrl+C` to stop. Build errors are reported without stopping the watcher; save your fixes to retry.
+
+The resource list lives in `scripts/content-bundles.config.json`. Edit the original sources rather than the generated `js/content/bundles/` or `js/content/config.js` files. For a single build, run `node scripts/build-content.js`. Both Chrome and Firefox packaging commands also generate these resources automatically.
+
+Then load the source directory:
 
 1. Open the Chrome or Edge extensions page.
 2. Enable Developer Mode.
 3. Choose "Load unpacked".
 4. Select the repository root directory.
-5. After changing code, reload the extension and refresh the target AI platform page.
+5. Save your changes, wait for the successful build message, reload the extension, and refresh the target AI platform page. Watch mode does not reload the extension or refresh pages automatically. CSS is loaded directly from the sources and needs no regeneration.
 
 For Firefox, use `about:debugging` to temporarily load the extension.
+
+### Deferred loading and adding modules
+
+`manifest.json` retains GPT and Claude's early `MAIN`-world, `document_start` scripts for API capture and scroll protection. Every page starts with the lightweight entry. Built-in platforms, saved mirrors, and enabled custom sites then load `core`. Explicit requests to open settings or configure a site also load the required features.
+
+Ordinary pages keep lightweight formula discovery and text-selection entry points. A formula, a text selection, or existing annotations on the same origin can load `common` independently to provide formula copying, highlighting, and annotation restoration without initializing AI platform features. Checking the annotated origin also covers later SPA navigation. Formula discovery queries only added subtrees and relevant attribute changes. These lightweight entry points are removed after the shared bundle loads successfully.
+
+Code loading and platform activation have separate lifecycles. `AITContentLoader.load()` loads only code and styles; `activate()` verifies that the current site is supported, loads `core`, and starts its platform features. Register each platform entry with `AITPlatformFeatures.register('feature-name', initialize, { delay: 500 })`; the delay is optional. Repeated or concurrent activation shares each feature's task, and failed entries can retry later. Opening generic settings before a page is identified as a mirror therefore does not prevent its timeline or prompt tools from starting afterward.
+
+Unknown domains are checked against built-in platforms' user-message DOM selectors. A unique platform match saves the domain mapping and triggers `core` loading on the current page. The initial observation lasts 30 seconds, checks changed DOM at most once per second, and performs a final check before disconnecting. Returning to the page or interacting with an editor can start another 10-second observation. Detection pauses in background tabs and removes its listeners after a match. Selectors are generated from platform adapters; observation scheduling lives in `js/mirrorSiteDetector/mirror-site-detector.js`.
+
+| Bundle | Loading trigger and responsibility |
+| --- | --- |
+| `common` | Shared dependency of AI features; also loads independently when an ordinary page needs formula or highlight tools |
+| `core` | Loads on supported sites; provides automatic features such as the timeline, prompt button, and shared components |
+| `panel` | Loads when settings or a related settings dialog first opens |
+| `runner-ui` | Loads on the first code-run action |
+| `export-ui` | Loads when conversation export first opens |
+
+With constructed stylesheets, each bundle reads its CSS concurrently, applies it in the order listed in `styles`, then executes its JavaScript after all styles are ready. If the API exists but accessing or applying sheets fails, loading switches to the sequential `<link>` fallback. Concurrent requests share a loading task, and subsequent calls reuse the successful result within the same page. Shared UI styles must load with their consumers. For example, the input's prompt menu works before settings opens, so its stylesheet belongs in `core`, not only in `panel`. Generated configuration and custom-site configuration are read consistently from `globalThis`, supporting Firefox content scripts where `window` and `globalThis` differ.
+
+When adding modules, update `scripts/content-bundles.config.json`:
+
+1. Add supporting files to the relevant bundle's `scripts`. Array order is execution order; place base classes and dependencies before their consumers. New files are not included automatically.
+2. Put automatic AI-page features in `core`, registering their startup functions with `AITPlatformFeatures.register()` instead of starting them during code loading. Put cross-site shared tools in `common`. For an independent feature used on demand, add a bundle and await `window.AITContentLoader.load('bundle-name')` in its entry point before opening its UI. `core` depends on `common`; other bundles default to depending on `core`. An explicit `dependencies` array overrides that default; `common` uses an empty array so it can load independently.
+3. Bundles have separate scopes. Add top-level classes, constants, or functions needed by other bundles to their owner's `exports`; the build exposes these in the extension's isolated environment.
+4. Add CSS to the owner's `styles`, and check that `manifest.json`'s `web_accessible_resources` covers new CSS, images, and other resources. Bundle JavaScript is already covered by `js/content/bundles/*.js`.
+5. Saving the config refreshes the watched source list and rebuilds the resources. Verify first-use behavior after a page refresh, especially that shared buttons and dialogs have their styles before settings has opened.
+
+Ordinary features belong in `bundles`; fixed entry scripts and early hooks remain in `manifest.json`. Run `node scripts/build-content.js --check` to verify that generated resources match the sources and config.
 
 ## Feedback
 

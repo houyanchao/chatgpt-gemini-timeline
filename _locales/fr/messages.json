@@ -948,7 +948,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Le site de chat IA que vous utilisez n’est pas pris en charge ? Qu’il s’agisse d’un chat IA interne d’entreprise ou d’un site IA confidentiel, vous pouvez demander son adaptation. Une fois adapté, vous débloquerez des fonctionnalités comme « Timeline », les prompts et les notes rapides."
+    "message": "Vous pouvez demander l’adaptation de sites de chat IA internes à votre entreprise ou de sites de chat IA de niche pour débloquer des fonctionnalités comme « Timeline », les prompts et les notes rapides."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

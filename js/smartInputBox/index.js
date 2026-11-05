@@ -18,21 +18,18 @@
 
     // ✅ 检查当前平台是否支持智能输入功能
     async function isPlatformSupported() {
-        try {
-            const platform = await getCurrentPlatform();
-            if (!platform) return false;
+        const platform = await getCurrentPlatform();
+        if (!platform) return false;
 
-            // 检查平台是否支持智能输入功能（提示词按钮或智能回车之一）
-            return platform.features?.promptButton === true || platform.features?.smartEnter === true;
-        } catch (e) {
-            return false;
-        }
+        // 检查平台是否支持智能输入功能（提示词按钮或智能回车之一）
+        return platform.features?.promptButton === true || platform.features?.smartEnter === true;
     }
     
     // 等待 DOM 和依赖加载完成
     const initSmartInputBox = async () => {
         if (window.smartEnterManager || initInFlight) return;
         initInFlight = true;
+        let manager = null;
         try {
             await TimelineI18n.ready();
 
@@ -65,7 +62,9 @@
             
             // ✅ 只要平台支持，就创建管理器实例
             // Enter 换行和提示词按钮各自受自己的开关控制
-            const manager = new SmartEnterManager(adapter);
+            if (window.AITContentSession?.active === false) return;
+            manager = new SmartEnterManager(adapter);
+            window.AITContentSession?.onStop(() => manager.destroy());
             
             // 初始化
             await manager.init();
@@ -74,17 +73,14 @@
             window.smartEnterManager = manager;
             
         } catch (error) {
+            // Do not cache a failed entry as started; release partial listeners before retrying.
+            try { manager?.destroy(); } catch {}
+            throw error;
         } finally {
             initInFlight = false;
         }
     };
     
-    // DOM 加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSmartInputBox);
-    } else {
-        // DOM 已经加载完成
-        initSmartInputBox();
-    }
+    window.AITPlatformFeatures.register('smart-input', initSmartInputBox);
     
 })();

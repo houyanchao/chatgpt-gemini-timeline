@@ -61,15 +61,20 @@ class UrlChangeMonitor {
         const origPush = history.pushState;
         const origReplace = history.replaceState;
 
-        history.pushState = function (...args) {
+        const push = history.pushState = function (...args) {
             origPush.apply(this, args);
             setTimeout(check, 0);
         };
 
-        history.replaceState = function (...args) {
+        const replace = history.replaceState = function (...args) {
             origReplace.apply(this, args);
             setTimeout(check, 0);
         };
+
+        window.AITContentSession?.onStop(() => {
+            if (history.pushState === push) history.pushState = origPush;
+            if (history.replaceState === replace) history.replaceState = origReplace;
+        });
 
         window.addEventListener('popstate', check);
         window.addEventListener('hashchange', check);

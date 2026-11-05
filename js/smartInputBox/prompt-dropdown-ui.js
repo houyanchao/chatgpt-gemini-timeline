@@ -32,6 +32,7 @@ function createPromptDropdownUI({
 }) {
     const container = document.createElement('div');
     container.className = 'prompt-dropdown-container';
+    container.setAttribute('data-ait-owned-ui', 'prompt-menu');
 
     if (showCommonSettings) {
         const tabs = document.createElement('div');

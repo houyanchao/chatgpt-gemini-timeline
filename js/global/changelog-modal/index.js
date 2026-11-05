@@ -301,9 +301,9 @@ if (!window.changelogModal) {
     
     // popup 模式：自动弹窗（延迟 3 秒，避免干扰页面加载）
     if (CHANGELOG_DATA.displayMode === 'popup') {
-        setTimeout(async () => {
+        window.AITPlatformFeatures.register('changelog-popup', async () => {
             const hasUpdate = await window.changelogModal.hasUpdate();
             if (hasUpdate) window.changelogModal.show();
-        }, 3000);
+        }, { delay: 3000 });
     }
 }

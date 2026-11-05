@@ -52,6 +52,7 @@ class HighlightManager {
 
     async init() {
         const result = await chrome.storage.local.get([this._enabledKey, this._colorKey, this._styleKey]);
+        if (this._destroyed) return;
         this.isEnabled = result[this._enabledKey] !== false;
         if (result[this._colorKey]) this.currentColor = result[this._colorKey];
         if (result[this._styleKey]) this.currentStyle = result[this._styleKey];
@@ -432,7 +433,9 @@ class HighlightManager {
         this._destroyed = true;
         this._cancelRestore();
         this._stopObserving();
-        if (this._onStorageChange) chrome.storage.onChanged.removeListener(this._onStorageChange);
+        if (this._onStorageChange) {
+            try { chrome.storage.onChanged.removeListener(this._onStorageChange); } catch {}
+        }
         if (this._onSelectionChange) document.removeEventListener('selectionchange', this._onSelectionChange);
     }
 
@@ -721,6 +724,7 @@ class HighlightManager {
             document.querySelectorAll(`mark.ait-highlight[data-hl-id="${id}"]`).forEach(m => m.classList.remove('ait-highlight-hover'));
         });
         mark.addEventListener('click', (e) => {
+            if (window.AITExtensionContext?.isActive() === false) return;
             e.stopPropagation();
             const id = mark.dataset.hlId;
             window.dispatchEvent(new CustomEvent('ait-highlight-click', { detail: { id, mark } }));

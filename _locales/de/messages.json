@@ -948,7 +948,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "Deine genutzte AI-Chat-Website wird nicht unterstützt? Egal ob firmeninterne AI-Chat-Website oder eine Nischenseite – beantrage eine Anpassung. Nach der Anpassung kannst du Funktionen wie „Timeline“, „Prompts“ und „Flash Notes“ freischalten."
+    "message": "Für firmeninterne AI-Chat-Websites und Nischenseiten kannst du eine Anpassung beantragen, um Funktionen wie „Timeline“, „Prompts“ und „Flash Notes“ freizuschalten."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

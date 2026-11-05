@@ -272,14 +272,11 @@ const StorageAdapter = {
      */
     async get(key) {
         try {
-            if (!this.isChromeStorageAvailable()) return undefined;
-
-            return new Promise((resolve) => {
-                chrome.storage.local.get([key], (result) => {
-                    resolve(result[key]);
-                });
-            });
+            if (globalThis.window?.AITExtensionContext?.invalidated || !this.isChromeStorageAvailable()) return undefined;
+            const result = await chrome.storage.local.get(key);
+            return result?.[key];
         } catch (e) {
+            globalThis.window?.AITExtensionContext?.handleInvalidation(e);
             return undefined;
         }
     },

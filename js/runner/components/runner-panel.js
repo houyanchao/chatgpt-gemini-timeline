@@ -369,6 +369,7 @@
 
             // 保存清理函数
             this._cleanupResizer = () => {
+                onMouseUp();
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             };

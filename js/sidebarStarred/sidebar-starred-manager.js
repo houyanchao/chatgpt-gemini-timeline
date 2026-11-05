@@ -47,11 +47,13 @@ class SidebarStarredManager {
 
         await TimelineI18n.ready();
         const saved = await StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES);
+        if (this.isDestroyed) return false;
         this.folderStates = saved && typeof saved === 'object' ? saved : {};
         const ok = this._injectIntoSidebar();
         if (!ok) return false;
         await this._restoreCollapseState();
         await this._refreshContent();
+        if (this.isDestroyed) return false;
         this._startStorageListener();
         this._startReinjectCheck();
         this._startParentObserver();

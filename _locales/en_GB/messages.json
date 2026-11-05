@@ -972,7 +972,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "The AI chat site you use isn't supported? Whether it's an internal company AI chat or a niche AI site, you can request support. Once it's adapted, you'll unlock features like Timeline, prompts, and flash notes."
+    "message": "You can request support for internal company AI chat sites and niche AI chat sites to unlock features like Timeline, prompts, and flash notes."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

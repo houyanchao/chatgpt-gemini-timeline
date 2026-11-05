@@ -20,10 +20,11 @@ class CEExportManager {
     constructor(adapter) {
         this.adapter = adapter;
         this.modal = null;
-        this.pngExporter = new CEPngExporter();
-        this.pdfExporter = new CEPdfExporter();
+        this.pngExporter = null;
+        this.pdfExporter = null;
 
         this._modalOpen = false;
+        this._openRequestId = 0;
         this._loadCancelled = false;
         this._clickDelegateAttached = false;
         this._unsubscribeObserver = null;
@@ -185,8 +186,23 @@ class CEExportManager {
         this._modalOpen = true;
         this._loadCancelled = false;
 
+        const requestId = ++this._openRequestId;
+        const url = location.href;
+        try {
+            await window.AITContentLoader?.load('export-ui');
+            if (!this._isCurrentRequest(requestId, url)) return;
+            this.pngExporter ||= new CEPngExporter();
+            this.pdfExporter ||= new CEPdfExporter();
+        } catch {
+            if (!this._isCurrentRequest(requestId, url)) return;
+            this._closeModal();
+            window.globalToastManager?.error(CE_TEXT.failed);
+            return;
+        }
+
         let defaultThemeId = CE_DEFAULT_THEME;
         try { defaultThemeId = await this.adapter.getDefaultThemeId(); } catch { /* ignore */ }
+        if (!this._isCurrentRequest(requestId, url)) return;
 
         this.modal = new CEExportModal();
         this.modal.open({
@@ -198,7 +214,11 @@ class CEExportManager {
         });
         this.modal.showLoading();
 
-        await this._loadConversation();
+        await this._loadConversation(requestId, url);
+    }
+
+    _isCurrentRequest(requestId, url) {
+        return this._modalOpen && requestId === this._openRequestId && location.href === url;
     }
 
     _cancelLoad() {
@@ -206,18 +226,20 @@ class CEExportManager {
         this._closeModal();
     }
 
-    async _loadConversation() {
+    async _loadConversation(requestId, url) {
+        const modal = this.modal;
+        const isCurrent = () => this._isCurrentRequest(requestId, url) && this.modal === modal;
         let turns = [];
         try {
             turns = await this.adapter.collectAllTurns({
-                onProgress: (count) => this.modal?.updateProgress(count),
-                shouldCancel: () => this._loadCancelled || !this._modalOpen,
+                onProgress: (count) => { if (isCurrent()) modal.updateProgress(count); },
+                shouldCancel: () => this._loadCancelled || !isCurrent(),
             });
         } catch (error) {
         }
 
         // 加载期间弹窗已被关闭
-        if (!this._modalOpen || !this.modal) return;
+        if (!isCurrent()) return;
 
         if (this._loadCancelled) {
             this._closeModal();
@@ -230,7 +252,7 @@ class CEExportManager {
             return;
         }
 
-        this.modal.showContent(turns);
+        modal.showContent(turns);
     }
 
     async _runExport(request) {
@@ -297,6 +319,9 @@ class CEExportManager {
     }
 
     _closeModal() {
+        // Invalidate pending imports/theme lookups/collection, including A → B → A.
+        this._openRequestId++;
+        this._loadCancelled = true;
         this._modalOpen = false;
         if (this.modal) {
             this.modal.close();

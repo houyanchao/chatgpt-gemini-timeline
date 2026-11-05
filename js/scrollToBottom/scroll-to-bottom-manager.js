@@ -48,6 +48,7 @@ class ScrollToBottomManager {
 
         // 1. 加载平台设置
         await this._loadPlatformSettings();
+        if (window.AITContentSession?.active === false) return;
         
         // 2. 监听 Storage 变化
         this._attachStorageListener();
@@ -443,7 +444,7 @@ class ScrollToBottomManager {
         
         // 移除 Storage 监听
         if (this.storageListener) {
-            chrome.storage.onChanged.removeListener(this.storageListener);
+            try { chrome.storage.onChanged.removeListener(this.storageListener); } catch {}
             this.storageListener = null;
         }
         
@@ -485,12 +486,13 @@ class ScrollToBottomManager {
             if (!(await isPlatformSupported())) return;
 
             const adapter = await getAdapter();
-            if (!adapter) return;
+            if (!adapter || window.AITContentSession?.active === false) return;
 
             scrollToBottomManager = new ScrollToBottomManager(adapter);
             await scrollToBottomManager.init();
         } catch (e) {
-            scrollToBottomManager = null;
+            cleanup();
+            throw e;
         } finally {
             initInFlight = false;
         }
@@ -503,11 +505,9 @@ class ScrollToBottomManager {
         }
     }
     
-    window.addEventListener('beforeunload', cleanup);
-    
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
-    } else {
-        setTimeout(init, 500);
-    }
+    window.AITContentSession?.onStop(cleanup);
+    window.AITPlatformFeatures.register('scroll-to-bottom', () => {
+        window.addEventListener('beforeunload', cleanup);
+        return init();
+    }, { delay: 500 });
 })();

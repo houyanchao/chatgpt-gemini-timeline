@@ -505,13 +505,9 @@
     let initInFlight = false;
 
     async function getSupportedPlatformId() {
-        try {
-            const platform = typeof getCurrentPlatform === 'function' ? await getCurrentPlatform() : null;
-            if (!platform || !SUPPORTED_PLATFORMS.has(platform.id)) return null;
-            return platform.id;
-        } catch (e) {
-            return null;
-        }
+        const platform = typeof getCurrentPlatform === 'function' ? await getCurrentPlatform() : null;
+        if (!platform || !SUPPORTED_PLATFORMS.has(platform.id)) return null;
+        return platform.id;
     }
 
     function loadSetting() {
@@ -539,7 +535,7 @@
             if (!platformId) return;
 
             const inputAdapter = (await window.smartEnterAdapterRegistry?.getAdapter?.()) || null;
-            if (!inputAdapter) return;
+            if (!inputAdapter || window.AITContentSession?.active === false) return;
 
             instance = new ScrollAnchor(platformId, inputAdapter);
             instance.init();
@@ -551,6 +547,7 @@
             };
         } catch (error) {
             cleanup();
+            throw error;
         } finally {
             initInFlight = false;
         }
@@ -568,11 +565,9 @@
         }
     }
 
-    window.addEventListener('beforeunload', cleanup);
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 500));
-    } else {
-        setTimeout(init, 500);
-    }
+    window.AITContentSession?.onStop(cleanup);
+    window.AITPlatformFeatures.register('prevent-auto-scroll', () => {
+        window.addEventListener('beforeunload', cleanup);
+        return init();
+    }, { delay: 500 });
 })();

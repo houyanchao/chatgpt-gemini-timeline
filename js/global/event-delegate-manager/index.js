@@ -82,8 +82,11 @@ class EventDelegateManager {
             if (matchedElement) {
                 
                 try {
+                    // A delegate may observe a native control without owning its click.
+                    if (window.AITExtensionContext?.isActive() === false) return;
                     handler(e, matchedElement);
                 } catch (error) {
+                    window.AITExtensionContext?.handleInvalidation(error);
                 }
             }
         }

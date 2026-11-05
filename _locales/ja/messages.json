@@ -999,7 +999,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "使っているAIチャットサイトが対応していませんか？社内のAIチャット、ニッチなAIサイトなど、いずれも対応を申請できます。対応後は「タイムライン」「プロンプト」「フラッシュメモ」などの機能を使えるようになります。"
+    "message": "社内のAIチャットサイトやニッチなAIチャットサイトも、対応を申請することで「タイムライン」「プロンプト」「フラッシュメモ」などの機能を利用できます。"
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

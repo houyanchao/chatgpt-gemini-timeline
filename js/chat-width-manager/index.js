@@ -47,6 +47,7 @@ class ChatWidthManager {
         this._config = cfg;
 
         const saved = await this._load();
+        if (window.AITContentSession?.active === false) return;
         this._scale = saved;
         this._tryApply();
 
@@ -424,7 +425,7 @@ class ChatWidthManager {
 
 window.ChatWidthManager = ChatWidthManager;
 
-// 自初始化
+// 平台启动入口
 (function () {
     let initInFlight = false;
 
@@ -434,17 +435,13 @@ window.ChatWidthManager = ChatWidthManager;
         try {
             await TimelineI18n.ready();
 
-            if (!(await getCurrentPlatform())) return;
+            if (!(await getCurrentPlatform()) || window.AITContentSession?.active === false) return;
             await ChatWidthManager.getInstance().init();
-        } catch (error) {
         } finally {
             initInFlight = false;
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialize);
-    } else {
-        initialize();
-    }
+    window.AITContentSession?.onStop(() => ChatWidthManager._instance?.destroy());
+    window.AITPlatformFeatures.register('chat-width', initialize);
 })();

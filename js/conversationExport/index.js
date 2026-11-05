@@ -32,6 +32,7 @@ async function isConversationExportEnabled(platformId) {
 
     let manager = null;
     let initInFlight = false;
+    let listenersAttached = false;
 
     async function ensureManager() {
         if (manager || initInFlight) return;
@@ -48,10 +49,12 @@ async function isConversationExportEnabled(platformId) {
                 return; // 用户在设置里关闭了当前平台的导出
             }
 
+            if (window.AITContentSession?.active === false) return;
             manager = new CEExportManager(adapter);
             manager.init();
         } catch (error) {
-            manager = null;
+            cleanup();
+            throw error;
         } finally {
             initInFlight = false;
         }
@@ -80,18 +83,19 @@ async function isConversationExportEnabled(platformId) {
         }
     }
 
-    if (chrome?.storage?.onChanged) {
-        chrome.storage.onChanged.addListener((changes, area) => {
-            if (area !== 'local' || !changes[CE_PLATFORM_SETTINGS_KEY]) return;
-            reevaluate().catch(() => {});
-        });
-    }
+    window.AITContentSession?.onStop(cleanup);
+    window.AITPlatformFeatures.register('conversation-export', () => {
+        if (!listenersAttached) {
+            listenersAttached = true;
+            if (chrome?.storage?.onChanged) {
+                chrome.storage.onChanged.addListener((changes, area) => {
+                    if (area !== 'local' || !changes[CE_PLATFORM_SETTINGS_KEY]) return;
+                    reevaluate().catch(() => {});
+                });
+            }
+            window.addEventListener('beforeunload', cleanup);
+        }
 
-    window.addEventListener('beforeunload', cleanup);
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(() => ensureManager(), 600));
-    } else {
-        setTimeout(() => ensureManager(), 600);
-    }
+        return ensureManager();
+    }, { delay: 600 });
 })();

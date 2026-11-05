@@ -55,20 +55,22 @@ class PromptButtonManager {
 
         // 1. 加载平台设置
         await this._loadPlatformSettings();
-        
+
         // 2. 加载提示词列表
         await this._loadPrompts();
-        
+        if (this.isDestroyed) return;
+
         // 3. 监听 Storage 变化
         this._attachStorageListener();
-        
+
         // 4. 创建按钮
         this._createButton();
-        
+
         // 5. 检查版本更新状态 & 创建 Logo 按钮
         await this._checkUpdateStatus();
+        if (this.isDestroyed) return;
         this._createUpdateButton();
-        
+
         // 6. 检查是否启用
         if (this._isPlatformEnabled()) {
             this._enable();
@@ -192,6 +194,7 @@ class PromptButtonManager {
         if (this.buttonElement) return;
         
         const button = document.createElement('div');
+        button.setAttribute('data-ait-owned-ui', '');
         button.className = 'smart-input-prompt-btn';
         button.innerHTML = `
             <svg class="smart-input-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -272,6 +275,7 @@ class PromptButtonManager {
         if (this._updateBtnElement) return;
         
         const btn = document.createElement('div');
+        btn.setAttribute('data-ait-owned-ui', '');
         btn.className = 'smart-input-update-btn';
         
         try {
@@ -525,7 +529,6 @@ class PromptButtonManager {
      * 处理点击
      */
     _handleClick() {
-        
         if (!this.buttonElement) {
             return;
         }
@@ -548,16 +551,11 @@ class PromptButtonManager {
             window.globalDropdownManager.hide(true);
         }
         
-        this._promptOverlay = document.createElement('div');
-        this._promptOverlay.className = 'prompt-dropdown-overlay';
-        this._promptOverlay.addEventListener('click', () => this._hidePromptDropdown());
-        document.body.appendChild(this._promptOverlay);
-        
         const currentPlatform = this._currentPlatform;
         const currentPlatformId = currentPlatform?.id || '';
         const filteredPrompts = this.prompts.filter(p => !p.platformId || p.platformId === currentPlatformId);
         
-        this._promptDropdown = createPromptDropdownUI({
+        const dropdown = createPromptDropdownUI({
             prompts: filteredPrompts,
             showCommonSettings: true,
             onItemClick: (prompt) => {
@@ -584,10 +582,16 @@ class PromptButtonManager {
                 this._hidePromptDropdown();
                 if (window.panelModal) window.panelModal.show('mirror-site');
             },
-            onAICompleteReminderClick: () => {
+            onAICompleteReminderClick: async () => {
                 this._hidePromptDropdown();
-                if (typeof TimelineSettingsTab !== 'undefined') {
-                    void TimelineSettingsTab.showAICompleteReminderModal?.();
+                try {
+                    await window.AITContentLoader?.load('panel');
+                    if (typeof TimelineSettingsTab !== 'undefined') {
+                        await TimelineSettingsTab.showAICompleteReminderModal?.();
+                    }
+                } catch (error) {
+                    if (window.AITExtensionContext?.handleInvalidation(error)) return;
+                    window.globalToastManager?.error(TimelineI18n.getMessage('settingsLoadFailed'));
                 }
             },
             onSettingsClick: () => {
@@ -595,22 +599,31 @@ class PromptButtonManager {
                 if (window.panelModal) window.panelModal.show('timeline');
             }
         });
-        
-        document.body.appendChild(this._promptDropdown);
-        this._positionPromptDropdown();
-        
-        requestAnimationFrame(() => {
-            this._promptDropdown.classList.add('visible');
-        });
-        
-        this._boundCloseOnClickOutside = (e) => {
-            if (!this._promptDropdown?.contains(e.target) && e.target !== this.buttonElement) {
-                this._hidePromptDropdown();
-            }
-        };
-        setTimeout(() => {
+
+        // Build the menu before attaching its click shield. Mount both or clean up both.
+        const overlay = document.createElement('div');
+        overlay.className = 'prompt-dropdown-overlay';
+        overlay.setAttribute('data-ait-owned-ui', 'prompt-menu');
+        this._promptDropdown = dropdown;
+        this._promptOverlay = overlay;
+        try {
+            document.body.append(overlay, dropdown);
+            this._positionPromptDropdown();
+
+            this._boundCloseOnClickOutside = (e) => {
+                if (!dropdown.contains(e.target) && !this.buttonElement?.contains(e.target)) {
+                    this._hidePromptDropdown();
+                }
+            };
             document.addEventListener('click', this._boundCloseOnClickOutside, true);
-        }, 0);
+            requestAnimationFrame(() => {
+                if (this._promptDropdown !== dropdown) return;
+                dropdown.classList.add('visible');
+            });
+        } catch (error) {
+            this._hidePromptDropdown(true);
+            throw error;
+        }
     }
     
     /**
@@ -650,7 +663,7 @@ class PromptButtonManager {
     /**
      * 隐藏提示词下拉菜单
      */
-    _hidePromptDropdown() {
+    _hidePromptDropdown(immediate = false) {
         if (this._boundCloseOnClickOutside) {
             document.removeEventListener('click', this._boundCloseOnClickOutside, true);
             this._boundCloseOnClickOutside = null;
@@ -661,14 +674,13 @@ class PromptButtonManager {
             window.globalTooltipManager.hide();
         }
         
-        if (this._promptDropdown) {
-            this._promptDropdown.classList.remove('visible');
-            setTimeout(() => {
-                if (this._promptDropdown?.parentNode) {
-                    this._promptDropdown.parentNode.removeChild(this._promptDropdown);
-                }
-                this._promptDropdown = null;
-            }, 150);
+        const dropdown = this._promptDropdown;
+        this._promptDropdown = null;
+        if (dropdown) {
+            dropdown.classList.remove('visible');
+            dropdown.style.pointerEvents = 'none';
+            if (immediate) dropdown.remove();
+            else setTimeout(() => dropdown.remove(), 150);
         }
         
         if (this._promptOverlay?.parentNode) {
@@ -807,16 +819,16 @@ class PromptButtonManager {
     destroy() {
         this.isDestroyed = true;
         this._disable();
-        
+
         // 关闭下拉菜单
-        this._hidePromptDropdown();
-        
+        this._hidePromptDropdown(true);
+
         // 移除 Storage 监听
         if (this.storageListener) {
-            chrome.storage.onChanged.removeListener(this.storageListener);
+            try { chrome.storage.onChanged.removeListener(this.storageListener); } catch {}
             this.storageListener = null;
         }
-        
+
         // 移除按钮
         if (this.buttonElement?.parentNode) {
             this.buttonElement.parentNode.removeChild(this.buttonElement);

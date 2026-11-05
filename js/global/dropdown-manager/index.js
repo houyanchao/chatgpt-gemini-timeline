@@ -205,6 +205,7 @@ class GlobalDropdownManager {
         // 创建遮罩层（用于阻止点击其他元素）
         this.overlay = document.createElement('div');
         this.overlay.className = 'global-dropdown-overlay';
+        this.overlay.setAttribute('data-ait-owned-ui', '');
         
         // ✨ 遮罩层的鼠标事件（处理间隙中的鼠标移动）
         this.overlay.addEventListener('mouseleave', (e) => {
@@ -236,6 +237,7 @@ class GlobalDropdownManager {
         // 创建下拉菜单容器
         this.dropdown = document.createElement('div');
         this.dropdown.className = `global-dropdown ${config.className}`;
+        this.dropdown.setAttribute('data-ait-owned-ui', '');
         this.dropdown.style.width = `${config.width}px`;
         
         // 添加选项
@@ -628,6 +630,7 @@ class GlobalDropdownManager {
         // 创建子菜单容器
         const submenu = document.createElement('div');
         submenu.className = 'global-dropdown global-dropdown-submenu';
+        submenu.setAttribute('data-ait-owned-ui', '');
         submenu.dataset.level = submenuLevel; // ✨ 标记子菜单层级
         
         // 子菜单的鼠标事件

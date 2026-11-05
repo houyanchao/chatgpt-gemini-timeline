@@ -948,7 +948,7 @@
     "message": "Adapt a new AI platform"
   },
   "mirrorSiteAdapterHeroDesc": {
-    "message": "O site de chat de IA que usa não é suportado? Seja um chat de IA interno da empresa ou um site de IA pouco comum, pode pedir a adaptação. Quando estiver pronta, poderá desbloquear funcionalidades como Linha temporal, prompts e notas rápidas."
+    "message": "Pode pedir a adaptação de sites de chat de IA internos da empresa e de sites de chat de IA de nicho para desbloquear funcionalidades como Linha temporal, prompts e notas rápidas."
   },
   "mirrorSiteAdapterStartButton": {
     "message": "Start setup"

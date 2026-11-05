@@ -19,6 +19,7 @@ const ROOT = path.resolve(__dirname, '..');
 const MANIFEST_PATH = path.join(ROOT, 'manifest.json');
 
 function build() {
+    require('./build-content').buildContent();
     const version = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')).version;
     const zipName = `AIChatTimeline-v${version}-chrome.zip`;
     const zipPath = path.join(ROOT, zipName);
@@ -38,6 +39,7 @@ function build() {
         `-x "*.zip" ` +
         `-x "__MACOSX/*" ` +
         `-x "scripts/*" ` +
+        `-x "artifacts/*" ` +
         `-x "web/*" ` +
         `-x "manifest.firefox.json" ` +
         `-x "READMEIMAGE/*"`,

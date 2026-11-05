@@ -25,15 +25,9 @@
     
     // 检查当前平台是否支持引用回复功能
     async function isQuickAskSupported() {
-        try {
-            if (typeof getCurrentPlatform === 'undefined') return false;
-            const platform = await getCurrentPlatform();
-            if (!platform) return false;
-            
-            return platform.features?.quickAsk === true;
-        } catch (e) {
-            return false;
-        }
+        if (typeof getCurrentPlatform === 'undefined') return false;
+        const platform = await getCurrentPlatform();
+        return platform?.features?.quickAsk === true;
     }
     
     // 检查是否在对话页面
@@ -72,6 +66,7 @@
         
         const enabled = await isQuickAskEnabled();
         const onConversationPage = await isConversationPage();
+        if (!manager) return;
         
         if (enabled && onConversationPage) {
             if (!manager.isEnabled) {
@@ -82,6 +77,7 @@
                 manager.disable();
             }
         }
+        window.AIChatTimelineHighlight?.updateState?.();
     }
     
     // 处理 URL 变化
@@ -109,7 +105,7 @@
 
             // 检查平台是否支持
             isSupported = await isQuickAskSupported();
-            if (!isSupported) {
+            if (!isSupported || window.AITContentSession?.active === false) {
                 return;
             }
 
@@ -134,6 +130,7 @@
             
             // 保存到全局
             window.quickAskManager = manager;
+            window.AIChatTimelineHighlight?.updateState?.();
             
             // 监听设置变化
             if (!settingsListenerAttached) {
@@ -163,16 +160,19 @@
             };
             
         } catch (error) {
+            try { manager?.destroy(); } catch {}
+            manager = null;
+            window.quickAskManager = null;
+            throw error;
         } finally {
             initInFlight = false;
         }
     };
     
-    // DOM 加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initQuickAsk);
-    } else {
-        initQuickAsk();
-    }
+    window.AITContentSession?.onStop(() => {
+        manager?.destroy();
+        manager = null;
+    });
+    window.AITPlatformFeatures.register('quick-ask', initQuickAsk);
     
 })();

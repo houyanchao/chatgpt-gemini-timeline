@@ -65,6 +65,7 @@ class SmartEnterManager {
 
         // 1. 加载平台设置
         await this._loadPlatformSettings();
+        if (window.AITContentSession?.active === false) return;
         
         // 2. 监听 Storage 变化（实时响应用户开关）
         this._attachStorageListener();
@@ -161,7 +162,7 @@ class SmartEnterManager {
      */
     _detachStorageListener() {
         if (this.storageListener) {
-            chrome.storage.onChanged.removeListener(this.storageListener);
+            try { chrome.storage.onChanged.removeListener(this.storageListener); } catch {}
             this.storageListener = null;
         }
     }
@@ -357,6 +358,8 @@ class SmartEnterManager {
         if (!this._isPlatformEnabled()) {
             return;
         }
+
+        if (window.AITExtensionContext?.isActive() === false) return;
 
         // 长按产生的重复事件不能被识别为双击发送。
         if (e.repeat) {

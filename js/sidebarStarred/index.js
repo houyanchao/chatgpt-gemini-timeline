@@ -60,8 +60,10 @@
                 if (!await resolveSupport()) return;
             }
 
+            if (window.AITContentSession?.active === false) return;
             manager = new SidebarStarredManager(adapter);
             const ok = await manager.init();
+            if (window.AITContentSession?.active === false) return;
 
             if (!ok) {
                 manager.destroy();
@@ -72,6 +74,7 @@
             }
         } catch (error) {
             destroyManager();
+            throw error;
         } finally {
             initInFlight = false;
         }
@@ -112,7 +115,7 @@
             const enabled = settings[platform.id] !== false;
             if (enabled && !manager) {
                 if (canInject()) {
-                    initialize(0);
+                    initialize(0).catch(() => {});
                 } else {
                     initWithRetry();
                 }
@@ -132,6 +135,7 @@
             attachSettingsListener();
 
             const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
+            if (window.AITContentSession?.active === false) return;
             if (settings && settings[platform.id] === false) return;
 
             if (canInject()) {
@@ -139,11 +143,13 @@
             } else {
                 initWithRetry();
             }
-        } catch (error) {
         } finally {
             bootstrapInFlight = false;
         }
     }
 
-    bootstrap();
+    window.AITContentSession?.onStop(() => {
+        try { destroyManager(); } finally { adapter?.restoreNativeList(); }
+    });
+    window.AITPlatformFeatures.register('sidebar-starred', bootstrap);
 })();

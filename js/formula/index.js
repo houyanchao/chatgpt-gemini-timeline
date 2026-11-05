@@ -21,7 +21,7 @@
         await TimelineI18n.ready();
 
         // 避免重复初始化
-        if (globalFormulaManager) {
+        if (globalFormulaManager || window.AITContentSession?.active === false) {
             return;
         }
         
@@ -94,6 +94,7 @@
     setupStorageListener();
     
     // 页面卸载时清理
+    window.AITContentSession?.onStop(destroyFormulaModule);
     window.addEventListener('beforeunload', destroyFormulaModule);
     
 })();

@@ -12,8 +12,11 @@
     'use strict';
 
     const STORAGE_KEY = 'mirrorSiteSourceDomain';
-    const DETECT_TIMEOUT_MS = 10000;
-    const DETECT_DEBOUNCE_MS = 300;
+    const INITIAL_DETECT_WINDOW_MS = 30000;
+    const RETRY_DETECT_WINDOW_MS = 10000;
+    const DETECT_INTERVAL_MS = 1000;
+    const EDITOR_SELECTOR = 'textarea, input:not([type]), input[type="text"], input[type="search"], '
+        + '[contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"], [role="textbox"]';
 
     let _detectInFlight = false;
 
@@ -46,11 +49,13 @@
     }
 
     /**
-     * 从全局站点适配器注册表取「平台 id → 提问节点选择器」。
-     * 平台清单的唯一真源是 SiteAdapterRegistry，这里只消费，不再单独维护。
-     * 自定义站点适配器没有 platformId，会被自动过滤。
+     * 优先使用从平台适配器构建出的轻量选择器，普通网页无需加载完整适配器。
+     * 未使用分包构建的开发环境仍可从注册表读取。
      */
     function getQuestionNodeSelectors() {
+        if (Array.isArray(globalThis.AITContentConfig?.platformSelectors)) {
+            return globalThis.AITContentConfig.platformSelectors;
+        }
         const adapters = window.siteAdapterRegistry?.getAllAdapters?.() || [];
         const selectors = [];
         for (const adapter of adapters) {
@@ -84,9 +89,9 @@
     }
 
     function findSourcePlatformByQuestionNode() {
-        const matched = getQuestionNodeSelectors()
+        const matched = [...new Set(getQuestionNodeSelectors()
             .filter(entry => hasQuestionNode(entry.selector))
-            .map(entry => entry.platformId);
+            .map(entry => entry.platformId))];
 
         // 仅当唯一一家命中时才可信；多家命中（选择器撞车）无法判定来源，返回 null。
         return matched.length === 1 ? matched[0] : null;
@@ -158,42 +163,114 @@
     function initMirrorSiteDetector() {
         if (!document.body) return;
 
-        detectAndSaveMirrorSiteGuarded().then((matched) => {
-            if (matched) return;
+        let completed = false;
+        let active = false;
+        let finishing = false;
+        let dirty = false;
+        let generation = 0;
+        let observer = null;
+        let windowTimer = null;
+        let checkTimer = null;
+        let checkPromise = null;
+        let lastCheckAt = -Infinity;
+        const inputEvents = ['focusin', 'input', 'keydown', 'pointerdown'];
 
-            const startedAt = Date.now();
-            let debounceTimer = null;
-            let stopped = false;
+        function stopWindow() {
+            generation++;
+            active = false;
+            finishing = false;
+            dirty = false;
+            clearTimeout(windowTimer);
+            clearTimeout(checkTimer);
+            windowTimer = checkTimer = null;
+            observer?.disconnect();
+            observer = null;
+        }
 
-            const observer = new MutationObserver(() => {
-                if (stopped) return;
-                if (Date.now() - startedAt > DETECT_TIMEOUT_MS) {
-                    stop();
-                    return;
+        function complete() {
+            completed = true;
+            stopWindow();
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            for (const type of inputEvents) document.removeEventListener(type, onInputInteraction, true);
+        }
+
+        function scheduleCheck() {
+            if (!active || completed || document.hidden || checkTimer !== null || checkPromise
+                || (!dirty && !finishing)) return;
+            // 固定最早执行时间，后续 DOM 变化不再推迟它，避免连续更新饿死检测。
+            const delay = Math.max(0, DETECT_INTERVAL_MS - (performance.now() - lastCheckAt));
+            checkTimer = setTimeout(runCheck, delay);
+        }
+
+        async function runCheck() {
+            checkTimer = null;
+            if (!active || completed || document.hidden) return;
+            const currentGeneration = generation;
+            const finalCheck = finishing;
+            dirty = false;
+            lastCheckAt = performance.now();
+            checkPromise = detectAndSaveMirrorSiteGuarded();
+            try {
+                if (await checkPromise) complete();
+            } catch {
+                // 暂时读取失败仍保留本轮观察和后续交互重试的机会。
+            } finally {
+                checkPromise = null;
+                if (!completed) {
+                    // 后台暂停后可能已开启新一轮，旧任务不能关闭新观察窗口。
+                    if (currentGeneration === generation && finalCheck) stopWindow();
+                    else scheduleCheck();
                 }
-
-                // 防抖：DOM 高频变动时合并为一次检测
-                if (debounceTimer) clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    debounceTimer = null;
-                    detectAndSaveMirrorSiteGuarded()
-                        .then((found) => {
-                            if (found) stop();
-                        })
-                        .catch(error => void 0);
-                }, DETECT_DEBOUNCE_MS);
-            });
-
-            function stop() {
-                if (stopped) return;
-                stopped = true;
-                if (debounceTimer) clearTimeout(debounceTimer);
-                observer.disconnect();
             }
+        }
 
+        function finishWindow() {
+            windowTimer = null;
+            observer?.disconnect();
+            observer = null;
+            finishing = true;
+            clearTimeout(checkTimer);
+            checkTimer = null;
+            // 等正在进行的检查完成，再补一次新检查；仍遵守每秒最多一次。
+            scheduleCheck();
+        }
+
+        function startWindow(duration) {
+            if (completed || active || document.hidden) return;
+            generation++;
+            active = true;
+            dirty = true;
+            observer = new MutationObserver(() => {
+                dirty = true;
+                scheduleCheck();
+            });
+            // 先观察再检查，覆盖异步读取平台配置期间出现的提问节点。
             observer.observe(document.body, { childList: true, subtree: true });
-            setTimeout(stop, DETECT_TIMEOUT_MS);
-        }).catch(error => void 0);
+            windowTimer = setTimeout(finishWindow, duration);
+            scheduleCheck();
+        }
+
+        function onVisibilityChange() {
+            if (document.hidden) stopWindow();
+            else startWindow(RETRY_DETECT_WINDOW_MS);
+        }
+
+        function onInputInteraction(event) {
+            if (completed || active || document.hidden) return;
+            if (event.type === 'keydown' && event.key !== 'Enter') return;
+            const target = event.target;
+            // pointerdown 发生在输入框失焦前，也覆盖停留很久后点击发送的情况。
+            const editor = target?.closest?.(EDITOR_SELECTOR)
+                || (event.type === 'pointerdown' && target?.closest?.('button, [role="button"], input[type="submit"]')
+                    && document.activeElement?.closest?.(EDITOR_SELECTOR));
+            if (editor) startWindow(RETRY_DETECT_WINDOW_MS);
+        }
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        for (const type of inputEvents) {
+            document.addEventListener(type, onInputInteraction, { capture: true, passive: true });
+        }
+        startWindow(INITIAL_DETECT_WINDOW_MS);
     }
 
     window.MirrorSiteDetector = {

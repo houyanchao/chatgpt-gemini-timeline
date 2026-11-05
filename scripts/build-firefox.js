@@ -39,6 +39,13 @@ function parseArgs() {
 function generateFirefoxManifest(geckoId) {
     const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
 
+    // Silent recovery uses Chromium's document-targeted scripting injection.
+    manifest.permissions = manifest.permissions.filter(permission => permission !== 'scripting');
+    delete manifest.host_permissions;
+    for (const entry of manifest.content_scripts || []) {
+        entry.js = entry.js?.filter(file => file !== 'js/content/session.js');
+    }
+
     // 1. background: service_worker → scripts
     if (manifest.background?.service_worker) {
         manifest.background = {
@@ -71,6 +78,7 @@ function generateFirefoxManifest(geckoId) {
 }
 
 function build() {
+    require('./build-content').buildContent();
     const args = parseArgs();
     const geckoId = args['gecko-id'] || DEFAULT_GECKO_ID;
     const version = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')).version;
@@ -101,6 +109,7 @@ function build() {
             `-x "*.zip" ` +
             `-x "__MACOSX/*" ` +
             `-x "scripts/*" ` +
+            `-x "artifacts/*" ` +
             `-x "web/*" ` +
             `-x "manifest.firefox.json"`,
             { cwd: ROOT, stdio: 'pipe' }

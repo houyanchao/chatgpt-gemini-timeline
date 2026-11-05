@@ -77,6 +77,11 @@
     let runnerManagerInstance = null;
     let unsubscribeObserver = null;  // DOMObserverManager 取消订阅函数
     let initialized = false;
+    const session = window.AITContentSession;
+    const processedCode = new WeakSet();
+    const positionedLayouts = new WeakMap();
+    const inlineLayouts = new WeakMap();
+    let mermaidFullscreenBound = false;
     let initInFlight = false;
     let scanTimer = null;
     let scanEpoch = 0;
@@ -176,6 +181,7 @@
             button.disabled = true;
             // 如果配置了使用悬浮面板，直接打开 FloatingRunnerPanel
             try {
+                await window.AITContentLoader?.load('runner-ui');
                 await window.AITResourceLoader?.load('runner-editor');
                 if (config.useFloatingPanel && window.FloatingRunnerPanel) {
                     const code = getCodeText(codeElement);
@@ -234,14 +240,7 @@
             showPopout: true,
             onClose: () => {
                 // 还原布局容器的原始样式
-                if (layoutContainer.dataset.originalHeight) {
-                    layoutContainer.style.removeProperty('display');
-                    layoutContainer.style.removeProperty('min-height');
-                    layoutContainer.style.removeProperty('height');
-                    layoutContainer.style.removeProperty('max-height');
-                    layoutContainer.style.removeProperty('overflow');
-                    delete layoutContainer.dataset.originalHeight;
-                }
+                restoreInlineLayout(layoutContainer);
                 // 显示 Run 按钮
                 if (container._runButton) {
                     container._runButton.style.display = '';
@@ -332,6 +331,21 @@
         }
     }
 
+    function restoreInlineLayout(layout) {
+        const styles = inlineLayouts.get(layout);
+        if (!styles) return;
+        inlineLayouts.delete(layout);
+        for (const [property, value, priority] of styles) layout.style.setProperty(property, value, priority);
+    }
+
+    function ensurePositioned(layout) {
+        if (getComputedStyle(layout).position !== 'static') return;
+        if (session && !positionedLayouts.has(layout)) {
+            positionedLayouts.set(layout, [layout.style.position, layout.style.getPropertyPriority('position')]);
+        }
+        layout.style.position = 'relative';
+    }
+
     /**
      * 处理运行按钮点击
      * @param {HTMLElement} codeElement - code 元素
@@ -341,9 +355,7 @@
      */
     async function handleRunClick(codeElement, layoutContainer, runButton, language = 'javascript') {
         // 确保布局容器有 position: relative
-        if (getComputedStyle(layoutContainer).position === 'static') {
-            layoutContainer.style.position = 'relative';
-        }
+        ensurePositioned(layoutContainer);
 
         // 计算 runner-container 高度：<code>元素高度 + 标题栏header + 分隔条 + output_header + output_content
         const codeHeight = codeElement.offsetHeight;
@@ -353,9 +365,10 @@
             CONFIG.headerHeight +          // output header
             CONFIG.outputContentHeight;    // output 内容区
         
-        // 保存原始高度（用于关闭时恢复）
-        if (!layoutContainer.dataset.originalHeight) {
-            layoutContainer.dataset.originalHeight = layoutContainer.offsetHeight;
+        if (!inlineLayouts.has(layoutContainer)) {
+            const style = layoutContainer.style;
+            inlineLayouts.set(layoutContainer, ['display', 'height', 'min-height', 'max-height', 'overflow-x', 'overflow-y']
+                .map(property => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]));
         }
         
         // layoutContainer 需要足够高来容纳 runner-container（因为 absolute 不会撑开父元素）
@@ -555,6 +568,7 @@
         // 跳过已有 Run 按钮的 layoutContainer（防止嵌套 code 重复添加）
         if (layoutContainer.querySelector('.runner-code-run-btn')) {
             codeElement.setAttribute(CONFIG.processedAttr, 'true');
+            if (session) processedCode.add(codeElement);
             return;
         }
 
@@ -582,12 +596,10 @@
         
         // 检测到支持的代码，标记为已处理
         codeElement.setAttribute(CONFIG.processedAttr, 'true');
+        if (session) processedCode.add(codeElement);
 
         // 确保 layoutContainer 有定位上下文（用于 absolute 定位按钮）
-        const position = getComputedStyle(layoutContainer).position;
-        if (position === 'static') {
-            layoutContainer.style.position = 'relative';
-        }
+        ensurePositioned(layoutContainer);
 
         // 创建运行按钮（absolute 定位在 layoutContainer 内）
         const runButton = createRunButton(codeElement, layoutContainer, language, config);
@@ -796,11 +808,7 @@
      * @returns {Promise<boolean>}
      */
     async function isAiPlatform() {
-        try {
-            return typeof getCurrentPlatform === 'function' && !!(await getCurrentPlatform());
-        } catch {
-            return false;
-        }
+        return typeof getCurrentPlatform === 'function' && !!(await getCurrentPlatform());
     }
 
     /**
@@ -836,6 +844,7 @@
             // Mermaid 图表点击全屏（事件委托，只注册一次）
             if (window.MermaidRenderer && !document.documentElement.dataset.runnerMermaidFullscreenBound) {
                 document.documentElement.dataset.runnerMermaidFullscreenBound = 'true';
+                mermaidFullscreenBound = true;
                 document.addEventListener('click', (e) => {
                     const preview = e.target.closest('.runner-mermaid-preview');
                     if (preview) {
@@ -858,6 +867,8 @@
             });
             initialized = true;
         } catch (error) {
+            cleanup();
+            throw error;
         } finally {
             initInFlight = false;
         }
@@ -893,11 +904,24 @@
         };
     }
 
-    // 自动初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialize);
-    } else {
-        initialize();
-    }
+    session?.onStop(() => {
+        for (const code of document.querySelectorAll(`[${CONFIG.processedAttr}]`)) {
+            if (processedCode.has(code)) code.removeAttribute(CONFIG.processedAttr);
+        }
+        if (mermaidFullscreenBound) delete document.documentElement.dataset.runnerMermaidFullscreenBound;
+        for (const panel of document.querySelectorAll('.runner-container')) {
+            if (!session.owns(panel)) continue;
+            restoreInlineLayout(panel.parentElement);
+            try { panel._panel?.destroy(); } catch {}
+        }
+        for (const button of document.querySelectorAll('.runner-code-run-btn')) {
+            if (!session.owns(button)) continue;
+            const style = button.parentElement.style;
+            const previous = positionedLayouts.get(button.parentElement);
+            if (previous && style.position === 'relative') style.setProperty('position', ...previous);
+        }
+        cleanup();
+    });
+    window.AITPlatformFeatures.register('runner', initialize);
 
 })();

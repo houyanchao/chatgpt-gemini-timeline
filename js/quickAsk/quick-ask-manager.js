@@ -53,6 +53,7 @@ class QuickAskManager {
         
         await this._loadPosition();
         await this._ensureAdapter();
+        if (window.AITContentSession?.active === false) return;
         this._createButton();
         this._bindEvents();
         this.isEnabled = true;

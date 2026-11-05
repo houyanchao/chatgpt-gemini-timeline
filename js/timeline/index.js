@@ -279,7 +279,7 @@ async function bootstrapTimeline() {
     await adapterRegistry.loadCustomAdapters();
 
     // Check if current site is supported before initializing
-    if (!(await adapterRegistry.isSupportedSite())) {
+    if (!(await adapterRegistry.isSupportedSite()) || window.AITContentSession?.active === false) {
         return;
     }
 
@@ -289,6 +289,7 @@ async function bootstrapTimeline() {
     // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
     const checkAndInit = async () => {
         const adapter = await resolveCurrentAdapter();
+        if (window.AITContentSession?.active === false) return false;
         adapter?.prepareTimelineNodes?.({
             force: true,
             reason: 'bootstrap-check'
@@ -313,7 +314,7 @@ async function bootstrapTimeline() {
     // ✅ 修复：立即检查一次（处理SPA路由切换到对话页的情况）
     // ✅ 异步检查平台是否启用
     const platformEnabled = await isPlatformEnabled();
-    if (!platformEnabled) {
+    if (!platformEnabled || window.AITContentSession?.active === false) {
         return; // 当前平台未启用，不初始化
     }
 
@@ -341,4 +342,8 @@ async function bootstrapTimeline() {
     }
 }
 
-bootstrapTimeline().catch(e => void 0);
+window.AITContentSession?.onStop(() => {
+    initVersion++;
+    destroyTimelineInstance();
+});
+window.AITPlatformFeatures.register('timeline', bootstrapTimeline);

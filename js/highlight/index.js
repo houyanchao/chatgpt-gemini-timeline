@@ -740,11 +740,12 @@
         try {
             await TimelineI18n.ready();
 
-            if (typeof HighlightManager === 'undefined') return;
+            if (window.AITContentSession?.active === false || typeof HighlightManager === 'undefined') return;
             if (typeof window.eventDelegateManager === 'undefined') return;
 
             manager = new HighlightManager();
             await manager.init();
+            if (window.AITContentSession?.active === false) return;
 
             window.highlightManager = manager;
             setupPopoverDismiss();
@@ -773,7 +774,11 @@
                 }
             });
 
-            setTimeout(updateState, 500);
+            // The first selection may have triggered deferred loading itself.
+            // Restore its toolbar once initialization is ready, without a second drag.
+            updateState();
+            checkSelection();
+            setTimeout(() => { updateState(); checkSelection(); }, 500);
 
             window.AIChatTimelineHighlight = {
                 getManager: () => manager,
@@ -786,6 +791,10 @@
         } catch (error) {
         }
     }
+
+    window.AITContentSession?.onStop(() => {
+        try { manager?.clearAllMarks(); } finally { manager?.destroy(); }
+    });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initHighlight);
