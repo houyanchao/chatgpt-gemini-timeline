@@ -1231,5 +1231,65 @@
   },
   "timelineNodeRetry": {
     "message": "重试"
+  },
+  "usageQuotaTitle": {
+    "message": "显示用量"
+  },
+  "usageQuotaHint": {
+    "message": "在输入框旁显示 Gemini、Claude 和 ChatGPT Work / Codex 用量。"
+  },
+  "usageQuotaFiveHour": {
+    "message": "5 小时用量"
+  },
+  "usageQuotaWeekly": {
+    "message": "每周用量"
+  },
+  "usageQuotaFiveHourLimit": {
+    "message": "5 小时限额"
+  },
+  "usageQuotaWeeklyLimit": {
+    "message": "每周限额"
+  },
+  "usageQuotaFiveHourPeriod": {
+    "message": "5 小时"
+  },
+  "usageQuotaWeeklyPeriod": {
+    "message": "每周"
+  },
+  "usageQuotaResetIn": {
+    "message": "$1后重置"
+  },
+  "usageQuotaResetDue": {
+    "message": "已到重置时间"
+  },
+  "usageQuotaSettings": {
+    "message": "插件设置 → 输入框"
+  },
+  "usageQuotaRefresh": {
+    "message": "刷新"
+  },
+  "usageQuotaLoading": {
+    "message": "正在读取用量…"
+  },
+  "usageQuotaUnavailable": {
+    "message": "暂时无法刷新用量"
+  },
+  "usageQuotaPlanLimits": {
+    "message": "套餐限额"
+  },
+  "usageQuotaUsageLimits": {
+    "message": "用量限额"
+  },
+  "usageQuotaRemainingQuota": {
+    "message": "剩余额度"
+  },
+  "usageQuotaUsedQuota": {
+    "message": "已用额度"
+  },
+  "usageQuotaUsed": {
+    "message": "已用"
+  },
+  "usageQuotaRemaining": {
+    "message": "剩余"
   }
 }

@@ -1,0 +1,204 @@
+.ait-usage-quota {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    align-self: stretch;
+    margin: 3px 0 0;
+    color: var(--gem-sys-color--on-surface-variant, inherit);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    user-select: none;
+}
+
+.ait-usage-quota[hidden] {
+    display: none;
+}
+
+.ait-usage-quota--gemini,
+.ait-usage-quota--claude {
+    margin-top: 7px;
+}
+
+[data-cds="ChatComposer"] > .ait-usage-quota--claude {
+    /* Keep the row above Claude's overlapping composer footer. */
+    z-index: 1;
+}
+
+.ait-usage-quota > details {
+    min-width: 0;
+}
+
+.ait-usage-quota > details > summary {
+    display: inline-block;
+    list-style: none;
+    cursor: pointer;
+}
+
+.ait-usage-quota > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.ait-usage-quota-panel {
+    position: fixed;
+    z-index: 20;
+    box-sizing: border-box;
+    width: min(244px, calc(100vw - 24px));
+    padding: 12px 14px 8px;
+    border: 1px solid var(--gem-sys-color--outline-variant, var(--timeline-tooltip-border));
+    border-radius: 10px;
+    background: var(--gem-sys-color--surface, var(--timeline-tooltip-bg));
+    color: var(--gem-sys-color--on-surface, var(--timeline-tooltip-text));
+    box-shadow: var(--timeline-tooltip-shadow);
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: start;
+    user-select: none;
+}
+
+.ait-usage-quota-panel::after {
+    position: absolute;
+    inset: 100% 0 auto;
+    height: 8px;
+    content: '';
+}
+
+.ait-usage-quota-panel--below::after {
+    inset: auto 0 100%;
+}
+
+.ait-usage-quota-status:not(:empty) {
+    color: var(--gem-sys-color--on-surface-variant, inherit);
+}
+
+.ait-usage-quota-detail-title {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.ait-usage-quota-limit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.ait-usage-quota-limit + .ait-usage-quota-limit,
+.ait-usage-quota-footer {
+    border-top: 1px solid var(--gem-sys-color--outline-variant, var(--timeline-tooltip-border));
+}
+
+.ait-usage-quota-limit-name {
+    font-weight: 600;
+}
+
+.ait-usage-quota-limit-reset {
+    display: block;
+    margin-top: 1px;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.ait-usage-quota-limit-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.ait-usage-quota-limit-value-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.ait-usage-quota-limit-value strong {
+    font-size: 16px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.ait-usage-quota-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 5px;
+}
+
+.ait-usage-quota-settings {
+    display: grid;
+    flex: 0 0 24px;
+    place-items: center;
+    height: 24px;
+    margin-inline-start: -4px;
+    padding: 0;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ait-usage-quota-settings svg {
+    width: 14px;
+    height: 14px;
+}
+
+.ait-usage-quota-settings:hover {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.ait-usage-quota-settings:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 1px;
+}
+
+.ait-usage-quota-refresh {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ait-usage-quota-refresh svg {
+    width: 12px;
+    height: 12px;
+}
+
+.ait-usage-quota-refresh:hover:not([aria-disabled="true"]) {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.ait-usage-quota-refresh:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 1px;
+}
+
+.ait-usage-quota-refresh[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: default;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ait-usage-quota-refresh[aria-busy="true"] svg {
+        animation: ait-usage-quota-spin 0.8s linear infinite;
+    }
+}
+
+@keyframes ait-usage-quota-spin {
+    to { transform: rotate(360deg); }
+}

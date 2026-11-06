@@ -133,6 +133,7 @@
         "js/formula/formula.css",
         "js/smartInputBox/prompt-button.css",
         "js/scrollToBottom/styles.css",
+        "js/usageQuota/styles.css",
         "js/watermark/watermark.css",
         "js/quickAsk/styles.css",
         "js/highlight/styles.css",

@@ -14,8 +14,8 @@
  * 
  * 使用示例：
  * ```javascript
- * // 启动监控（传入当前适配器）
- * AIStateMonitor.getInstance().start(adapter);
+ * // 订阅实际状态变化，功能卸载时调用返回的函数
+ * const unwatch = AIStateMonitor.getInstance().watch(adapter, onChange);
  * 
  * // 监听状态变化
  * window.addEventListener('ai:stateChange', (e) => {
@@ -48,6 +48,7 @@ class AIStateMonitor {
         this._generating = false;
         this._adapter = null;
         this._unsubscribe = null;
+        this._watchers = new Set();
     }
 
     /**
@@ -59,17 +60,34 @@ class AIStateMonitor {
     }
 
     /**
-     * 启动监控
+     * 同一平台的功能共用一个监控器，最后一个订阅者离开时停止。
      * @param {Object} adapter - 平台适配器（需实现 isAIGenerating 方法）
+     * @param {(generating: boolean) => void} [onChange] - 仅接收检测到的状态变化
+     * @returns {() => void} 取消订阅
      */
-    start(adapter) {
-        if (!adapter || typeof adapter.isAIGenerating !== 'function') return;
-        
-        // 如果已在运行，先停止
-        this.stop();
-        
+    watch(adapter, onChange) {
+        if (typeof adapter?.isAIGenerating !== 'function') return () => {};
+        const watcher = { adapter, onChange };
+        this._watchers.add(watcher);
+        this._syncAdapter();
+        return () => {
+            if (this._watchers.delete(watcher)) this._syncAdapter();
+        };
+    }
+
+    _adapterKey(adapter) {
+        return adapter?.platformId || adapter;
+    }
+
+    _syncAdapter() {
+        const adapter = this._watchers.values().next().value?.adapter ?? null;
+        if (this._adapterKey(adapter) === this._adapterKey(this._adapter)) return;
+        this._stop();
+        if (adapter) this._start(adapter);
+    }
+
+    _start(adapter) {
         this._adapter = adapter;
-        this._generating = false;
 
         // 平台可提供更精确的监听（GPT 新版停止按钮可能只改变属性）。
         if (typeof adapter.observeAIGeneration === 'function') {
@@ -92,7 +110,7 @@ class AIStateMonitor {
     /**
      * 停止监控
      */
-    stop() {
+    _stop() {
         if (this._unsubscribe) {
             this._unsubscribe();
             this._unsubscribe = null;
@@ -118,6 +136,11 @@ class AIStateMonitor {
         
         if (newState !== this._generating) {
             this._generating = newState;
+            const key = this._adapterKey(this._adapter);
+            for (const watcher of this._watchers) {
+                if (this._adapterKey(watcher.adapter) !== key) continue;
+                try { watcher.onChange?.(newState); } catch {}
+            }
             this._dispatch(newState);
         }
     }

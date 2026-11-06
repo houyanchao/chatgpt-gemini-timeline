@@ -35,6 +35,7 @@ globalThis.AITContentConfig = {
         "js/timeline/timeline.css",
         "js/smartInputBox/prompt-button.css",
         "js/scrollToBottom/styles.css",
+        "js/usageQuota/styles.css",
         "js/watermark/watermark.css",
         "js/quickAsk/styles.css",
         "js/mermaid/styles.css",
@@ -43,7 +44,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "65efd0c49d61"
+      "revision": "c329bd6169be"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -64,7 +65,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "2c4433cc3433"
+      "revision": "62badc084bfe"
     },
     "runner-ui": {
       "script": "js/content/bundles/runner-ui.js",

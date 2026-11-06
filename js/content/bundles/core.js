@@ -148,8 +148,8 @@
  * 
  * 使用示例：
  * ```javascript
- * // 启动监控（传入当前适配器）
- * AIStateMonitor.getInstance().start(adapter);
+ * // 订阅实际状态变化，功能卸载时调用返回的函数
+ * const unwatch = AIStateMonitor.getInstance().watch(adapter, onChange);
  * 
  * // 监听状态变化
  * window.addEventListener('ai:stateChange', (e) => {
@@ -182,6 +182,7 @@ class AIStateMonitor {
         this._generating = false;
         this._adapter = null;
         this._unsubscribe = null;
+        this._watchers = new Set();
     }
 
     /**
@@ -193,17 +194,34 @@ class AIStateMonitor {
     }
 
     /**
-     * 启动监控
+     * 同一平台的功能共用一个监控器，最后一个订阅者离开时停止。
      * @param {Object} adapter - 平台适配器（需实现 isAIGenerating 方法）
+     * @param {(generating: boolean) => void} [onChange] - 仅接收检测到的状态变化
+     * @returns {() => void} 取消订阅
      */
-    start(adapter) {
-        if (!adapter || typeof adapter.isAIGenerating !== 'function') return;
-        
-        // 如果已在运行，先停止
-        this.stop();
-        
+    watch(adapter, onChange) {
+        if (typeof adapter?.isAIGenerating !== 'function') return () => {};
+        const watcher = { adapter, onChange };
+        this._watchers.add(watcher);
+        this._syncAdapter();
+        return () => {
+            if (this._watchers.delete(watcher)) this._syncAdapter();
+        };
+    }
+
+    _adapterKey(adapter) {
+        return adapter?.platformId || adapter;
+    }
+
+    _syncAdapter() {
+        const adapter = this._watchers.values().next().value?.adapter ?? null;
+        if (this._adapterKey(adapter) === this._adapterKey(this._adapter)) return;
+        this._stop();
+        if (adapter) this._start(adapter);
+    }
+
+    _start(adapter) {
         this._adapter = adapter;
-        this._generating = false;
 
         // 平台可提供更精确的监听（GPT 新版停止按钮可能只改变属性）。
         if (typeof adapter.observeAIGeneration === 'function') {
@@ -226,7 +244,7 @@ class AIStateMonitor {
     /**
      * 停止监控
      */
-    stop() {
+    _stop() {
         if (this._unsubscribe) {
             this._unsubscribe();
             this._unsubscribe = null;
@@ -252,6 +270,11 @@ class AIStateMonitor {
         
         if (newState !== this._generating) {
             this._generating = newState;
+            const key = this._adapterKey(this._adapter);
+            for (const watcher of this._watchers) {
+                if (this._adapterKey(watcher.adapter) !== key) continue;
+                try { watcher.onChange?.(newState); } catch {}
+            }
             this._dispatch(newState);
         }
     }
@@ -13623,6 +13646,730 @@ class ScrollToBottomManager {
 
 ;
 
+// Source: js/usageQuota/adapters/gemini.js
+const GeminiUsageQuota = (() => {
+    const origin = 'https://gemini.google.com';
+    const chatPath = /^(?:\/u\/(\d+))?\/(?:$|(?:app|gem)(?:\/|$))/;
+    const accountSelector = 'a[href^="https://accounts.google.com/SignOutOptions"][aria-label]';
+    const quotaPeriods = [['GXU_FIVE_HOURLY', 'FiveHour'], ['GXU_WEEKLY', 'Weekly']];
+
+    // Gemini's UsagePageQuery. Google may change the persisted query when it updates the page.
+    const querySignature = '2/dWbCvkVB0X16r9NPnxifeOAAqdCqMf0xeWvau9yPy7g=';
+    const queryVariables = JSON.stringify({
+        g1Request: { entrypoints: ['GEMINI_USAGE_SETTINGS_UPGRADE_BANNER'] },
+        workspaceRequest: { recommendationsForSurfaceRequests: [] }
+    });
+
+    function isChatPage(page) {
+        return page.origin === origin && chatPath.test(page.pathname);
+    }
+
+    function getAccountIndex(page) {
+        const pathIndex = page.pathname.match(chatPath)?.[1];
+        const queryIndex = page.searchParams.get('authuser');
+        if (queryIndex !== null && (!/^\d+$/.test(queryIndex) || (pathIndex && pathIndex !== queryIndex))) {
+            return null;
+        }
+        return pathIndex ?? queryIndex ?? '0';
+    }
+
+    function readAccount() {
+        const index = getAccountIndex(new URL(location.href));
+        if (index === null) return null;
+        const accounts = new Set();
+        for (const link of document.querySelectorAll(accountSelector)) {
+            const label = link.getAttribute('aria-label').normalize('NFKC');
+            const account = label.match(/\(([^()\s]+@[^()\s]+)\)/u)?.[1];
+            if (account) accounts.add(account.toLowerCase());
+        }
+        return accounts.size === 1 ? `${index}:${accounts.values().next().value}` : null;
+    }
+
+    async function readDirectUsage(signal) {
+        const page = new URL(location.href);
+        if (!isChatPage(page)) return null;
+        const index = getAccountIndex(page);
+        if (index === null) return null;
+
+        const accountPath = index === '0' ? '' : `/u/${index}`;
+        const url = new URL(`${accountPath}/_/BardChatUi/graphql/schemas/GEMINI_WEB_GRAPHQL/executeQuery`, origin);
+        url.searchParams.set('query_signature', querySignature);
+        url.searchParams.set('variables', queryVariables);
+        const headers = { Accept: 'application/json' };
+        if (accountPath) headers['X-Goog-AuthUser'] = index;
+
+        const response = await fetch(url, {
+            mode: 'same-origin', credentials: 'same-origin', redirect: 'error', cache: 'no-store', headers, signal
+        });
+        if (response.status === 401 || response.status === 403) return { account: null };
+        if (!response.ok) return null;
+        const results = JSON.parse((await response.text()).trimStart().replace(/^\)\]\}'\s*/, ''));
+        if (!Array.isArray(results)) return null;
+        const pools = results.find(item => item?.data?.viewer?.rpcs?.getUsageInfo)
+            ?.data.viewer.rpcs.getUsageInfo.pools;
+        if (!Array.isArray(pools)) {
+            return results.some(item => item?.data?.viewer === null) ? { account: null } : null;
+        }
+
+        const metrics = [];
+        for (const [type, labelKey] of quotaPeriods) {
+            const pool = pools.find(item => item?.poolType === type);
+            if (!Number.isFinite(pool?.percentageUsed) || pool.percentageUsed < 0) continue;
+            const resetAt = Date.parse(pool.gxu?.windowRefreshesAt);
+            metrics.push({
+                labelKey, summaryLabelKey: `${labelKey}Period`, unit: 'percent',
+                valueLabelKey: 'Used',
+                value: Math.min(100, Math.round(pool.percentageUsed * 100)),
+                resetAt: Number.isFinite(resetAt) ? resetAt : null
+            });
+        }
+        return { metrics };
+    }
+
+    return {
+        platformId: 'gemini', origin, isChatPage, readAccount, readDirectUsage,
+        summaryTitleKey: 'UsedQuota', detailTitleKey: 'UsageLimits',
+        getMount(input, inputAdapter) {
+            const anchor = input.closest('input-area-v2') || inputAdapter.getPositionReferenceElement(input);
+            return anchor ? { anchor, position: 'afterend' } : null;
+        }
+    };
+})();
+
+;
+
+// Source: js/usageQuota/adapters/chatgpt.js
+const ChatGPTUsageQuota = (() => {
+    const origin = 'https://chatgpt.com';
+    const quotaPeriods = new Map([[18000, 'FiveHour'], [604800, 'Weekly']]);
+
+    function isChatPage(page) {
+        return page.origin === origin && /^\/(?:$|(?:c|g)\/[^/]+(?:\/|$))/.test(page.pathname);
+    }
+
+    function readMetrics(limits) {
+        const windows = [limits?.primary_window, limits?.secondary_window];
+        const metrics = [];
+        for (const [seconds, period] of quotaPeriods) {
+            const window = windows.find(item => item?.limit_window_seconds === seconds);
+            if (!Number.isFinite(window?.used_percent) || window.used_percent < 0) continue;
+
+            const resetAt = Number.isFinite(window.reset_at) ? window.reset_at * 1000 : NaN;
+            metrics.push({
+                labelKey: `${period}Limit`, summaryLabelKey: `${period}Period`, unit: 'percent',
+                valueLabelKey: 'Remaining', value: Math.max(0, 100 - window.used_percent),
+                resetAt: resetAt > 0 && Number.isFinite(new Date(resetAt).getTime()) ? resetAt : null
+            });
+        }
+        return metrics;
+    }
+
+    async function readDirectUsage(signal) {
+        if (!isChatPage(location)) return null;
+
+        const options = {
+            mode: 'same-origin', credentials: 'same-origin', redirect: 'error', cache: 'no-store', signal
+        };
+        // The token stays inside the adapter and is only sent to ChatGPT.
+        const sessionResponse = await fetch(`${origin}/api/auth/session`, options);
+        if (sessionResponse.status === 401 || sessionResponse.status === 403) return { account: null };
+        if (!sessionResponse.ok) return null;
+        const session = await sessionResponse.json();
+        const workspaceId = session?.account?.id;
+        if (typeof session?.accessToken !== 'string' || !session.accessToken
+            || typeof workspaceId !== 'string' || !workspaceId) return { account: null };
+
+        const userId = session.user?.id;
+        const account = typeof userId === 'string' && userId ? `${workspaceId}:${userId}` : workspaceId;
+        const result = { account };
+        try {
+            const response = await fetch(`${origin}/backend-api/wham/usage`, {
+                ...options,
+                headers: { Authorization: `Bearer ${session.accessToken}`, 'ChatGPT-Account-Id': workspaceId }
+            });
+            if (response.status === 401 || response.status === 403) return { account: null };
+            if (response.ok) result.metrics = readMetrics((await response.json())?.rate_limit);
+        } catch {
+            // Keep the verified account even if its quota request failed.
+        }
+        return result;
+    }
+
+    return {
+        platformId: 'chatgpt', origin, isChatPage, readDirectUsage,
+        summaryTitleKey: 'RemainingQuota', detailTitleKey: 'PlanLimits',
+        getMount(input) {
+            const form = input.closest('form');
+            if (form) return { anchor: form, position: 'beforeend' };
+            const composer = input.closest('[data-composer-body]');
+            return composer ? { anchor: composer, position: 'afterend' } : null;
+        }
+    };
+})();
+
+;
+
+// Source: js/usageQuota/adapters/claude.js
+const ClaudeUsageQuota = (() => {
+    const origin = 'https://claude.ai';
+    const organizationIdPattern = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
+    const unselected = 'unselected';
+
+    function isChatPage(page) {
+        return page.origin === origin && /^\/(?:$|(?:new|chat|project)(?:\/|$))/.test(page.pathname);
+    }
+
+    function readAccount() {
+        const id = document.cookie.match(/(?:^|;\s*)lastActiveOrg=([^;]*)/)?.[1];
+        return organizationIdPattern.test(id ?? '') ? id.toLowerCase() : unselected;
+    }
+
+    function metric(labelKey, value, reset, model = '') {
+        if (!Number.isFinite(value) || value < 0) return null;
+        const resetAt = typeof reset === 'string' ? Date.parse(reset) : NaN;
+        return {
+            labelKey, summaryLabelKey: model ? undefined : `${labelKey}Period`,
+            unit: 'percent', valueLabelKey: 'Used', value: Math.min(100, value),
+            resetAt: Number.isFinite(resetAt) ? resetAt : null,
+            detailPrefix: model, detailOnly: !!model
+        };
+    }
+
+    function readMetrics(usage) {
+        const limits = Array.isArray(usage?.limits) ? usage.limits.filter(limit =>
+            limit && limit.is_active !== false && Number.isFinite(limit.percent) && limit.percent >= 0
+        ) : [];
+        const metrics = [];
+        for (const [kind, key, labelKey] of [
+            ['session', 'five_hour', 'FiveHour'], ['weekly_all', 'seven_day', 'Weekly']
+        ]) {
+            const window = limits.find(limit => limit.kind === kind);
+            const entry = window
+                ? metric(labelKey, window.percent, window.resets_at)
+                : metric(labelKey, usage?.[key]?.utilization, usage?.[key]?.resets_at);
+            if (entry) metrics.push(entry);
+        }
+
+        const scoped = new Map();
+        for (const limit of limits) {
+            if (limit.kind !== 'weekly_scoped') continue;
+            const name = limit.scope?.model?.display_name;
+            if (typeof name !== 'string') continue;
+            const model = name.trim();
+            if (!model || model.length > 64 || /^all models$/i.test(model)) continue;
+            scoped.set(model.toLowerCase(), metric('Weekly', limit.percent, limit.resets_at, model));
+        }
+        if (!scoped.size) {
+            for (const [key, model] of [['seven_day_sonnet', 'Sonnet'], ['seven_day_opus', 'Opus']]) {
+                const window = usage?.[key];
+                const entry = metric('Weekly', window?.utilization, window?.resets_at, model);
+                if (entry) scoped.set(model.toLowerCase(), entry);
+            }
+        }
+        return metrics.concat([...scoped.values()]);
+    }
+
+    async function readDirectUsage(signal) {
+        if (!isChatPage(location)) return null;
+        const options = {
+            mode: 'same-origin', credentials: 'same-origin', redirect: 'error', cache: 'no-store', signal
+        };
+
+        // Use the active organization marker. The browser handles authentication.
+        let organizationId = readAccount();
+        if (organizationId === unselected) {
+            const response = await fetch(`${origin}/api/organizations`, options);
+            if (response.status === 401 || response.status === 403) return { account: null };
+            if (!response.ok) return null;
+            const organizations = await response.json();
+            if (!Array.isArray(organizations)) return null;
+            if (organizations.length !== 1 || !organizationIdPattern.test(organizations[0]?.uuid ?? '')) {
+                return { account: null };
+            }
+            organizationId = organizations[0].uuid.toLowerCase();
+        }
+
+        const result = { account: organizationId };
+        try {
+            const response = await fetch(`${origin}/api/organizations/${organizationId}/usage`, options);
+            if (response.status === 401 || response.status === 403) return { account: null };
+            if (response.ok) result.metrics = readMetrics(await response.json());
+        } catch {
+            // Preserve the organization identity if the quota request fails.
+        }
+        return result;
+    }
+
+    return {
+        platformId: 'claude', origin, isChatPage, readAccount, readDirectUsage,
+        summaryTitleKey: 'UsedQuota', detailTitleKey: 'UsageLimits',
+        getMount(input, inputAdapter) {
+            const anchor = inputAdapter.getPositionReferenceElement(input);
+            return anchor && anchor !== input ? { anchor, position: 'afterend' } : null;
+        }
+    };
+})();
+
+;
+
+// Source: js/usageQuota/index.js
+window.AITPlatformFeatures.register('usage-quota', async () => {
+    const adapter = [GeminiUsageQuota, ChatGPTUsageQuota, ClaudeUsageQuota]
+        .find(item => item.origin === location.origin);
+    const session = window.AITContentSession;
+    if (!adapter || session?.active === false) return;
+    await TimelineI18n.ready();
+    const inputAdapter = await window.smartEnterAdapterRegistry.getAdapter();
+    if (inputAdapter?.platformId !== adapter.platformId || session?.active === false) return;
+    const generationAdapter = window.siteAdapterRegistry?.getAllAdapters()
+        .find(item => item.platformId === adapter.platformId);
+    const generationMonitor = window.AIStateMonitor?.getInstance();
+
+    const label = (key, substitutions) => TimelineI18n.getMessage(`usageQuota${key}`, substitutions);
+    const isChatPage = () => adapter.isChatPage(location);
+    const readAccount = () => adapter.readAccount?.() ?? null;
+    const row = document.createElement('div');
+    row.className = `ait-usage-quota ait-usage-quota--${adapter.platformId}`;
+    row.setAttribute('data-ait-owned-ui', '');
+    row.hidden = true;
+    const disclosure = document.createElement('details');
+    const summary = document.createElement('summary');
+    const panel = document.createElement('div');
+    panel.id = 'ait-usage-quota-details';
+    panel.className = 'ait-usage-quota-panel';
+    panel.setAttribute('data-ait-owned-ui', '');
+    summary.setAttribute('aria-controls', panel.id);
+    const detailTitle = document.createElement('strong');
+    detailTitle.className = 'ait-usage-quota-detail-title';
+    const breakdown = document.createElement('div');
+    const status = document.createElement('div');
+    status.className = 'ait-usage-quota-status';
+    status.setAttribute('role', 'status');
+    const settingsLink = document.createElement('button');
+    settingsLink.type = 'button';
+    settingsLink.className = 'ait-usage-quota-settings';
+    const refreshButton = document.createElement('button');
+    refreshButton.type = 'button';
+    refreshButton.className = 'ait-usage-quota-refresh';
+    const svgNamespace = 'http://www.w3.org/2000/svg';
+    function makeIcon(pathData) {
+        const icon = document.createElementNS(svgNamespace, 'svg');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('stroke-width', '2');
+        icon.setAttribute('stroke-linecap', 'round');
+        icon.setAttribute('stroke-linejoin', 'round');
+        const path = document.createElementNS(svgNamespace, 'path');
+        path.setAttribute('d', pathData);
+        icon.append(path);
+        return icon;
+    }
+    refreshButton.append(makeIcon('M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7'));
+    const gear = makeIcon('M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z');
+    const center = document.createElementNS(svgNamespace, 'circle');
+    center.setAttribute('cx', '12');
+    center.setAttribute('cy', '12');
+    center.setAttribute('r', '3');
+    gear.append(center);
+    settingsLink.append(gear);
+    const footer = document.createElement('div');
+    footer.className = 'ait-usage-quota-footer';
+    footer.append(settingsLink, status);
+    panel.append(detailTitle, breakdown, footer);
+    disclosure.append(summary);
+    row.append(disclosure, refreshButton);
+
+    let enabled = false;
+    let unsubscribe = null;
+    let account = null;
+    let snapshot = null;
+    let pending = null;
+    let failed = false;
+    let nextRefreshAt = 0;
+    let hoverOpened = false;
+    let closeTimer;
+    let unwatchGeneration = null;
+    let generationPath = null;
+    let replyRefresh = null;
+    let countdownTimer;
+    const resetTimes = [];
+
+    function updateResetCountdowns() {
+        clearTimeout(countdownTimer);
+        if (!resetTimes.length) return;
+        const now = Date.now();
+        const locale = TimelineI18n.getUILanguage();
+        for (const { element, resetAt } of resetTimes) {
+            const totalMinutes = Math.ceil((resetAt - now) / 60000);
+            if (totalMinutes <= 0) {
+                element.textContent = label('ResetDue');
+                continue;
+            }
+            const days = Math.floor(totalMinutes / 1440);
+            const hours = Math.floor(totalMinutes / 60) % 24;
+            const parts = days ? [[days, 'day'], [hours, 'hour']] : [[hours, 'hour'], [totalMinutes % 60, 'minute']];
+            const duration = parts.filter(([value]) => value > 0)
+                .map(([value, unit]) => new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'long' }).format(value))
+                .join(' ');
+            element.textContent = label('ResetIn', duration);
+        }
+        if (disclosure.open && resetTimes.some(({ resetAt }) => resetAt > now)) {
+            countdownTimer = setTimeout(updateResetCountdowns, 30000);
+        }
+    }
+
+    function positionDetails() {
+        if (!panel.isConnected) return;
+        const anchor = row.getBoundingClientRect();
+        const { clientWidth, clientHeight } = document.documentElement;
+        if (!row.isConnected || anchor.bottom <= 0 || anchor.top >= clientHeight) {
+            closeDetails();
+            return;
+        }
+
+        const { width, height } = panel.getBoundingClientRect();
+        const gap = 6;
+        const gutter = 12;
+        const above = anchor.top - gap - height;
+        const below = above < gutter && clientHeight - anchor.bottom > anchor.top;
+        const centered = anchor.left + (anchor.width - width) / 2;
+        panel.classList.toggle('ait-usage-quota-panel--below', below);
+        panel.style.left = `${Math.max(gutter, Math.min(centered, clientWidth - width - gutter))}px`;
+        const top = below ? anchor.bottom + gap : above;
+        panel.style.top = `${Math.max(gutter, Math.min(top, clientHeight - height - gutter))}px`;
+    }
+
+    function syncDetails() {
+        if (!disclosure.open || !row.isConnected || row.hidden) {
+            closeDetails();
+            return;
+        }
+        if (!panel.isConnected) {
+            // The composer's stacking context sits below the page-level pet animations.
+            document.body.append(panel);
+            window.addEventListener('scroll', positionDetails, true);
+            window.addEventListener('resize', positionDetails);
+        }
+        updateResetCountdowns();
+        positionDetails();
+    }
+
+    function render() {
+        row.hidden = !snapshot;
+        clearTimeout(countdownTimer);
+        resetTimes.length = 0;
+        breakdown.replaceChildren();
+        if (!snapshot) {
+            closeDetails();
+            summary.textContent = '';
+            status.textContent = '';
+            return;
+        }
+
+        const refreshLabel = label(pending ? 'Loading' : 'Refresh');
+        refreshButton.title = refreshLabel;
+        refreshButton.setAttribute('aria-label', refreshLabel);
+        refreshButton.setAttribute('aria-busy', String(!!pending));
+        refreshButton.setAttribute('aria-disabled', String(!!pending));
+        settingsLink.title = label('Settings');
+        settingsLink.setAttribute('aria-label', settingsLink.title);
+        detailTitle.textContent = label(adapter.detailTitleKey);
+
+        const locale = TimelineI18n.getUILanguage();
+        const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 2 });
+        const summaryParts = adapter.summaryTitleKey ? [label(adapter.summaryTitleKey)] : [];
+        const hasPrimaryMetrics = snapshot.metrics.some(metric => !metric.detailOnly);
+        for (const metric of snapshot.metrics) {
+            const name = [metric.detailPrefix, metric.labelKey ? label(metric.labelKey) : metric.label]
+                .filter(Boolean).join(' ');
+            const valueLabel = metric.valueLabelKey ? label(metric.valueLabelKey) : '';
+            const value = metric.unit === 'percent' ? percent.format(metric.value / 100) : metric.value;
+            const compactName = metric.summaryLabelKey ? label(metric.summaryLabelKey) : metric.summaryLabel;
+            if (!metric.detailOnly || !hasPrimaryMetrics) {
+                summaryParts.push(compactName ? `${compactName} ${value}` : [name, valueLabel, value]
+                    .filter(part => part != null && part !== '').join(' '));
+            }
+
+            const line = document.createElement('div');
+            line.className = 'ait-usage-quota-limit';
+            const caption = document.createElement('div');
+            const limitName = document.createElement('div');
+            limitName.className = 'ait-usage-quota-limit-name';
+            limitName.textContent = name;
+            caption.append(limitName);
+            if (metric.resetAt != null) {
+                const countdown = document.createElement('time');
+                countdown.className = 'ait-usage-quota-limit-reset';
+                countdown.dateTime = new Date(metric.resetAt).toISOString();
+                caption.append(countdown);
+                resetTimes.push({ element: countdown, resetAt: metric.resetAt });
+            }
+            const amount = document.createElement('div');
+            amount.className = 'ait-usage-quota-limit-value';
+            if (valueLabel) {
+                const prefix = document.createElement('span');
+                prefix.className = 'ait-usage-quota-limit-value-label';
+                prefix.textContent = valueLabel;
+                amount.append(prefix);
+            }
+            const number = document.createElement('strong');
+            number.textContent = value;
+            amount.append(number);
+            line.append(caption, amount);
+            breakdown.append(line);
+        }
+        summary.textContent = summaryParts.join(' · ');
+        status.textContent = pending ? label('Loading') : failed ? label('Unavailable') : '';
+        updateResetCountdowns();
+        positionDetails();
+    }
+
+    function closeDetails() {
+        clearTimeout(closeTimer);
+        clearTimeout(countdownTimer);
+        hoverOpened = false;
+        disclosure.open = false;
+        panel.remove();
+        window.removeEventListener('scroll', positionDetails, true);
+        window.removeEventListener('resize', positionDetails);
+    }
+
+    function clearReplyRefresh() {
+        clearTimeout(replyRefresh?.timer);
+        replyRefresh = null;
+    }
+
+    function isSameReplyPage(path) {
+        if (path === location.pathname) return true;
+        // The first reply can start before the platform assigns a conversation URL.
+        const previousId = generationAdapter.extractConversationId(path);
+        const currentId = generationAdapter.extractConversationId(location.pathname);
+        return !!currentId && (!previousId || currentId === previousId);
+    }
+
+    function onGenerationChange(generating) {
+        if (generating) {
+            clearReplyRefresh();
+            generationPath = isChatPage() ? location.pathname : null;
+            return;
+        }
+
+        const path = generationPath;
+        generationPath = null;
+        if (!path || !isChatPage() || readAccount() !== account || !isSameReplyPage(path)) return;
+        const scheduled = { path: location.pathname, timer: null };
+        replyRefresh = scheduled;
+        scheduled.timer = setTimeout(() => {
+            if (replyRefresh !== scheduled) return;
+            scheduled.timer = null;
+            sync();
+        }, 1000);
+    }
+
+    function watchGeneration() {
+        if (unwatchGeneration || !generationAdapter || !generationMonitor) return;
+        unwatchGeneration = generationMonitor.watch(generationAdapter, onGenerationChange);
+        if (generationMonitor.isGenerating && !generationPath) onGenerationChange(true);
+    }
+
+    function stopWatchingGeneration() {
+        unwatchGeneration?.();
+        unwatchGeneration = null;
+    }
+
+    function reset(nextAccount) {
+        account = nextAccount;
+        closeDetails();
+        generationPath = null;
+        clearReplyRefresh();
+        pending?.abort();
+        pending = snapshot = null;
+        failed = false;
+        nextRefreshAt = 0;
+    }
+
+    function unmount() {
+        unsubscribe?.();
+        unsubscribe = null;
+        stopWatchingGeneration();
+        row.remove();
+        reset(null);
+    }
+
+    async function refresh(force = false) {
+        if (!row.isConnected || (adapter.readAccount && !account) || pending
+            || (!force && (document.hidden || Date.now() < nextRefreshAt))) return;
+        clearReplyRefresh();
+        const request = new AbortController();
+        const requestAccount = account;
+        pending = request;
+        failed = false;
+        render();
+        const timeout = setTimeout(() => request.abort(), 10000);
+        let data;
+        try {
+            data = await adapter.readDirectUsage(request.signal);
+        } catch {
+            // A failed read leaves any previous result for the same account available.
+        } finally {
+            clearTimeout(timeout);
+        }
+        if (pending !== request) return;
+        pending = null;
+        if (!isChatPage() || readAccount() !== requestAccount) {
+            sync();
+            return;
+        }
+        failed = !data?.metrics?.length;
+        if (!failed) {
+            snapshot = data;
+        } else if (Array.isArray(data?.metrics) || (data?.account !== undefined && data.account !== snapshot?.account)) {
+            // A successful response with no limits, or a changed account, invalidates the old quota.
+            snapshot = null;
+        }
+        nextRefreshAt = Date.now() + (failed ? 60 : 300) * 1000;
+        render();
+        if (replyRefresh?.timer === null) sync();
+    }
+
+    function sync() {
+        if (!enabled) return;
+        if (!isChatPage()) {
+            unmount();
+            return;
+        }
+        unsubscribe ??= DOMObserverManager.getInstance().subscribeBody('usage-quota', {
+            callback: sync, throttle: 250, debounce: 150
+        });
+        const currentAccount = readAccount();
+        const accountChanged = currentAccount !== account;
+        if (accountChanged) reset(currentAccount);
+        watchGeneration();
+        if (generationPath) {
+            generationPath = isSameReplyPage(generationPath) ? location.pathname : null;
+        }
+        if (replyRefresh) {
+            if (isSameReplyPage(replyRefresh.path)) replyRefresh.path = location.pathname;
+            else clearReplyRefresh();
+        }
+        let mount;
+        for (const input of document.querySelectorAll(inputAdapter.getInputSelector())) {
+            if (!input.getClientRects().length) continue;
+            mount = adapter.getMount(input, inputAdapter);
+            if (mount) break;
+        }
+        if (!mount) {
+            closeDetails();
+            row.remove();
+            return;
+        }
+
+        const { anchor, position } = mount;
+        const current = {
+            beforebegin: anchor.previousElementSibling, afterbegin: anchor.firstElementChild,
+            beforeend: anchor.lastElementChild, afterend: anchor.nextElementSibling
+        }[position];
+        const moved = current !== row;
+        if (moved) anchor.insertAdjacentElement(position, row);
+        if (moved || accountChanged) render();
+        else positionDetails();
+        if (!replyRefresh) {
+            void refresh();
+        } else if (replyRefresh.timer === null && !document.hidden) {
+            void refresh(true);
+        }
+    }
+
+    function setEnabled(value) {
+        if (enabled === value) return;
+        enabled = value;
+        if (value) {
+            window.addEventListener('focus', sync);
+            window.addEventListener('url:change', sync);
+            document.addEventListener('visibilitychange', sync);
+            window.addEventListener('timeline:i18n-changed', render);
+            sync();
+        } else {
+            window.removeEventListener('focus', sync);
+            window.removeEventListener('url:change', sync);
+            document.removeEventListener('visibilitychange', sync);
+            window.removeEventListener('timeline:i18n-changed', render);
+            unmount();
+        }
+    }
+
+    refreshButton.addEventListener('click', () => {
+        sync();
+        void refresh(true);
+    });
+    disclosure.addEventListener('toggle', syncDetails);
+    summary.addEventListener('pointerenter', event => {
+        if (event.pointerType !== 'mouse' || disclosure.open) return;
+        hoverOpened = true;
+        disclosure.open = true;
+        syncDetails();
+    });
+    const containsDetailsTarget = target => disclosure.contains(target) || panel.contains(target);
+    const isDetailsHovered = () => disclosure.matches(':hover') || panel.matches(':hover');
+    for (const element of [disclosure, panel]) {
+        element.addEventListener('pointerenter', () => clearTimeout(closeTimer));
+        element.addEventListener('pointerleave', () => {
+            if (!hoverOpened) return;
+            clearTimeout(closeTimer);
+            closeTimer = setTimeout(() => {
+                if (!containsDetailsTarget(document.activeElement) && !isDetailsHovered()) closeDetails();
+            }, 150);
+        });
+        element.addEventListener('focusout', event => {
+            if (hoverOpened && !containsDetailsTarget(event.relatedTarget) && !isDetailsHovered()) closeDetails();
+        });
+    }
+    summary.addEventListener('click', event => {
+        if (!hoverOpened) return;
+        event.preventDefault();
+        hoverOpened = false;
+        clearTimeout(closeTimer);
+    });
+    function onDetailsKeydown(event) {
+        if (!disclosure.open) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            closeDetails();
+            summary.focus();
+        } else if (event.key === 'Tab') {
+            // Keep the settings button between the summary and refresh in the tab order.
+            if (event.target === settingsLink) {
+                event.preventDefault();
+                (event.shiftKey ? summary : refreshButton).focus();
+            } else if (event.target === (event.shiftKey ? refreshButton : summary)) {
+                event.preventDefault();
+                settingsLink.focus();
+            }
+        }
+    }
+    for (const element of [disclosure, panel, refreshButton]) element.addEventListener('keydown', onDetailsKeydown);
+    settingsLink.addEventListener('click', () => {
+        closeDetails();
+        void window.panelModal?.show('smartInputBox');
+    });
+    const { usageQuotaEnabled } = await chrome.storage.local.get('usageQuotaEnabled');
+    if (session?.active === false) return;
+    const onSettings = (changes, area) => {
+        if (area === 'local' && changes.usageQuotaEnabled) setEnabled(changes.usageQuotaEnabled.newValue !== false);
+    };
+    chrome.storage.onChanged.addListener(onSettings);
+    session?.onStop(() => {
+        chrome.storage.onChanged.removeListener(onSettings);
+        setEnabled(false);
+    });
+    setEnabled(usageQuotaEnabled !== false);
+});
+
+;
+
 // Source: js/watermark/watermark-manager.js
 /**
  * Gemini Watermark Remover
@@ -16236,6 +16983,50 @@ class GeminiAdapter extends SiteAdapter {
         const sendButton = document.querySelector('.send-button');
         // ✅ 必须返回 boolean，找不到按钮视为 false（未生成），而不是 null（未实现）
         return !!(sendButton && sendButton.classList.contains('stop'));
+    }
+
+    observeAIGeneration(onChange) {
+        const selector = '.send-button';
+        const composerSelector = 'input-area-v2, .input-area';
+        const controls = `${composerSelector}, ${selector}`;
+        const containsControl = (node, query) => node.nodeType === Node.ELEMENT_NODE
+            && (node.matches(query) || node.querySelector(query));
+        let target = null;
+        const observer = new MutationObserver(mutations => {
+            const changed = mutations.some(mutation => {
+                if (mutation.type === 'attributes') {
+                    return mutation.target.matches(selector) || mutation.oldValue?.split(/\s+/).includes('send-button');
+                }
+                return [...mutation.addedNodes, ...mutation.removedNodes].some(node => containsControl(node, selector));
+            });
+            if (changed) onChange();
+        });
+        function observeComposer() {
+            const button = document.querySelector(selector);
+            const next = button?.closest(composerSelector) || button || document.querySelector(composerSelector);
+            if (next === target) return false;
+            observer.disconnect();
+            target = next;
+            if (target) {
+                observer.observe(target, {
+                    childList: true, subtree: true, attributes: true,
+                    attributeFilter: ['class'], attributeOldValue: true
+                });
+            }
+            return true;
+        }
+        // Rebind when Gemini replaces the composer, without observing class changes across the page.
+        const unsubscribe = DOMObserverManager.getInstance().subscribeBody('gemini-generation-composer', {
+            callback: ({ addedNodes }) => {
+                const replaced = (target && !target.isConnected) || addedNodes.some(node => containsControl(node, controls));
+                if (replaced && observeComposer()) onChange();
+            }
+        });
+        observeComposer();
+        return () => {
+            unsubscribe();
+            observer.disconnect();
+        };
     }
     
 }
@@ -27788,6 +28579,7 @@ let timelineManagerInstance = null;
 let currentUrl = location.href;
 let initVersion = 0; // Version number for initialization, increments on URL change
 let unsubscribePageObserver = null;  // DOMObserverManager 取消订阅函数
+let unwatchGeneration = null;
 let routeListenersAttached = false;
 let settingsListenerAttached = false;
 let adapterRegistry = new SiteAdapterRegistry();
@@ -27914,9 +28706,8 @@ function destroyTimelineInstance() {
         timelineManagerInstance = null;
     }
 
-    if (window.AIStateMonitor) {
-        window.AIStateMonitor.getInstance().stop();
-    }
+    unwatchGeneration?.();
+    unwatchGeneration = null;
 
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
@@ -27962,9 +28753,7 @@ async function initializeTimeline(version = initVersion) {
         }
 
         // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
-        if (window.AIStateMonitor) {
-            window.AIStateMonitor.getInstance().start(adapter);
-        }
+        unwatchGeneration = window.AIStateMonitor?.getInstance().watch(adapter) ?? null;
         return true;
     })().finally(() => {
         if (timelineInitInFlightVersion === version) {

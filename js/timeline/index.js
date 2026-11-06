@@ -15,6 +15,7 @@ let timelineManagerInstance = null;
 let currentUrl = location.href;
 let initVersion = 0; // Version number for initialization, increments on URL change
 let unsubscribePageObserver = null;  // DOMObserverManager 取消订阅函数
+let unwatchGeneration = null;
 let routeListenersAttached = false;
 let settingsListenerAttached = false;
 let adapterRegistry = new SiteAdapterRegistry();
@@ -141,9 +142,8 @@ function destroyTimelineInstance() {
         timelineManagerInstance = null;
     }
 
-    if (window.AIStateMonitor) {
-        window.AIStateMonitor.getInstance().stop();
-    }
+    unwatchGeneration?.();
+    unwatchGeneration = null;
 
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
@@ -189,9 +189,7 @@ async function initializeTimeline(version = initVersion) {
         }
 
         // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
-        if (window.AIStateMonitor) {
-            window.AIStateMonitor.getInstance().start(adapter);
-        }
+        unwatchGeneration = window.AIStateMonitor?.getInstance().watch(adapter) ?? null;
         return true;
     })().finally(() => {
         if (timelineInitInFlightVersion === version) {

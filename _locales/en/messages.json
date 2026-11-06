@@ -1231,5 +1231,65 @@
   },
   "timelineNodeRetry": {
     "message": "Retry"
+  },
+  "usageQuotaTitle": {
+    "message": "Show usage limits"
+  },
+  "usageQuotaHint": {
+    "message": "Show Gemini, Claude, and ChatGPT Work / Codex usage near the composer."
+  },
+  "usageQuotaFiveHour": {
+    "message": "5-hour usage"
+  },
+  "usageQuotaWeekly": {
+    "message": "Weekly usage"
+  },
+  "usageQuotaFiveHourLimit": {
+    "message": "5-hour limit"
+  },
+  "usageQuotaWeeklyLimit": {
+    "message": "Weekly limit"
+  },
+  "usageQuotaFiveHourPeriod": {
+    "message": "5 hours"
+  },
+  "usageQuotaWeeklyPeriod": {
+    "message": "Weekly"
+  },
+  "usageQuotaResetIn": {
+    "message": "Resets in $1"
+  },
+  "usageQuotaResetDue": {
+    "message": "Reset due"
+  },
+  "usageQuotaSettings": {
+    "message": "Extension settings → Input box"
+  },
+  "usageQuotaRefresh": {
+    "message": "Refresh"
+  },
+  "usageQuotaLoading": {
+    "message": "Checking usage…"
+  },
+  "usageQuotaUnavailable": {
+    "message": "Could not refresh usage"
+  },
+  "usageQuotaPlanLimits": {
+    "message": "Plan limits"
+  },
+  "usageQuotaUsageLimits": {
+    "message": "Usage limits"
+  },
+  "usageQuotaRemainingQuota": {
+    "message": "Remaining quota"
+  },
+  "usageQuotaUsedQuota": {
+    "message": "Quota used"
+  },
+  "usageQuotaUsed": {
+    "message": "used"
+  },
+  "usageQuotaRemaining": {
+    "message": "remaining"
   }
 }

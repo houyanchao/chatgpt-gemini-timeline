@@ -251,5 +251,49 @@ class GeminiAdapter extends SiteAdapter {
         // ✅ 必须返回 boolean，找不到按钮视为 false（未生成），而不是 null（未实现）
         return !!(sendButton && sendButton.classList.contains('stop'));
     }
+
+    observeAIGeneration(onChange) {
+        const selector = '.send-button';
+        const composerSelector = 'input-area-v2, .input-area';
+        const controls = `${composerSelector}, ${selector}`;
+        const containsControl = (node, query) => node.nodeType === Node.ELEMENT_NODE
+            && (node.matches(query) || node.querySelector(query));
+        let target = null;
+        const observer = new MutationObserver(mutations => {
+            const changed = mutations.some(mutation => {
+                if (mutation.type === 'attributes') {
+                    return mutation.target.matches(selector) || mutation.oldValue?.split(/\s+/).includes('send-button');
+                }
+                return [...mutation.addedNodes, ...mutation.removedNodes].some(node => containsControl(node, selector));
+            });
+            if (changed) onChange();
+        });
+        function observeComposer() {
+            const button = document.querySelector(selector);
+            const next = button?.closest(composerSelector) || button || document.querySelector(composerSelector);
+            if (next === target) return false;
+            observer.disconnect();
+            target = next;
+            if (target) {
+                observer.observe(target, {
+                    childList: true, subtree: true, attributes: true,
+                    attributeFilter: ['class'], attributeOldValue: true
+                });
+            }
+            return true;
+        }
+        // Rebind when Gemini replaces the composer, without observing class changes across the page.
+        const unsubscribe = DOMObserverManager.getInstance().subscribeBody('gemini-generation-composer', {
+            callback: ({ addedNodes }) => {
+                const replaced = (target && !target.isConnected) || addedNodes.some(node => containsControl(node, controls));
+                if (replaced && observeComposer()) onChange();
+            }
+        });
+        observeComposer();
+        return () => {
+            unsubscribe();
+            observer.disconnect();
+        };
+    }
     
 }

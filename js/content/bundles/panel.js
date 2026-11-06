@@ -1630,6 +1630,21 @@ class SmartInputBoxTab extends BaseTab {
                 </div>
             </div>
         `;
+
+        const usageQuotaSection = `
+            <div class="setting-section">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <div class="setting-label">${TimelineI18n.getMessage('usageQuotaTitle')}</div>
+                        <div class="setting-hint">${TimelineI18n.getMessage('usageQuotaHint')}</div>
+                    </div>
+                    <label class="ait-toggle-switch">
+                        <input type="checkbox" id="usage-quota-toggle" aria-label="${TimelineI18n.getMessage('usageQuotaTitle')}" disabled>
+                        <span class="ait-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        `;
         
         const divider = '<div class="divider"></div>';
         
@@ -1651,7 +1666,7 @@ class SmartInputBoxTab extends BaseTab {
             </div>
         `;
         
-        container.innerHTML = quickAskSection + scrollToBottomSection + divider + enterKeySection;
+        container.innerHTML = quickAskSection + scrollToBottomSection + usageQuotaSection + divider + enterKeySection;
         
         return container;
     }
@@ -1664,6 +1679,7 @@ class SmartInputBoxTab extends BaseTab {
         
         await this.loadQuickAskSettings();
         await this.loadScrollToBottomSettings();
+        await this.loadUsageQuotaSettings();
         await this.loadEnterModeSettings();
         await this.renderPlatformList();
         await this.loadPlatformSettings();
@@ -1753,6 +1769,23 @@ class SmartInputBoxTab extends BaseTab {
                 scrollToBottomToggle.checked = !scrollToBottomToggle.checked;
             }
         });
+    }
+
+    async loadUsageQuotaSettings() {
+        const toggle = document.getElementById('usage-quota-toggle');
+        if (!toggle) return;
+
+        const { usageQuotaEnabled } = await chrome.storage.local.get('usageQuotaEnabled').catch(() => ({}));
+        toggle.checked = usageQuotaEnabled !== false;
+        this.addEventListener(toggle, 'change', async () => {
+            const enabled = toggle.checked;
+            try {
+                await chrome.storage.local.set({ usageQuotaEnabled: enabled });
+            } catch {
+                toggle.checked = !enabled;
+            }
+        });
+        toggle.disabled = false;
     }
     
     /**
