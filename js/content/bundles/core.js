@@ -4856,7 +4856,6 @@ html[data-timeline-theme="dark"] .dsh-promo-github:hover .dsh-promo-github-arrow
                 this.id = 'dsh-promo';
                 const isZh = (TimelineI18n.getUILanguage?.() || 'en').startsWith('zh');
                 this.name = isZh ? 'DSH插件' : 'DSH Plugin';
-                this.badge = 'NEW';
                 this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22v-3"/>
                     <path d="M9 8V2"/>
