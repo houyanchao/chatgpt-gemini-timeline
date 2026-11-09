@@ -337,24 +337,29 @@ class CEDomToMarkdown {
     // ==================== 内部：数学公式 ====================
 
     /**
-     * 若 el 是数学公式，直接读取“复制公式”功能（FormulaManager）写入的
-     * data-latex-source 属性获取 LaTeX 源码。
-     *
-     * 该属性由 FormulaManager.scanAndAttachFormulas 主动写入所有公式元素，
-     * 因此这里只读属性、不再自行解析。MathML-only 公式时该属性为空字符串
-     * （仅作已处理标记），此时返回空 latex，调用方据此跳过公式子树但不输出文本。
+     * 优先读取 FormulaManager 已解析的源码；未标记的公式交给同一个
+     * FormulaSourceParser 即时解析。导出不依赖公式复制开关或其异步扫描时机。
      *
      * @param {Element} el
      * @returns {{latex:string, isDisplay:boolean}|null}
      */
     _extractFormula(el) {
         if (!(el instanceof Element)) return null;
-        if (!el.hasAttribute('data-latex-source')) return null;
+        if (el.closest('pre, code')) return null;
 
-        const latex = (el.getAttribute('data-latex-source') || '').trim();
+        let latex = (el.getAttribute('data-latex-source') || '').trim();
+        if (!latex && typeof FormulaSourceParser !== 'undefined' && el.matches(
+            '.katex, .katex-display, .math-inline, .math-block, .mwe-math-element, '
+            + '.MathJax, .MathJax_SVG, mjx-container, math, [data-math], [data-latex], [copy-text]'
+        )) {
+            try { latex = FormulaSourceParser.parseLatex(el) || ''; } catch { /* preserve readable fallback */ }
+        }
+        // 无源码的 MathML 保留可读正文，不因空的已处理标记吞掉整个公式。
+        if (!latex) return null;
+
         const isDisplay = !!el.closest('.katex-display') ||
             el.classList.contains('math-block') ||
-            el.getAttribute('display') === 'block';
+            !!el.closest('math[display="block"]');
 
         return { latex, isDisplay };
     }

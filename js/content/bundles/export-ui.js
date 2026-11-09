@@ -14,6 +14,116 @@
  */
 
 const CETextExporters = {
+    /** 只对实际的 Markdown 图片去重，代码示例和转义文本不算图片。 */
+    _hasMarkdownImage(markdown, src) {
+        if (!markdown || !src) return false;
+        return this._markdownImages(markdown).some(image => image.src === src);
+    },
+
+    _replaceMarkdownTokens(source, tokens, render) {
+        let result = '', last = 0;
+        for (const token of tokens) {
+            result += source.slice(last, token.start) + render(token);
+            last = token.end;
+        }
+        return result + source.slice(last);
+    },
+
+    /** 反引号数量必须匹配，避免多反引号代码示例被拆成普通正文。 */
+    _inlineCodeSpans(source) {
+        const spans = [];
+        for (let index = 0; index < source.length; index++) {
+            if (source[index] === '\\') { index++; continue; }
+            if (source[index] !== '`') continue;
+            const start = index;
+            while (source[index] === '`') index++;
+            const size = index - start;
+            let cursor = index;
+            while ((cursor = source.indexOf('`', cursor)) !== -1) {
+                const closing = cursor;
+                while (source[cursor] === '`') cursor++;
+                if (cursor - closing !== size) continue;
+                spans.push({ start, end: cursor, text: source.slice(index, closing) });
+                index = cursor - 1;
+                break;
+            }
+            if (cursor === -1) index--;
+        }
+        return spans;
+    },
+
+    _maskMarkdownCode(markdown) {
+        let fence = null;
+        const source = markdown.split('\n').map(line => {
+            const content = line.replace(/^(?: {0,3}>[ \t]?)+/, '');
+            const match = content.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+            const code = !!fence || !!match || /^(?: {4}|\t)/.test(content);
+            if (fence) {
+                if (match && match[1][0] === fence[0] && match[1].length >= fence.length
+                    && !match[2].trim()) fence = null;
+            } else if (match) {
+                fence = match[1];
+            }
+            return code ? ' '.repeat(line.length) : line;
+        }).join('\n');
+        return this._replaceMarkdownTokens(source, this._inlineCodeSpans(source),
+            span => source.slice(span.start, span.end).replace(/[^\n]/g, ' '));
+    },
+
+    /** 读取图片引用的范围，使用括号计数保留 URL；与 PDF 使用同一个解析结果。 */
+    _markdownImages(markdown) {
+        const source = this._maskMarkdownCode(markdown);
+        const unescape = text => text.replace(/\\([\\`*{}\[\]()#+\-.!_>~|])/g, '$1');
+        const images = [];
+        for (let start = 0; start < source.length; start++) {
+            if (source[start] === '\\') { start++; continue; }
+            if (!source.startsWith('![', start)) continue;
+            let cursor = start + 2, brackets = 1;
+            for (; cursor < source.length; cursor++) {
+                if (source[cursor] === '\\') { cursor++; continue; }
+                if (source[cursor] === '[') brackets++;
+                if (source[cursor] === ']' && --brackets === 0) break;
+            }
+            const labelEnd = cursor;
+            if (brackets || source[++cursor] !== '(') continue;
+            cursor++;
+            while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            let urlStart = cursor, urlEnd;
+            if (source[cursor] === '<') {
+                urlStart = ++cursor;
+                while (cursor < source.length && source[cursor] !== '>') cursor++;
+                if (cursor === source.length) continue;
+                urlEnd = cursor++;
+            } else {
+                let depth = 0;
+                for (; cursor < source.length; cursor++) {
+                    const char = source[cursor];
+                    if (char === '\\') { cursor++; continue; }
+                    if (char === '(') depth++;
+                    else if (char === ')') { if (!depth) break; depth--; }
+                    else if (/\s/.test(char)) break;
+                }
+                if (depth) continue;
+                urlEnd = cursor;
+            }
+            while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            if (source[cursor] === '"' || source[cursor] === "'") {
+                const quote = source[cursor++];
+                while (cursor < source.length && source[cursor] !== quote) {
+                    if (source[cursor] === '\\') cursor++;
+                    cursor++;
+                }
+                if (source[cursor++] !== quote) continue;
+                while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            }
+            if (source[cursor] !== ')' || urlStart === urlEnd) continue;
+            images.push({ start, end: cursor + 1, src: unescape(markdown.slice(urlStart, urlEnd)),
+                alt: unescape(markdown.slice(start + 2, labelEnd)) });
+            start = cursor;
+        }
+        return images;
+    },
+
     /**
      * 汇总一轮对话的全部图片（用户 + 助手）。
      */
@@ -94,7 +204,7 @@ const CETextExporters = {
                 lines.push(CE_TEXT.emptyAssistant);
             }
 
-            mdAsstImages.forEach(image => {
+            mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
                 lines.push('');
                 lines.push(...this._imageMarkdownLines(image));
             });
@@ -681,7 +791,7 @@ class CEPngExporter {
         const bottomPad = opts.bottomPad != null ? opts.bottomPad : 6;
         const quoteBar = !!opts.quoteBar;
 
-        const maxWidth = this.bodyWidth - indent;
+        const maxWidth = opts.maxWidth ?? (this.bodyWidth - indent);
         const tokens = this._tokenizeInline(rawText);
         const hasFormula = tokens.some(t => t.type === 'formula');
 
@@ -816,8 +926,54 @@ class CEPngExporter {
             case 'quote': return this._quoteOp(ctx, block);
             case 'code': return this._codeOp(ctx, block);
             case 'formula': return this._formulaBlockOp(ctx, block);
+            case 'table': return this._tableOp(ctx, block);
             default: return this._paragraphOp(ctx, block.text);
         }
+    }
+
+    _tableOp(ctx, block) {
+        const columnCount = block.headers.length;
+        const columnWidth = this.bodyWidth / columnCount;
+        const rows = [block.headers, ...block.rows].map((row, rowIndex) => {
+            const cells = Array.from({ length: columnCount }, (_, column) => this._richTextOp(
+                ctx, row[column] || '', {
+                    font: { size: 14, weight: rowIndex === 0 ? '600' : '400' },
+                    lineHeight: 22,
+                    indent: column * columnWidth + 8,
+                    maxWidth: Math.max(1, columnWidth - 16),
+                    topPad: 8,
+                    bottomPad: 8,
+                }
+            ));
+            return { cells, height: Math.max(38, ...cells.map(cell => cell.height)) };
+        });
+        const self = this;
+        return {
+            height: rows.reduce((sum, row) => sum + row.height, 0) + 12,
+            markerCenter: 23,
+            paint(c, y) {
+                let top = y + 4;
+                rows.forEach((row, index) => {
+                    if (index === 0) {
+                        c.fillStyle = self.colors.codeBg;
+                        c.fillRect(self.contentX, top, self.bodyWidth, row.height);
+                    }
+                    row.cells.forEach((cell, column) => {
+                        const left = self.contentX + column * columnWidth;
+                        c.strokeStyle = self.colors.assistantRule;
+                        c.lineWidth = 1;
+                        c.strokeRect(left, top, columnWidth, row.height);
+                        c.save();
+                        c.beginPath();
+                        c.rect(left + 1, top + 1, columnWidth - 2, row.height - 2);
+                        c.clip();
+                        cell.paint(c, top);
+                        c.restore();
+                    });
+                    top += row.height;
+                });
+            },
+        };
     }
 
     _formulaBlockOp(ctx, block) {
@@ -900,7 +1056,8 @@ class CEPngExporter {
     }
 
     _quoteOp(ctx, block) {
-        return this._richTextOp(ctx, block.text, {
+        const paragraphs = block.text.split(/\n\s*\n/).filter(text => text.trim());
+        const ops = paragraphs.map(text => this._richTextOp(ctx, text, {
             font: { size: 15, weight: '400' },
             lineHeight: 23,
             indent: 18,
@@ -908,7 +1065,17 @@ class CEPngExporter {
             quoteBar: true,
             topPad: 2,
             bottomPad: 10,
-        });
+        }));
+        return {
+            height: ops.reduce((sum, op) => sum + op.height, 0),
+            markerCenter: ops[0]?.markerCenter,
+            paint(c, y) {
+                for (const op of ops) {
+                    op.paint(c, y);
+                    y += op.height;
+                }
+            },
+        };
     }
 
     _codeOp(ctx, block) {
@@ -994,6 +1161,27 @@ class CEPngExporter {
     }
 
     // ==================== Markdown 轻量解析 ====================
+
+    _splitTableRow(line) {
+        const cells = [];
+        let cell = '';
+        const source = line.trim();
+        for (let index = 0; index < source.length; index++) {
+            if (source[index] === '\\' && source[index + 1] === '|') {
+                cell += '|';
+                index++;
+            } else if (source[index] === '|') {
+                cells.push(cell.trim());
+                cell = '';
+            } else {
+                cell += source[index];
+            }
+        }
+        cells.push(cell.trim());
+        if (source.startsWith('|')) cells.shift();
+        if (source.endsWith('|')) cells.pop();
+        return cells;
+    }
 
     _parseMarkdownBlocks(markdown) {
         const blocks = [];
@@ -1082,7 +1270,7 @@ class CEPngExporter {
                     quoteText.push(lines[i].replace(/^\s*>\s?/, ''));
                     i++;
                 }
-                blocks.push({ kind: 'quote', text: quoteText.join(' ').trim() });
+                blocks.push({ kind: 'quote', text: quoteText.join('\n').trim() });
                 continue;
             }
 
@@ -1102,6 +1290,24 @@ class CEPngExporter {
                 });
                 i++;
                 continue;
+            }
+
+            // Markdown 表格：保留行列，分隔线不会作为普通正文输出。
+            if (trimmed.includes('|') && i + 1 < lines.length) {
+                const headers = this._splitTableRow(trimmed);
+                const separator = this._splitTableRow(lines[i + 1]);
+                if (headers.length && separator.length === headers.length
+                    && separator.every(cell => /^:?-{3,}:?$/.test(cell))) {
+                    flushParagraph();
+                    const rows = [];
+                    i += 2;
+                    while (i < lines.length && lines[i].trim() && lines[i].includes('|')) {
+                        rows.push(this._splitTableRow(lines[i]));
+                        i++;
+                    }
+                    blocks.push({ kind: 'table', headers, rows });
+                    continue;
+                }
             }
 
             // 普通段落（累积连续行）
@@ -1502,6 +1708,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .ce-content pre code { white-space: pre-wrap; word-break: break-word; }
 .ce-content blockquote { border-left: 3px solid #d1d5db; margin: 8px 0; padding-left: 12px; color: #6b7280; }
 .ce-content hr { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }
+.ce-content table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 10px 0; }
+.ce-content th, .ce-content td { border: 1px solid #d1d5db; padding: 7px 9px; text-align: left; overflow-wrap: anywhere; }
+.ce-content th { background: #f6f8fa; font-weight: 600; }
+.ce-content thead { display: table-header-group; }
+.ce-content tr { break-inside: avoid; }
 .ce-formula { text-align: center; margin: 12px 0; overflow-x: auto; break-inside: avoid; }
 .ce-img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; break-inside: avoid; }
 .ce-img-missing { color: #9ca3af; font-size: 13px; background: #f3f4f6; border-radius: 8px; padding: 10px 12px; }
@@ -1534,14 +1745,17 @@ a { color: #2563eb; text-decoration: none; }
     }
 
     _assistantHtml(turn) {
-        const images = (turn.assistant?.images || []).map(img => this._imageHtml(img)).join('');
         const md = turn.assistant?.markdown || '';
+        const embeddedImages = new Set();
         let body = '';
         if (md) {
-            body = this._blocksToHtml(md);
+            body = this._blocksToHtml(md, src => embeddedImages.add(src));
         } else if (turn.assistant?.text) {
             body = `<p>${this._escapeHtml(turn.assistant.text)}</p>`;
         }
+        const images = (turn.assistant?.images || [])
+            .filter(img => !embeddedImages.has(img.src))
+            .map(img => this._imageHtml(img)).join('');
         if (!body && !images) {
             return `<p class="ce-empty">${this._escapeHtml(CE_TEXT.emptyAssistant)}</p>`;
         }
@@ -1550,7 +1764,7 @@ a { color: #2563eb; text-decoration: none; }
 
     // ==================== markdown → HTML ====================
 
-    _blocksToHtml(md) {
+    _blocksToHtml(md, onImage) {
         // 复用 PNG 的块解析；不可用时退化为按段落切分
         let blocks;
         if (this._parser && typeof this._parser._parseMarkdownBlocks === 'function') {
@@ -1565,65 +1779,93 @@ a { color: #2563eb; text-decoration: none; }
             const b = blocks[i];
 
             if (b.kind === 'listitem') {
-                const tag = b.ordered ? 'ol' : 'ul';
-                let items = '';
-                while (i < blocks.length && blocks[i].kind === 'listitem') {
-                    items += `<li>${this._inlineToHtml(blocks[i].text)}</li>`;
-                    i++;
-                }
-                html += `<${tag}>${items}</${tag}>`;
+                const list = this._listToHtml(blocks, i, onImage);
+                html += list.html;
+                i = list.nextIndex;
                 continue;
             }
 
             switch (b.kind) {
                 case 'heading': {
                     const level = Math.min(Math.max(b.level || 2, 1), 6);
-                    html += `<h${level}>${this._inlineToHtml(b.text)}</h${level}>`;
+                    html += `<h${level}>${this._inlineToHtml(b.text, onImage)}</h${level}>`;
                     break;
                 }
                 case 'code':
                     html += `<pre><code>${this._escapeHtml(b.code)}</code></pre>`;
                     break;
                 case 'quote':
-                    html += `<blockquote>${this._inlineToHtml(b.text)}</blockquote>`;
+                    html += '<blockquote>' + b.text.split(/\n\s*\n/).filter(text => text.trim())
+                        .map(text => `<p>${this._inlineToHtml(text, onImage)}</p>`).join('') + '</blockquote>';
                     break;
                 case 'formula': {
                     const svg = this._latexToSvg(b.latex, true);
                     html += `<div class="ce-formula">${svg || `<code>${this._escapeHtml(b.latex)}</code>`}</div>`;
                     break;
                 }
+                case 'table': {
+                    const header = b.headers.map(cell => `<th>${this._inlineToHtml(cell, onImage)}</th>`).join('');
+                    const rows = b.rows.map(row => '<tr>' + b.headers.map((_, column) =>
+                        `<td>${this._inlineToHtml(row[column] || '', onImage)}</td>`).join('') + '</tr>').join('');
+                    html += `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+                    break;
+                }
                 default:
-                    html += `<p>${this._inlineToHtml(b.text)}</p>`;
+                    html += `<p>${this._inlineToHtml(b.text, onImage)}</p>`;
             }
             i++;
         }
         return html;
     }
 
+    /** 把轻量解析器的深度信息还原为嵌套列表，保留有序/无序切换与起始编号。 */
+    _listToHtml(blocks, startIndex, onImage) {
+        const first = blocks[startIndex];
+        const tag = first.ordered ? 'ol' : 'ul';
+        const start = first.ordered && first.index > 1 ? ` start="${first.index}"` : '';
+        let html = `<${tag}${start}>`;
+        let index = startIndex;
+        while (index < blocks.length && blocks[index].kind === 'listitem'
+            && blocks[index].depth === first.depth && blocks[index].ordered === first.ordered) {
+            html += `<li>${this._inlineToHtml(blocks[index].text, onImage)}`;
+            index++;
+            while (index < blocks.length && blocks[index].kind === 'listitem'
+                && blocks[index].depth > first.depth) {
+                const child = this._listToHtml(blocks, index, onImage);
+                html += child.html;
+                index = child.nextIndex;
+            }
+            html += '</li>';
+        }
+        return { html: html + `</${tag}>`, nextIndex: index };
+    }
+
     /**
      * 行内 markdown → HTML：先挖出行内公式/代码占位（避免被转义或误处理），
      * 转义后再处理图片/链接/粗体/斜体，最后还原占位。
      */
-    _inlineToHtml(text) {
+    _inlineToHtml(text, onImage) {
         const stash = [];
         const put = (h) => `\u0000${stash.push(h) - 1}\u0000`;
 
         let s = String(text == null ? '' : text);
+
+        s = CETextExporters._replaceMarkdownTokens(s, CETextExporters._inlineCodeSpans(s),
+            code => put(`<code>${this._escapeHtml(code.text.replace(/\n/g, ' '))}</code>`));
+        // 图片在正文转义前处理，并放入占位符，URL 仅进行一次 HTML 属性转义。
+        s = CETextExporters._replaceMarkdownTokens(s, CETextExporters._markdownImages(s), image => {
+            onImage?.(image.src);
+            return put(this._imageHtml(image));
+        });
 
         // 行内公式 $...$
         s = s.replace(/\$([^$\n]+?)\$/g, (_, tex) => {
             const svg = this._latexToSvg(tex, false);
             return put(svg || `<code>${this._escapeHtml(tex)}</code>`);
         });
-        // 行内代码 `...`
-        s = s.replace(/`([^`]+?)`/g, (_, code) => put(`<code>${this._escapeHtml(code)}</code>`));
-
         // 转义正文
         s = this._escapeHtml(s);
 
-        // 图片 ![alt](url)
-        s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_, alt, url) =>
-            `<img class="ce-img" src="${this._attr(url)}" alt="${this._attr(alt)}">`);
         // 链接 [text](url)
         s = s.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (_, t, url) =>
             `<a href="${this._attr(url)}">${t}</a>`);

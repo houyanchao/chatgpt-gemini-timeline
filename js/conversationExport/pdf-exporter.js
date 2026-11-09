@@ -91,6 +91,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .ce-content pre code { white-space: pre-wrap; word-break: break-word; }
 .ce-content blockquote { border-left: 3px solid #d1d5db; margin: 8px 0; padding-left: 12px; color: #6b7280; }
 .ce-content hr { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }
+.ce-content table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 10px 0; }
+.ce-content th, .ce-content td { border: 1px solid #d1d5db; padding: 7px 9px; text-align: left; overflow-wrap: anywhere; }
+.ce-content th { background: #f6f8fa; font-weight: 600; }
+.ce-content thead { display: table-header-group; }
+.ce-content tr { break-inside: avoid; }
 .ce-formula { text-align: center; margin: 12px 0; overflow-x: auto; break-inside: avoid; }
 .ce-img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; break-inside: avoid; }
 .ce-img-missing { color: #9ca3af; font-size: 13px; background: #f3f4f6; border-radius: 8px; padding: 10px 12px; }
@@ -123,14 +128,17 @@ a { color: #2563eb; text-decoration: none; }
     }
 
     _assistantHtml(turn) {
-        const images = (turn.assistant?.images || []).map(img => this._imageHtml(img)).join('');
         const md = turn.assistant?.markdown || '';
+        const embeddedImages = new Set();
         let body = '';
         if (md) {
-            body = this._blocksToHtml(md);
+            body = this._blocksToHtml(md, src => embeddedImages.add(src));
         } else if (turn.assistant?.text) {
             body = `<p>${this._escapeHtml(turn.assistant.text)}</p>`;
         }
+        const images = (turn.assistant?.images || [])
+            .filter(img => !embeddedImages.has(img.src))
+            .map(img => this._imageHtml(img)).join('');
         if (!body && !images) {
             return `<p class="ce-empty">${this._escapeHtml(CE_TEXT.emptyAssistant)}</p>`;
         }
@@ -139,7 +147,7 @@ a { color: #2563eb; text-decoration: none; }
 
     // ==================== markdown → HTML ====================
 
-    _blocksToHtml(md) {
+    _blocksToHtml(md, onImage) {
         // 复用 PNG 的块解析；不可用时退化为按段落切分
         let blocks;
         if (this._parser && typeof this._parser._parseMarkdownBlocks === 'function') {
@@ -154,65 +162,93 @@ a { color: #2563eb; text-decoration: none; }
             const b = blocks[i];
 
             if (b.kind === 'listitem') {
-                const tag = b.ordered ? 'ol' : 'ul';
-                let items = '';
-                while (i < blocks.length && blocks[i].kind === 'listitem') {
-                    items += `<li>${this._inlineToHtml(blocks[i].text)}</li>`;
-                    i++;
-                }
-                html += `<${tag}>${items}</${tag}>`;
+                const list = this._listToHtml(blocks, i, onImage);
+                html += list.html;
+                i = list.nextIndex;
                 continue;
             }
 
             switch (b.kind) {
                 case 'heading': {
                     const level = Math.min(Math.max(b.level || 2, 1), 6);
-                    html += `<h${level}>${this._inlineToHtml(b.text)}</h${level}>`;
+                    html += `<h${level}>${this._inlineToHtml(b.text, onImage)}</h${level}>`;
                     break;
                 }
                 case 'code':
                     html += `<pre><code>${this._escapeHtml(b.code)}</code></pre>`;
                     break;
                 case 'quote':
-                    html += `<blockquote>${this._inlineToHtml(b.text)}</blockquote>`;
+                    html += '<blockquote>' + b.text.split(/\n\s*\n/).filter(text => text.trim())
+                        .map(text => `<p>${this._inlineToHtml(text, onImage)}</p>`).join('') + '</blockquote>';
                     break;
                 case 'formula': {
                     const svg = this._latexToSvg(b.latex, true);
                     html += `<div class="ce-formula">${svg || `<code>${this._escapeHtml(b.latex)}</code>`}</div>`;
                     break;
                 }
+                case 'table': {
+                    const header = b.headers.map(cell => `<th>${this._inlineToHtml(cell, onImage)}</th>`).join('');
+                    const rows = b.rows.map(row => '<tr>' + b.headers.map((_, column) =>
+                        `<td>${this._inlineToHtml(row[column] || '', onImage)}</td>`).join('') + '</tr>').join('');
+                    html += `<table><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+                    break;
+                }
                 default:
-                    html += `<p>${this._inlineToHtml(b.text)}</p>`;
+                    html += `<p>${this._inlineToHtml(b.text, onImage)}</p>`;
             }
             i++;
         }
         return html;
     }
 
+    /** 把轻量解析器的深度信息还原为嵌套列表，保留有序/无序切换与起始编号。 */
+    _listToHtml(blocks, startIndex, onImage) {
+        const first = blocks[startIndex];
+        const tag = first.ordered ? 'ol' : 'ul';
+        const start = first.ordered && first.index > 1 ? ` start="${first.index}"` : '';
+        let html = `<${tag}${start}>`;
+        let index = startIndex;
+        while (index < blocks.length && blocks[index].kind === 'listitem'
+            && blocks[index].depth === first.depth && blocks[index].ordered === first.ordered) {
+            html += `<li>${this._inlineToHtml(blocks[index].text, onImage)}`;
+            index++;
+            while (index < blocks.length && blocks[index].kind === 'listitem'
+                && blocks[index].depth > first.depth) {
+                const child = this._listToHtml(blocks, index, onImage);
+                html += child.html;
+                index = child.nextIndex;
+            }
+            html += '</li>';
+        }
+        return { html: html + `</${tag}>`, nextIndex: index };
+    }
+
     /**
      * 行内 markdown → HTML：先挖出行内公式/代码占位（避免被转义或误处理），
      * 转义后再处理图片/链接/粗体/斜体，最后还原占位。
      */
-    _inlineToHtml(text) {
+    _inlineToHtml(text, onImage) {
         const stash = [];
         const put = (h) => `\u0000${stash.push(h) - 1}\u0000`;
 
         let s = String(text == null ? '' : text);
+
+        s = CETextExporters._replaceMarkdownTokens(s, CETextExporters._inlineCodeSpans(s),
+            code => put(`<code>${this._escapeHtml(code.text.replace(/\n/g, ' '))}</code>`));
+        // 图片在正文转义前处理，并放入占位符，URL 仅进行一次 HTML 属性转义。
+        s = CETextExporters._replaceMarkdownTokens(s, CETextExporters._markdownImages(s), image => {
+            onImage?.(image.src);
+            return put(this._imageHtml(image));
+        });
 
         // 行内公式 $...$
         s = s.replace(/\$([^$\n]+?)\$/g, (_, tex) => {
             const svg = this._latexToSvg(tex, false);
             return put(svg || `<code>${this._escapeHtml(tex)}</code>`);
         });
-        // 行内代码 `...`
-        s = s.replace(/`([^`]+?)`/g, (_, code) => put(`<code>${this._escapeHtml(code)}</code>`));
-
         // 转义正文
         s = this._escapeHtml(s);
 
-        // 图片 ![alt](url)
-        s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_, alt, url) =>
-            `<img class="ce-img" src="${this._attr(url)}" alt="${this._attr(alt)}">`);
         // 链接 [text](url)
         s = s.replace(/\[([^\]]+)\]\(([^)\s]+)[^)]*\)/g, (_, t, url) =>
             `<a href="${this._attr(url)}">${t}</a>`);

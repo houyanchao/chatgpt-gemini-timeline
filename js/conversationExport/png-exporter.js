@@ -398,7 +398,7 @@ class CEPngExporter {
         const bottomPad = opts.bottomPad != null ? opts.bottomPad : 6;
         const quoteBar = !!opts.quoteBar;
 
-        const maxWidth = this.bodyWidth - indent;
+        const maxWidth = opts.maxWidth ?? (this.bodyWidth - indent);
         const tokens = this._tokenizeInline(rawText);
         const hasFormula = tokens.some(t => t.type === 'formula');
 
@@ -533,8 +533,54 @@ class CEPngExporter {
             case 'quote': return this._quoteOp(ctx, block);
             case 'code': return this._codeOp(ctx, block);
             case 'formula': return this._formulaBlockOp(ctx, block);
+            case 'table': return this._tableOp(ctx, block);
             default: return this._paragraphOp(ctx, block.text);
         }
+    }
+
+    _tableOp(ctx, block) {
+        const columnCount = block.headers.length;
+        const columnWidth = this.bodyWidth / columnCount;
+        const rows = [block.headers, ...block.rows].map((row, rowIndex) => {
+            const cells = Array.from({ length: columnCount }, (_, column) => this._richTextOp(
+                ctx, row[column] || '', {
+                    font: { size: 14, weight: rowIndex === 0 ? '600' : '400' },
+                    lineHeight: 22,
+                    indent: column * columnWidth + 8,
+                    maxWidth: Math.max(1, columnWidth - 16),
+                    topPad: 8,
+                    bottomPad: 8,
+                }
+            ));
+            return { cells, height: Math.max(38, ...cells.map(cell => cell.height)) };
+        });
+        const self = this;
+        return {
+            height: rows.reduce((sum, row) => sum + row.height, 0) + 12,
+            markerCenter: 23,
+            paint(c, y) {
+                let top = y + 4;
+                rows.forEach((row, index) => {
+                    if (index === 0) {
+                        c.fillStyle = self.colors.codeBg;
+                        c.fillRect(self.contentX, top, self.bodyWidth, row.height);
+                    }
+                    row.cells.forEach((cell, column) => {
+                        const left = self.contentX + column * columnWidth;
+                        c.strokeStyle = self.colors.assistantRule;
+                        c.lineWidth = 1;
+                        c.strokeRect(left, top, columnWidth, row.height);
+                        c.save();
+                        c.beginPath();
+                        c.rect(left + 1, top + 1, columnWidth - 2, row.height - 2);
+                        c.clip();
+                        cell.paint(c, top);
+                        c.restore();
+                    });
+                    top += row.height;
+                });
+            },
+        };
     }
 
     _formulaBlockOp(ctx, block) {
@@ -617,7 +663,8 @@ class CEPngExporter {
     }
 
     _quoteOp(ctx, block) {
-        return this._richTextOp(ctx, block.text, {
+        const paragraphs = block.text.split(/\n\s*\n/).filter(text => text.trim());
+        const ops = paragraphs.map(text => this._richTextOp(ctx, text, {
             font: { size: 15, weight: '400' },
             lineHeight: 23,
             indent: 18,
@@ -625,7 +672,17 @@ class CEPngExporter {
             quoteBar: true,
             topPad: 2,
             bottomPad: 10,
-        });
+        }));
+        return {
+            height: ops.reduce((sum, op) => sum + op.height, 0),
+            markerCenter: ops[0]?.markerCenter,
+            paint(c, y) {
+                for (const op of ops) {
+                    op.paint(c, y);
+                    y += op.height;
+                }
+            },
+        };
     }
 
     _codeOp(ctx, block) {
@@ -711,6 +768,27 @@ class CEPngExporter {
     }
 
     // ==================== Markdown 轻量解析 ====================
+
+    _splitTableRow(line) {
+        const cells = [];
+        let cell = '';
+        const source = line.trim();
+        for (let index = 0; index < source.length; index++) {
+            if (source[index] === '\\' && source[index + 1] === '|') {
+                cell += '|';
+                index++;
+            } else if (source[index] === '|') {
+                cells.push(cell.trim());
+                cell = '';
+            } else {
+                cell += source[index];
+            }
+        }
+        cells.push(cell.trim());
+        if (source.startsWith('|')) cells.shift();
+        if (source.endsWith('|')) cells.pop();
+        return cells;
+    }
 
     _parseMarkdownBlocks(markdown) {
         const blocks = [];
@@ -799,7 +877,7 @@ class CEPngExporter {
                     quoteText.push(lines[i].replace(/^\s*>\s?/, ''));
                     i++;
                 }
-                blocks.push({ kind: 'quote', text: quoteText.join(' ').trim() });
+                blocks.push({ kind: 'quote', text: quoteText.join('\n').trim() });
                 continue;
             }
 
@@ -819,6 +897,24 @@ class CEPngExporter {
                 });
                 i++;
                 continue;
+            }
+
+            // Markdown 表格：保留行列，分隔线不会作为普通正文输出。
+            if (trimmed.includes('|') && i + 1 < lines.length) {
+                const headers = this._splitTableRow(trimmed);
+                const separator = this._splitTableRow(lines[i + 1]);
+                if (headers.length && separator.length === headers.length
+                    && separator.every(cell => /^:?-{3,}:?$/.test(cell))) {
+                    flushParagraph();
+                    const rows = [];
+                    i += 2;
+                    while (i < lines.length && lines[i].trim() && lines[i].includes('|')) {
+                        rows.push(this._splitTableRow(lines[i]));
+                        i++;
+                    }
+                    blocks.push({ kind: 'table', headers, rows });
+                    continue;
+                }
             }
 
             // 普通段落（累积连续行）

@@ -10,6 +10,116 @@
  */
 
 const CETextExporters = {
+    /** 只对实际的 Markdown 图片去重，代码示例和转义文本不算图片。 */
+    _hasMarkdownImage(markdown, src) {
+        if (!markdown || !src) return false;
+        return this._markdownImages(markdown).some(image => image.src === src);
+    },
+
+    _replaceMarkdownTokens(source, tokens, render) {
+        let result = '', last = 0;
+        for (const token of tokens) {
+            result += source.slice(last, token.start) + render(token);
+            last = token.end;
+        }
+        return result + source.slice(last);
+    },
+
+    /** 反引号数量必须匹配，避免多反引号代码示例被拆成普通正文。 */
+    _inlineCodeSpans(source) {
+        const spans = [];
+        for (let index = 0; index < source.length; index++) {
+            if (source[index] === '\\') { index++; continue; }
+            if (source[index] !== '`') continue;
+            const start = index;
+            while (source[index] === '`') index++;
+            const size = index - start;
+            let cursor = index;
+            while ((cursor = source.indexOf('`', cursor)) !== -1) {
+                const closing = cursor;
+                while (source[cursor] === '`') cursor++;
+                if (cursor - closing !== size) continue;
+                spans.push({ start, end: cursor, text: source.slice(index, closing) });
+                index = cursor - 1;
+                break;
+            }
+            if (cursor === -1) index--;
+        }
+        return spans;
+    },
+
+    _maskMarkdownCode(markdown) {
+        let fence = null;
+        const source = markdown.split('\n').map(line => {
+            const content = line.replace(/^(?: {0,3}>[ \t]?)+/, '');
+            const match = content.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+            const code = !!fence || !!match || /^(?: {4}|\t)/.test(content);
+            if (fence) {
+                if (match && match[1][0] === fence[0] && match[1].length >= fence.length
+                    && !match[2].trim()) fence = null;
+            } else if (match) {
+                fence = match[1];
+            }
+            return code ? ' '.repeat(line.length) : line;
+        }).join('\n');
+        return this._replaceMarkdownTokens(source, this._inlineCodeSpans(source),
+            span => source.slice(span.start, span.end).replace(/[^\n]/g, ' '));
+    },
+
+    /** 读取图片引用的范围，使用括号计数保留 URL；与 PDF 使用同一个解析结果。 */
+    _markdownImages(markdown) {
+        const source = this._maskMarkdownCode(markdown);
+        const unescape = text => text.replace(/\\([\\`*{}\[\]()#+\-.!_>~|])/g, '$1');
+        const images = [];
+        for (let start = 0; start < source.length; start++) {
+            if (source[start] === '\\') { start++; continue; }
+            if (!source.startsWith('![', start)) continue;
+            let cursor = start + 2, brackets = 1;
+            for (; cursor < source.length; cursor++) {
+                if (source[cursor] === '\\') { cursor++; continue; }
+                if (source[cursor] === '[') brackets++;
+                if (source[cursor] === ']' && --brackets === 0) break;
+            }
+            const labelEnd = cursor;
+            if (brackets || source[++cursor] !== '(') continue;
+            cursor++;
+            while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            let urlStart = cursor, urlEnd;
+            if (source[cursor] === '<') {
+                urlStart = ++cursor;
+                while (cursor < source.length && source[cursor] !== '>') cursor++;
+                if (cursor === source.length) continue;
+                urlEnd = cursor++;
+            } else {
+                let depth = 0;
+                for (; cursor < source.length; cursor++) {
+                    const char = source[cursor];
+                    if (char === '\\') { cursor++; continue; }
+                    if (char === '(') depth++;
+                    else if (char === ')') { if (!depth) break; depth--; }
+                    else if (/\s/.test(char)) break;
+                }
+                if (depth) continue;
+                urlEnd = cursor;
+            }
+            while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            if (source[cursor] === '"' || source[cursor] === "'") {
+                const quote = source[cursor++];
+                while (cursor < source.length && source[cursor] !== quote) {
+                    if (source[cursor] === '\\') cursor++;
+                    cursor++;
+                }
+                if (source[cursor++] !== quote) continue;
+                while (/\s/.test(source[cursor] || '') && cursor < source.length) cursor++;
+            }
+            if (source[cursor] !== ')' || urlStart === urlEnd) continue;
+            images.push({ start, end: cursor + 1, src: unescape(markdown.slice(urlStart, urlEnd)),
+                alt: unescape(markdown.slice(start + 2, labelEnd)) });
+            start = cursor;
+        }
+        return images;
+    },
+
     /**
      * 汇总一轮对话的全部图片（用户 + 助手）。
      */
@@ -90,7 +200,7 @@ const CETextExporters = {
                 lines.push(CE_TEXT.emptyAssistant);
             }
 
-            mdAsstImages.forEach(image => {
+            mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
                 lines.push('');
                 lines.push(...this._imageMarkdownLines(image));
             });

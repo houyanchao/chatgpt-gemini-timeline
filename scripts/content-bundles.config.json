@@ -146,6 +146,7 @@
         "js/conversationExport/adapters/deepseek.js",
         "js/conversationExport/adapters/kimi.js",
         "js/conversationExport/adapters/doubao.js",
+        "js/conversationExport/adapters/claude.js",
         "js/conversationExport/adapters/registry.js",
         "js/conversationExport/export-manager.js",
         "js/conversationExport/index.js"
