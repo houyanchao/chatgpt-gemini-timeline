@@ -106,6 +106,7 @@ function build() {
             `-x "*/.DS_Store" ` +
             `-x "*.md" ` +
             `-x ".cursor/*" ` +
+            `-x ".claude/*" ` +
             `-x "*.zip" ` +
             `-x "__MACOSX/*" ` +
             `-x "scripts/*" ` +
