@@ -10029,6 +10029,12 @@ class BaseSmartEnterAdapter {
         throw new Error('BaseSmartEnterAdapter.getInputSelector() must be implemented');
     }
 
+    /** 已绑定节点仍存在时保持原目标；平台可覆盖以跳过隐藏副本。 */
+    findInputElement(preferredInput = null) {
+        if (preferredInput && document.body.contains(preferredInput)) return preferredInput;
+        return document.querySelector(this.getInputSelector());
+    }
+
     /**
      * 获取键盘事件监听目标，平台可提前到祖先节点的捕获阶段。
      */
@@ -10116,6 +10122,22 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
      */
     getInputSelector() {
         return '#prompt-textarea, [class*="ComposerLayoutInput-"] [contenteditable="true"][role="textbox"]';
+    }
+
+    findInputElement() {
+        // 新版对话页保留一个隐藏的 Composer 副本，不能直接取第一个匹配项。
+        for (const input of document.querySelectorAll(this.getInputSelector())) {
+            if (input.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
+            const reference = this.getPositionReferenceElement(input);
+            const rect = input.getBoundingClientRect();
+            const referenceRect = reference.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0 || referenceRect.width <= 0 || referenceRect.height <= 0) continue;
+            const style = getComputedStyle(input);
+            const referenceStyle = getComputedStyle(reference);
+            if ([style.visibility, referenceStyle.visibility].some(value => value === 'hidden' || value === 'collapse')) continue;
+            return input;
+        }
+        return null;
     }
     
     /**
@@ -11444,6 +11466,7 @@ class PromptButtonManager {
         // 事件处理器引用
         this._onResize = null;
         this._rafPending = false;  // RAF 节流标志
+        this._observedInputReferences = [];
         
         // 配置
         this.config = {
@@ -11742,7 +11765,7 @@ class PromptButtonManager {
             
             requestAnimationFrame(() => {
                 this._rafPending = false;
-                this._updatePosition();
+                this._findInputAndShow();
             });
         };
         
@@ -11776,18 +11799,8 @@ class PromptButtonManager {
                     // 再次检查状态（防止禁用后仍执行）
                     if (!this.isEnabled || this.isDestroyed) return;
                     
-                    if (!this.inputElement) {
-                        // 还没找到输入框，尝试查找
-                        this._findInputAndShow();
-                    } else if (!document.body.contains(this.inputElement)) {
-                        // 输入框被移除，重新查找
-                        this.inputElement = null;
-                        this._hideButton();
-                        this._findInputAndShow();
-                    } else {
-                        // 输入框存在，更新位置（处理位置变化的情况）
-                        this._updatePosition();
-                    }
+                    // 页面可能保留旧输入框，只将它隐藏，仍需重新选择可见输入框。
+                    this._findInputAndShow();
                 },
                 filter: { hasAddedNodes: true, hasAttributeChanges: true },
                 debounce: 100
@@ -11807,6 +11820,7 @@ class PromptButtonManager {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
         }
+        this._observedInputReferences = [];
         if (this._transitionHandler) {
             document.body.removeEventListener('transitionend', this._transitionHandler);
             this._transitionHandler = null;
@@ -11820,13 +11834,13 @@ class PromptButtonManager {
         if (!this.isEnabled || this.isDestroyed) return;
         
         try {
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
-            
+            const input = this.adapter.findInputElement(this.inputElement);
+            this.inputElement = input;
+            this._observeInputResize();
             if (input) {
-                this.inputElement = input;
                 this._updatePosition();
-                this._observeInputResize();
+            } else {
+                this._hideButton();
             }
         } catch (e) {
             // 忽略
@@ -11834,17 +11848,26 @@ class PromptButtonManager {
     }
     
     _observeInputResize() {
-        if (this._resizeObserver) this._resizeObserver.disconnect();
-        if (!this.inputElement) return;
-        const ref = this.adapter.getPositionReferenceElement?.(this.inputElement) || this.inputElement;
+        // 全部候选暂时隐藏时仍观察它们，CSS 布局恢复后才能重新显示入口。
+        const inputs = this.inputElement
+            ? [this.inputElement]
+            : [...document.querySelectorAll(this.adapter.getInputSelector())];
+        const references = [...new Set(inputs.map(input => this.adapter.getPositionReferenceElement?.(input) || input))];
+        // 不反复重建 observer，否则初次尺寸通知会形成持续重新观察的循环。
+        if (references.length === this._observedInputReferences.length
+            && references.every((ref, index) => ref === this._observedInputReferences[index])) return;
+        this._resizeObserver?.disconnect();
+        this._resizeObserver = null;
+        this._observedInputReferences = references;
+        if (!references.length) return;
         this._resizeObserver = new ResizeObserver(() => {
-            if (this.isEnabled && !this.isDestroyed) this._updatePosition();
+            if (this.isEnabled && !this.isDestroyed) this._findInputAndShow();
         });
-        this._resizeObserver.observe(ref);
+        for (const ref of references) this._resizeObserver.observe(ref);
 
         if (!this._transitionHandler) {
             this._transitionHandler = () => {
-                if (this.isEnabled && !this.isDestroyed) this._updatePosition();
+                if (this.isEnabled && !this.isDestroyed) this._findInputAndShow();
             };
             document.body.addEventListener('transitionend', this._transitionHandler);
         }
@@ -12303,6 +12326,7 @@ class SmartEnterManager {
         // WeakMap 的好处：当元素被移除时会自动清理，不会造成内存泄漏
         this.attachedElements = new WeakMap();
         this._externalKeydownInput = null;
+        this._inputListenerController = new AbortController();
         
         // ✅ 健康检查定时器
         this.healthCheckInterval = null;
@@ -12430,8 +12454,7 @@ class SmartEnterManager {
      */
     _attachToInputIfNeeded() {
         try {
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
+            const input = this.adapter.findInputElement();
             
             if (input) {
                 // 使用 WeakMap 检查是否已附加
@@ -12497,8 +12520,7 @@ class SmartEnterManager {
         
         this.healthCheckInterval = setInterval(() => {
             try {
-                const selector = this.adapter.getInputSelector();
-                const currentInput = document.querySelector(selector);
+                const currentInput = this.adapter.findInputElement();
                 
                 // 情况1: 页面上找不到输入框了 (可能正在加载或切换)
                 if (!currentInput) return;
@@ -12539,11 +12561,14 @@ class SmartEnterManager {
         const handleInput = this._handleInput.bind(this);
         
         // 附加 keydown 监听器（使用 capture 模式优先拦截）
-        keydownTarget.addEventListener('keydown', handleKeyDown, { capture: true });
+        keydownTarget.addEventListener('keydown', handleKeyDown, {
+            capture: true,
+            signal: this._inputListenerController.signal
+        });
         if (keydownTarget !== inputElement) this._externalKeydownInput = inputElement;
         
         // 附加 input 监听器（检测内容变化）
-        inputElement.addEventListener('input', handleInput);
+        inputElement.addEventListener('input', handleInput, { signal: this._inputListenerController.signal });
         
         // 保存事件处理器引用到 WeakMap，方便后续清理
         this.attachedElements.set(inputElement, {
@@ -13011,11 +13036,13 @@ class SmartEnterManager {
         // 移除 Storage 监听
         this._detachStorageListener();
         
-        // 清理输入框的事件监听器
+        // 页面可能保留多个隐藏输入框；统一释放监听，不能仅依赖当前可见节点。
+        this._inputListenerController.abort();
+
+        // 清理输入框的事件监听器引用
         try {
             if (this._externalKeydownInput) this._detachListener(this._externalKeydownInput);
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
+            const input = this.adapter.findInputElement();
             if (input) {
                 this._detachListener(input);
             }

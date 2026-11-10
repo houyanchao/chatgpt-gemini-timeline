@@ -45,6 +45,7 @@ class SmartEnterManager {
         // WeakMap 的好处：当元素被移除时会自动清理，不会造成内存泄漏
         this.attachedElements = new WeakMap();
         this._externalKeydownInput = null;
+        this._inputListenerController = new AbortController();
         
         // ✅ 健康检查定时器
         this.healthCheckInterval = null;
@@ -172,8 +173,7 @@ class SmartEnterManager {
      */
     _attachToInputIfNeeded() {
         try {
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
+            const input = this.adapter.findInputElement();
             
             if (input) {
                 // 使用 WeakMap 检查是否已附加
@@ -239,8 +239,7 @@ class SmartEnterManager {
         
         this.healthCheckInterval = setInterval(() => {
             try {
-                const selector = this.adapter.getInputSelector();
-                const currentInput = document.querySelector(selector);
+                const currentInput = this.adapter.findInputElement();
                 
                 // 情况1: 页面上找不到输入框了 (可能正在加载或切换)
                 if (!currentInput) return;
@@ -281,11 +280,14 @@ class SmartEnterManager {
         const handleInput = this._handleInput.bind(this);
         
         // 附加 keydown 监听器（使用 capture 模式优先拦截）
-        keydownTarget.addEventListener('keydown', handleKeyDown, { capture: true });
+        keydownTarget.addEventListener('keydown', handleKeyDown, {
+            capture: true,
+            signal: this._inputListenerController.signal
+        });
         if (keydownTarget !== inputElement) this._externalKeydownInput = inputElement;
         
         // 附加 input 监听器（检测内容变化）
-        inputElement.addEventListener('input', handleInput);
+        inputElement.addEventListener('input', handleInput, { signal: this._inputListenerController.signal });
         
         // 保存事件处理器引用到 WeakMap，方便后续清理
         this.attachedElements.set(inputElement, {
@@ -753,11 +755,13 @@ class SmartEnterManager {
         // 移除 Storage 监听
         this._detachStorageListener();
         
-        // 清理输入框的事件监听器
+        // 页面可能保留多个隐藏输入框；统一释放监听，不能仅依赖当前可见节点。
+        this._inputListenerController.abort();
+
+        // 清理输入框的事件监听器引用
         try {
             if (this._externalKeydownInput) this._detachListener(this._externalKeydownInput);
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
+            const input = this.adapter.findInputElement();
             if (input) {
                 this._detachListener(input);
             }

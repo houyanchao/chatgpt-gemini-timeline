@@ -22,6 +22,12 @@ class BaseSmartEnterAdapter {
         throw new Error('BaseSmartEnterAdapter.getInputSelector() must be implemented');
     }
 
+    /** 已绑定节点仍存在时保持原目标；平台可覆盖以跳过隐藏副本。 */
+    findInputElement(preferredInput = null) {
+        if (preferredInput && document.body.contains(preferredInput)) return preferredInput;
+        return document.querySelector(this.getInputSelector());
+    }
+
     /**
      * 获取键盘事件监听目标，平台可提前到祖先节点的捕获阶段。
      */

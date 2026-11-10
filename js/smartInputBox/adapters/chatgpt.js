@@ -19,6 +19,22 @@ class ChatGPTSmartEnterAdapter extends BaseSmartEnterAdapter {
     getInputSelector() {
         return '#prompt-textarea, [class*="ComposerLayoutInput-"] [contenteditable="true"][role="textbox"]';
     }
+
+    findInputElement() {
+        // 新版对话页保留一个隐藏的 Composer 副本，不能直接取第一个匹配项。
+        for (const input of document.querySelectorAll(this.getInputSelector())) {
+            if (input.closest('[hidden], [inert], [aria-hidden="true"]')) continue;
+            const reference = this.getPositionReferenceElement(input);
+            const rect = input.getBoundingClientRect();
+            const referenceRect = reference.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0 || referenceRect.width <= 0 || referenceRect.height <= 0) continue;
+            const style = getComputedStyle(input);
+            const referenceStyle = getComputedStyle(reference);
+            if ([style.visibility, referenceStyle.visibility].some(value => value === 'hidden' || value === 'collapse')) continue;
+            return input;
+        }
+        return null;
+    }
     
     /**
      * 获取发送按钮选择器

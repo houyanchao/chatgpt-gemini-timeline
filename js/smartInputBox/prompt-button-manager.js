@@ -35,6 +35,7 @@ class PromptButtonManager {
         // 事件处理器引用
         this._onResize = null;
         this._rafPending = false;  // RAF 节流标志
+        this._observedInputReferences = [];
         
         // 配置
         this.config = {
@@ -333,7 +334,7 @@ class PromptButtonManager {
             
             requestAnimationFrame(() => {
                 this._rafPending = false;
-                this._updatePosition();
+                this._findInputAndShow();
             });
         };
         
@@ -367,18 +368,8 @@ class PromptButtonManager {
                     // 再次检查状态（防止禁用后仍执行）
                     if (!this.isEnabled || this.isDestroyed) return;
                     
-                    if (!this.inputElement) {
-                        // 还没找到输入框，尝试查找
-                        this._findInputAndShow();
-                    } else if (!document.body.contains(this.inputElement)) {
-                        // 输入框被移除，重新查找
-                        this.inputElement = null;
-                        this._hideButton();
-                        this._findInputAndShow();
-                    } else {
-                        // 输入框存在，更新位置（处理位置变化的情况）
-                        this._updatePosition();
-                    }
+                    // 页面可能保留旧输入框，只将它隐藏，仍需重新选择可见输入框。
+                    this._findInputAndShow();
                 },
                 filter: { hasAddedNodes: true, hasAttributeChanges: true },
                 debounce: 100
@@ -398,6 +389,7 @@ class PromptButtonManager {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
         }
+        this._observedInputReferences = [];
         if (this._transitionHandler) {
             document.body.removeEventListener('transitionend', this._transitionHandler);
             this._transitionHandler = null;
@@ -411,13 +403,13 @@ class PromptButtonManager {
         if (!this.isEnabled || this.isDestroyed) return;
         
         try {
-            const selector = this.adapter.getInputSelector();
-            const input = document.querySelector(selector);
-            
+            const input = this.adapter.findInputElement(this.inputElement);
+            this.inputElement = input;
+            this._observeInputResize();
             if (input) {
-                this.inputElement = input;
                 this._updatePosition();
-                this._observeInputResize();
+            } else {
+                this._hideButton();
             }
         } catch (e) {
             // 忽略
@@ -425,17 +417,26 @@ class PromptButtonManager {
     }
     
     _observeInputResize() {
-        if (this._resizeObserver) this._resizeObserver.disconnect();
-        if (!this.inputElement) return;
-        const ref = this.adapter.getPositionReferenceElement?.(this.inputElement) || this.inputElement;
+        // 全部候选暂时隐藏时仍观察它们，CSS 布局恢复后才能重新显示入口。
+        const inputs = this.inputElement
+            ? [this.inputElement]
+            : [...document.querySelectorAll(this.adapter.getInputSelector())];
+        const references = [...new Set(inputs.map(input => this.adapter.getPositionReferenceElement?.(input) || input))];
+        // 不反复重建 observer，否则初次尺寸通知会形成持续重新观察的循环。
+        if (references.length === this._observedInputReferences.length
+            && references.every((ref, index) => ref === this._observedInputReferences[index])) return;
+        this._resizeObserver?.disconnect();
+        this._resizeObserver = null;
+        this._observedInputReferences = references;
+        if (!references.length) return;
         this._resizeObserver = new ResizeObserver(() => {
-            if (this.isEnabled && !this.isDestroyed) this._updatePosition();
+            if (this.isEnabled && !this.isDestroyed) this._findInputAndShow();
         });
-        this._resizeObserver.observe(ref);
+        for (const ref of references) this._resizeObserver.observe(ref);
 
         if (!this._transitionHandler) {
             this._transitionHandler = () => {
-                if (this.isEnabled && !this.isDestroyed) this._updatePosition();
+                if (this.isEnabled && !this.isDestroyed) this._findInputAndShow();
             };
             document.body.addEventListener('transitionend', this._transitionHandler);
         }
