@@ -447,7 +447,7 @@ class TimelineManager {
                         'button',
                         questionListBtn,
                         TimelineI18n.getMessage('questionListTitle') || 'Questions',
-                        { placement: 'left' }
+                        { placement: 'left', theme: 'inverse' }
                     );
                 });
                 questionListBtn.addEventListener('mouseleave', () => {
@@ -481,7 +481,7 @@ class TimelineManager {
                     'button',
                     starredBtn,
                     TimelineI18n.getMessage('vnkxpm'),
-                    { placement: 'left' }
+                    { placement: 'left', theme: 'inverse' }
                 );
             });
             
@@ -511,7 +511,7 @@ class TimelineManager {
                         'button',
                         notepadBtn,
                         TimelineI18n.getMessage('notepadTitle') || '闪记',
-                        { placement: 'left' }
+                        { placement: 'left', theme: 'inverse' }
                     );
                 });
 
@@ -745,7 +745,14 @@ class TimelineManager {
     async injectStarChatButton() {
         // 1. 获取Adapter提供的目标元素
         const targetElement = this.adapter.getStarChatButtonTarget?.();
-        // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
+        const platformId = this.adapter.platformId;
+        const mountShared = button => {
+            const actions = window.AITChatHeaderActions;
+            if (platformId === 'chatgpt') return actions?.mount(button, 'star');
+            if (platformId === 'deepseek') return actions?.mount(button, 'star', targetElement);
+            return false;
+        };
+        // 仅图标/图标+文字由共享模块按平台约定统一决定。
         const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
             ?? (this.adapter.platformId !== 'chatgpt');
         
@@ -784,9 +791,7 @@ class TimelineManager {
             }
             if (showLabel) label.textContent = starLabel;
             else label?.remove();
-            if (this.adapter.platformId === 'chatgpt') {
-                window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
-            }
+            mountShared(starChatBtn);
             // 保存引用
             this.ui.starChatBtn = starChatBtn;
             return;
@@ -808,7 +813,6 @@ class TimelineManager {
         `;
         
         // 5. 设置基础样式（适配原生UI）
-        const isDeepSeek = this.adapter.constructor.name === 'DeepSeekAdapter';
         starChatBtn.style.cssText = `
             min-width: 36px;
             width: ${showLabel ? 'auto' : '36px'};
@@ -828,7 +832,7 @@ class TimelineManager {
             line-height: 1;
             white-space: nowrap;
             transition: background-color 0.2s;
-            ${isDeepSeek ? 'position: absolute; top: 14px; right: 56px; z-index: 1000;' : 'position: relative;'}
+            position: relative;
         `;
         
         // 6. Hover效果和tooltip - 直接绑定（mouseenter/mouseleave 不冒泡）
@@ -843,7 +847,7 @@ class TimelineManager {
                 'button',
                 starChatBtn,
                 tooltipText,
-                { placement: 'bottom' }
+                { placement: 'bottom', theme: 'inverse' }
             );
         });
         
@@ -856,9 +860,7 @@ class TimelineManager {
         this._setupStarChatBtnClickEvent();
         
         // 9. 插入按钮到原生UI
-        const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
-            && window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
-        if (!mountedInSharedActions) {
+        if (!mountShared(starChatBtn)) {
             targetElement.parentNode.insertBefore(starChatBtn, targetElement);
         }
         
@@ -3058,6 +3060,7 @@ class TimelineManager {
             element: contentElement
         }, {
             placement: 'auto',
+            theme: 'inverse',
             maxWidth: 288  // ✅ 使用固定值（与 CSS 中的默认值一致）
         });
     }
@@ -3211,7 +3214,7 @@ class TimelineManager {
             const id = dot.dataset.targetTurnId;
             const messageText = (dot.getAttribute('aria-label') || '').trim();
             const contentElement = this._buildNodeTooltipElement(dot, messageText);
-            window.globalTooltipManager.show(id, 'node', dot, { element: contentElement });
+            window.globalTooltipManager.show(id, 'node', dot, { element: contentElement }, { theme: 'inverse' });
         }
     }
     

@@ -42,6 +42,9 @@
       "scripts": [
         "js/content/platform-features.js",
         "js/global/resource-loader/index.js",
+        "js/global/download-utils.js",
+        "js/global/clipboard-utils.js",
+        "js/global/settings-icon.js",
         "js/global/ai-state-monitor/index.js",
         "js/global/ai-complete-reminder-toast/index.js",
         "js/global/input-modal/index.js",
@@ -138,6 +141,18 @@
         "js/customSite/custom-site-utils.js",
         "js/customSite/custom-site-float-button.js",
         "js/customSite/index.js",
+        "js/messageActions/selection-store.js",
+        "js/messageActions/adapters/base.js",
+        "js/messageActions/adapters/chatgpt.js",
+        "js/messageActions/adapters/gemini.js",
+        "js/messageActions/adapters/claude.js",
+        "js/messageActions/adapters/deepseek.js",
+        "js/messageActions/adapters/kimi.js",
+        "js/messageActions/adapters/doubao.js",
+        "js/messageActions/adapters/registry.js",
+        "js/messageActions/message-loader.js",
+        "js/messageActions/action-manager.js",
+        "js/messageActions/index.js",
         "js/conversationExport/constants.js",
         "js/conversationExport/dom-to-markdown.js",
         "js/conversationExport/adapters/base.js",
@@ -149,10 +164,14 @@
         "js/conversationExport/adapters/claude.js",
         "js/conversationExport/adapters/registry.js",
         "js/conversationExport/export-manager.js",
-        "js/conversationExport/index.js"
+        "js/conversationExport/export-action.js",
+        "js/conversationExport/index.js",
+        "js/messageScreenshot/screenshot-action.js",
+        "js/messageScreenshot/index.js"
       ],
       "styles": [
         "js/global/input-modal/styles.css",
+        "js/global/loading-notice/styles.css",
         "js/sidebarStarred/folder-edit-modal/styles.css",
         "js/sidebarStarred/styles.css",
         "js/global/popconfirm-manager/styles.css",
@@ -174,7 +193,8 @@
         "js/watermark/watermark.css",
         "js/quickAsk/styles.css",
         "js/mermaid/styles.css",
-        "js/customSite/custom-site.css"
+        "js/customSite/custom-site.css",
+        "js/messageActions/styles.css"
       ],
       "exports": [
         "BaseTab",
@@ -207,7 +227,11 @@
         "ceFormatChatTime",
         "ceIsDarkMode",
         "CEDomToMarkdown",
-        "CHANGELOG_DATA"
+        "CHANGELOG_DATA",
+        "AITDownload",
+        "AITClipboard",
+        "createAITSettingsIcon",
+        "MessageSelectionStore"
       ],
       "dependencies": [
         "common"
@@ -294,6 +318,39 @@
         "CEPngExporter",
         "CEPdfExporter",
         "CEExportModal"
+      ]
+    },
+    "message-screenshot-renderer": {
+      "scripts": [
+        "js/messageScreenshot/libs/html-to-image.min.js",
+        "js/messageScreenshot/snapshot-utils.js",
+        "js/messageScreenshot/capture-service.js"
+      ],
+      "styles": [],
+      "exports": [
+        "MessageScreenshotCaptureService",
+        "MessageScreenshotSnapshot"
+      ],
+      "dependencies": [
+        "core"
+      ]
+    },
+    "message-actions-ui": {
+      "scripts": [
+        "js/global/loading-notice/index.js",
+        "js/messageActions/controls.js",
+        "js/messageActions/selection-ui.js",
+        "js/conversationExport/export-options.js",
+        "js/messageScreenshot/screenshot-options.js"
+      ],
+      "styles": [],
+      "exports": [
+        "MessageSelectionUI",
+        "CEExportOptions",
+        "MessageScreenshotOptions"
+      ],
+      "dependencies": [
+        "core"
       ]
     }
   }

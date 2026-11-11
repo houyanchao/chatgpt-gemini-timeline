@@ -118,6 +118,13 @@ class ChatGPTAdapter extends SiteAdapter {
             || !this._capturedTimeline || this._capturedTimeline.complete === true;
     }
 
+    /** Complete active-branch facts shared with message actions, independent of DOM virtualization. */
+    getConversationBranch() {
+        if (this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
+            || this._capturedTimeline?.complete !== true) return null;
+        return { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+    }
+
     getCapturedTimelineEntries(userElements) {
         const conversationId = this.extractConversationId(location.pathname);
         if (this._capturedTimelineConvId !== conversationId

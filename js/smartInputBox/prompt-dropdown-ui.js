@@ -526,11 +526,7 @@ function _promptDropdownCreateItem(prompt, onItemClick, tooltipPlacement) {
             placement: tooltipPlacement,
             maxWidth: 300,
             showDelay: 300,
-            gap: 14,
-            color: {
-                light: { backgroundColor: '#f8fafc', textColor: '#334155', borderColor: '#e2e8f0' },
-                dark: { backgroundColor: '#27272a', textColor: '#e5e7eb', borderColor: '#3f3f46' }
-            }
+            gap: 14
         });
     });
     item.addEventListener('mouseleave', () => {

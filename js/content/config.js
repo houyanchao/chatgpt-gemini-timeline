@@ -12,12 +12,13 @@ globalThis.AITContentConfig = {
         "js/highlight/styles.css"
       ],
       "dependencies": [],
-      "revision": "ea353e3c77bc"
+      "revision": "86629333efb1"
     },
     "core": {
       "script": "js/content/bundles/core.js",
       "styles": [
         "js/global/input-modal/styles.css",
+        "js/global/loading-notice/styles.css",
         "js/sidebarStarred/folder-edit-modal/styles.css",
         "js/sidebarStarred/styles.css",
         "js/global/popconfirm-manager/styles.css",
@@ -39,12 +40,13 @@ globalThis.AITContentConfig = {
         "js/watermark/watermark.css",
         "js/quickAsk/styles.css",
         "js/mermaid/styles.css",
-        "js/customSite/custom-site.css"
+        "js/customSite/custom-site.css",
+        "js/messageActions/styles.css"
       ],
       "dependencies": [
         "common"
       ],
-      "revision": "dc82df2db388"
+      "revision": "70d775fddfda"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -65,7 +67,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "62badc084bfe"
+      "revision": "8b646af231eb"
     },
     "runner-ui": {
       "script": "js/content/bundles/runner-ui.js",
@@ -87,7 +89,23 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "3b5c8f4b17bb"
+      "revision": "5617610a835d"
+    },
+    "message-screenshot-renderer": {
+      "script": "js/content/bundles/message-screenshot-renderer.js",
+      "styles": [],
+      "dependencies": [
+        "core"
+      ],
+      "revision": "ace1cfe0769d"
+    },
+    "message-actions-ui": {
+      "script": "js/content/bundles/message-actions-ui.js",
+      "styles": [],
+      "dependencies": [
+        "core"
+      ],
+      "revision": "490571bca12a"
     }
   },
   "platformSelectors": [

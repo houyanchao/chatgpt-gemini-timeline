@@ -131,6 +131,96 @@
 
 ;
 
+// Source: js/global/download-utils.js
+/** Shared local Blob download. The caller owns filename/format selection. */
+const AITDownload = Object.freeze({
+    saveBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.style.display = 'none';
+        anchor.setAttribute('data-ait-owned-ui', '');
+        document.body.appendChild(anchor);
+        try { anchor.click(); }
+        finally {
+            setTimeout(() => {
+                anchor.remove();
+                URL.revokeObjectURL(url);
+            }, 1000);
+        }
+    },
+    filename(value) {
+        return String(value || 'ChatGPT').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim().slice(0, 100) || 'ChatGPT';
+    }
+});
+
+;
+
+// Source: js/global/clipboard-utils.js
+/** Start clipboard writes on the click's synchronous path; produce data asynchronously. */
+const AITClipboard = Object.freeze({
+    write(type, produce, { signal } = {}) {
+        if (!['image/png', 'text/plain'].includes(type) || !navigator.clipboard?.write
+            || typeof ClipboardItem === 'undefined' || (ClipboardItem.supports && !ClipboardItem.supports(type))) {
+            return Promise.reject(new Error('CopyUnsupported'));
+        }
+        if (signal?.aborted) return Promise.reject(new DOMException('Cancelled', 'AbortError'));
+        let failure;
+        const data = new Promise((resolve, reject) => {
+            let settled = false;
+            const finish = (value, error) => {
+                if (settled) return;
+                settled = true;
+                signal?.removeEventListener('abort', abort);
+                if (error) { failure = error; reject(error); }
+                else resolve(value);
+            };
+            const abort = () => finish(null, new DOMException('Cancelled', 'AbortError'));
+            signal?.addEventListener('abort', abort, { once: true });
+            Promise.resolve().then(() => {
+                if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+                return produce();
+            }).then(value => {
+                if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+                const blob = value instanceof Blob ? value : new Blob([value], { type });
+                if (!blob.size || blob.type !== type) throw new Error('CopyFailed');
+                finish(blob);
+            }).catch(error => finish(null, error));
+        });
+        // Some browsers reject a write before consuming its deferred data.
+        void data.catch(() => {});
+        try {
+            // ClipboardItem accepts a Promise<Blob>, preserving the original user gesture.
+            const item = new ClipboardItem({ [type]: data });
+            return Promise.resolve(navigator.clipboard.write([item])).catch(error => { throw failure || new Error('CopyFailed', { cause: error }); });
+        } catch (error) { return Promise.reject(failure || new Error('CopyFailed', { cause: error })); }
+    }
+});
+
+;
+
+// Source: js/global/settings-icon.js
+/** Shared gear for links that open the extension settings. */
+function createAITSettingsIcon() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const icon = document.createElementNS(ns, 'svg');
+    for (const [name, value] of Object.entries({
+        viewBox: '0 0 24 24', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor',
+        'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+    })) icon.setAttribute(name, value);
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z');
+    const center = document.createElementNS(ns, 'circle');
+    center.setAttribute('cx', '12');
+    center.setAttribute('cy', '12');
+    center.setAttribute('r', '3');
+    icon.append(path, center);
+    return icon;
+}
+
+;
+
 // Source: js/global/ai-state-monitor/index.js
 /**
  * AI State Monitor - AI 输出状态监控器
@@ -3591,7 +3681,7 @@ if (!window.changelogModal) {
 
 // Source: js/global/chat-header-actions/index.js
 /**
- * ChatGPT 顶部操作区共享容器。
+ * ChatGPT 和 DeepSeek 顶部操作区共享容器。
  * 收藏和对话导出分别管理自己的按钮，这里只统一原生锚点、排列和位置校正。
  * 另提供顶栏按钮「仅图标 / 图标+文字」的平台级约定，供两个模块共用。
  */
@@ -3610,7 +3700,7 @@ if (!window.changelogModal) {
      * 顶栏收藏/导出按钮只显示图标、不显示文字的平台。
      * 这些平台原生顶栏本身就是纯图标按钮，加文字会显得突兀。
      */
-    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini']);
+    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek']);
 
     /**
      * 顶栏按钮是否显示文字标签
@@ -3646,8 +3736,8 @@ if (!window.changelogModal) {
         return shareButton;
     }
 
-    function ensureContainer() {
-        const target = getInsertTarget();
+    function ensureContainer(nativeTarget) {
+        const target = nativeTarget || getInsertTarget();
         if (!target?.parentNode) return null;
 
         let container = document.querySelector(`.${CONTAINER_CLASS}`);
@@ -3661,6 +3751,10 @@ if (!window.changelogModal) {
                 gap: 0;
             `;
         }
+        if (nativeTarget) {
+            container.style.alignSelf = 'center';
+            container.style.gap = '4px';
+        }
 
         if (container.parentNode !== target.parentNode || container.nextSibling !== target) {
             target.parentNode.insertBefore(container, target);
@@ -3669,10 +3763,10 @@ if (!window.changelogModal) {
         return container;
     }
 
-    function mount(button, actionId) {
+    function mount(button, actionId, nativeTarget) {
         if (!button) return false;
 
-        const container = ensureContainer();
+        const container = ensureContainer(nativeTarget);
         if (!container) return false;
 
         button.dataset.aitHeaderAction = actionId;
@@ -3680,8 +3774,10 @@ if (!window.changelogModal) {
         const nextButton = Array.from(container.children).find(child => {
             const childOrder = ACTION_ORDER[child.dataset.aitHeaderAction] ?? Number.MAX_SAFE_INTEGER;
             return childOrder > order;
-        });
-        container.insertBefore(button, nextButton || null);
+        }) || null;
+        if (button.parentNode !== container || button.nextElementSibling !== nextButton) {
+            container.insertBefore(button, nextButton);
+        }
         return true;
     }
 
@@ -11386,11 +11482,7 @@ function _promptDropdownCreateItem(prompt, onItemClick, tooltipPlacement) {
             placement: tooltipPlacement,
             maxWidth: 300,
             showDelay: 300,
-            gap: 14,
-            color: {
-                light: { backgroundColor: '#f8fafc', textColor: '#334155', borderColor: '#e2e8f0' },
-                dark: { backgroundColor: '#27272a', textColor: '#e5e7eb', borderColor: '#3f3f46' }
-            }
+            gap: 14
         });
     });
     item.addEventListener('mouseleave', () => {
@@ -13993,13 +14085,7 @@ window.AITPlatformFeatures.register('usage-quota', async () => {
         return icon;
     }
     refreshButton.append(makeIcon('M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7'));
-    const gear = makeIcon('M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z');
-    const center = document.createElementNS(svgNamespace, 'circle');
-    center.setAttribute('cx', '12');
-    center.setAttribute('cy', '12');
-    center.setAttribute('r', '3');
-    gear.append(center);
-    settingsLink.append(gear);
+    settingsLink.append(createAITSettingsIcon());
     const footer = document.createElement('div');
     footer.className = 'ait-usage-quota-footer';
     footer.append(settingsLink, status);
@@ -15927,6 +16013,13 @@ class ChatGPTAdapter extends SiteAdapter {
             || !this._capturedTimeline || this._capturedTimeline.complete === true;
     }
 
+    /** Complete active-branch facts shared with message actions, independent of DOM virtualization. */
+    getConversationBranch() {
+        if (this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
+            || this._capturedTimeline?.complete !== true) return null;
+        return { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+    }
+
     getCapturedTimelineEntries(userElements) {
         const conversationId = this.extractConversationId(location.pathname);
         if (this._capturedTimelineConvId !== conversationId
@@ -16784,6 +16877,23 @@ class GeminiAdapter extends SiteAdapter {
         return 'model-response';
     }
 
+    static findChatScroller(element) {
+        for (let node = element; node && node !== document.body; node = node.parentElement) {
+            const { overflowY } = getComputedStyle(node);
+            if (overflowY === 'auto' || overflowY === 'scroll') return node;
+        }
+        return null;
+    }
+
+    static isHistoryLoading() {
+        const bars = document.querySelectorAll('mat-progress-bar[mode="indeterminate"], .mdc-linear-progress--indeterminate');
+        return [...bars].some(bar => {
+            if (bar.closest('.conversation-container, model-response')) return false;
+            const rect = bar.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && getComputedStyle(bar).visibility === 'visible';
+        });
+    }
+
     getConflictingTimelineSelectors() {
         return ['.gemini-timeline-bar'];
     }
@@ -17277,6 +17387,16 @@ class DoubaoAdapter extends SiteAdapter {
  */
 
 class DeepSeekAdapter extends SiteAdapter {
+    static getHeaderActionTarget() {
+        const current = document.querySelector('path[d^="M7.95889 1.52285"]');
+        const legacy = document.querySelector('path[d^="M15.7484 11.1004"]');
+        return current?.closest('.ds-button[role="button"]') || legacy?.closest('.ds-icon-button') || null;
+    }
+
+    static isHistoryLoading() {
+        return [...document.querySelectorAll('.ds-virtual-list--printable .ds-loading:not(.ds-message .ds-loading)')]
+            .some(element => element.getClientRects().length > 0);
+    }
     constructor() {
         super();
         this._userMessageParentClass = null; // 动态检测的用户消息父容器 class
@@ -17386,16 +17506,7 @@ class DeepSeekAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        // DeepSeek: 通过 SVG path 查找图标，然后找父容器
-        // 这个图标通常在顶部工具栏中（分享按钮）
-        // 只匹配 path 的前几个字符（更稳定，不依赖完整 SVG 路径）
-        // 注意：页面可能有多个匹配的 path，querySelector 会自动返回第一个（通常就是顶部工具栏的）
-        const path = document.querySelector('path[d^="M15.7484 11.1004"]');
-        if (!path) return null;
-        
-        // 往上找到 .ds-icon-button 按钮容器
-        const iconButton = path.closest('.ds-icon-button');
-        return iconButton; // 收藏按钮将插入到这个按钮的左边
+        return DeepSeekAdapter.getHeaderActionTarget();
     }
     
     getDefaultChatTheme() {
@@ -17415,7 +17526,7 @@ class DeepSeekAdapter extends SiteAdapter {
         // 检测停止按钮
         const stopPath = document.querySelector('path[d="M2 4.88C2 3.68009 2 3.08013 2.30557 2.65954C2.40426 2.52371 2.52371 2.40426 2.65954 2.30557C3.08013 2 3.68009 2 4.88 2H11.12C12.3199 2 12.9199 2 13.3405 2.30557C13.4763 2.40426 13.5957 2.52371 13.6944 2.65954C14 3.08013 14 3.68009 14 4.88V11.12C14 12.3199 14 12.9199 13.6944 13.3405C13.5957 13.4763 13.4763 13.5957 13.3405 13.6944C12.9199 14 12.3199 14 11.12 14H4.88C3.68009 14 3.08013 14 2.65954 13.6944C2.52371 13.5957 2.40426 13.4763 2.30557 13.3405C2 12.9199 2 12.3199 2 11.12V4.88Z"]');
         // 检测加载动画
-        const loadingEl = document.querySelector('.ds-loading');
+        const loadingEl = document.querySelector('.ds-loading:not(.ds-virtual-list--printable .ds-loading), .ds-message .ds-loading');
         return !!stopPath || !!loadingEl;
     }
     
@@ -18253,6 +18364,35 @@ class PerplexityAdapter extends SiteAdapter {
 class ClaudeAdapter extends SiteAdapter {
     static STOP_SELECTOR = '[data-testid="chat-input-stop"], path[d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm40-112v56a12,12,0,0,1-12,12H100a12,12,0,0,1-12-12V100a12,12,0,0,1,12-12h56A12,12,0,0,1,168,100Z"]';
 
+    static getMessageId(element) {
+        return element?.closest('[data-turn-key]')?.getAttribute('data-turn-key')
+            || element?.id?.match(/([a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i)?.[1]
+            || null;
+    }
+
+    static findChatScroller(element) {
+        for (let node = element; node; node = node.parentElement) {
+            if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY)) return node;
+        }
+        return null;
+    }
+
+    static findTranscriptGap(root, isCaptured, total) {
+        for (const spacer of root.querySelectorAll('[data-testid="transcript-spacer"]')) {
+            if (spacer.getBoundingClientRect().height <= 1) continue;
+            let before = spacer.previousElementSibling;
+            let after = spacer.nextElementSibling;
+            while (before && !before.hasAttribute('data-index')) before = before.previousElementSibling;
+            while (after && !after.hasAttribute('data-index')) after = after.nextElementSibling;
+            const start = before ? Number(before.getAttribute('data-index')) + 1 : 0;
+            const end = after ? Number(after.getAttribute('data-index')) : total;
+            for (let index = start; index < end; index++) {
+                if (!isCaptured(index)) return { spacer, fraction: (index - start) / (end - start) };
+            }
+        }
+        return null;
+    }
+
     constructor() {
         super();
         this._conversationId = null;
@@ -18333,6 +18473,11 @@ class ClaudeAdapter extends SiteAdapter {
         };
         document.addEventListener('ait-claude-timeline-updated', handler);
         return () => document.removeEventListener('ait-claude-timeline-updated', handler);
+    }
+
+    getConversationBranch() {
+        if (!this._snapshot || this._snapshot.conversationId !== this.extractConversationId(location.pathname)) return null;
+        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
     }
 
     getCapturedTimelineEntries(userElements) {
@@ -23985,7 +24130,7 @@ class TimelineManager {
                         'button',
                         questionListBtn,
                         TimelineI18n.getMessage('questionListTitle') || 'Questions',
-                        { placement: 'left' }
+                        { placement: 'left', theme: 'inverse' }
                     );
                 });
                 questionListBtn.addEventListener('mouseleave', () => {
@@ -24019,7 +24164,7 @@ class TimelineManager {
                     'button',
                     starredBtn,
                     TimelineI18n.getMessage('vnkxpm'),
-                    { placement: 'left' }
+                    { placement: 'left', theme: 'inverse' }
                 );
             });
             
@@ -24049,7 +24194,7 @@ class TimelineManager {
                         'button',
                         notepadBtn,
                         TimelineI18n.getMessage('notepadTitle') || '闪记',
-                        { placement: 'left' }
+                        { placement: 'left', theme: 'inverse' }
                     );
                 });
 
@@ -24283,7 +24428,14 @@ class TimelineManager {
     async injectStarChatButton() {
         // 1. 获取Adapter提供的目标元素
         const targetElement = this.adapter.getStarChatButtonTarget?.();
-        // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
+        const platformId = this.adapter.platformId;
+        const mountShared = button => {
+            const actions = window.AITChatHeaderActions;
+            if (platformId === 'chatgpt') return actions?.mount(button, 'star');
+            if (platformId === 'deepseek') return actions?.mount(button, 'star', targetElement);
+            return false;
+        };
+        // 仅图标/图标+文字由共享模块按平台约定统一决定。
         const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
             ?? (this.adapter.platformId !== 'chatgpt');
         
@@ -24322,9 +24474,7 @@ class TimelineManager {
             }
             if (showLabel) label.textContent = starLabel;
             else label?.remove();
-            if (this.adapter.platformId === 'chatgpt') {
-                window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
-            }
+            mountShared(starChatBtn);
             // 保存引用
             this.ui.starChatBtn = starChatBtn;
             return;
@@ -24346,7 +24496,6 @@ class TimelineManager {
         `;
         
         // 5. 设置基础样式（适配原生UI）
-        const isDeepSeek = this.adapter.constructor.name === 'DeepSeekAdapter';
         starChatBtn.style.cssText = `
             min-width: 36px;
             width: ${showLabel ? 'auto' : '36px'};
@@ -24366,7 +24515,7 @@ class TimelineManager {
             line-height: 1;
             white-space: nowrap;
             transition: background-color 0.2s;
-            ${isDeepSeek ? 'position: absolute; top: 14px; right: 56px; z-index: 1000;' : 'position: relative;'}
+            position: relative;
         `;
         
         // 6. Hover效果和tooltip - 直接绑定（mouseenter/mouseleave 不冒泡）
@@ -24381,7 +24530,7 @@ class TimelineManager {
                 'button',
                 starChatBtn,
                 tooltipText,
-                { placement: 'bottom' }
+                { placement: 'bottom', theme: 'inverse' }
             );
         });
         
@@ -24394,9 +24543,7 @@ class TimelineManager {
         this._setupStarChatBtnClickEvent();
         
         // 9. 插入按钮到原生UI
-        const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
-            && window.AITChatHeaderActions?.mount?.(starChatBtn, 'star');
-        if (!mountedInSharedActions) {
+        if (!mountShared(starChatBtn)) {
             targetElement.parentNode.insertBefore(starChatBtn, targetElement);
         }
         
@@ -26596,6 +26743,7 @@ class TimelineManager {
             element: contentElement
         }, {
             placement: 'auto',
+            theme: 'inverse',
             maxWidth: 288  // ✅ 使用固定值（与 CSS 中的默认值一致）
         });
     }
@@ -26749,7 +26897,7 @@ class TimelineManager {
             const id = dot.dataset.targetTurnId;
             const messageText = (dot.getAttribute('aria-label') || '').trim();
             const contentElement = this._buildNodeTooltipElement(dot, messageText);
-            window.globalTooltipManager.show(id, 'node', dot, { element: contentElement });
+            window.globalTooltipManager.show(id, 'node', dot, { element: contentElement }, { theme: 'inverse' });
         }
     }
     
@@ -29059,22 +29207,14 @@ class SidebarStarredManager {
         helpBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
         helpBtn.addEventListener('mouseenter', () => {
             if (!window.globalTooltipManager) return;
-            const desc = TimelineI18n.getMessage('starredHelpDesc') || '文件夹，分类整理对话，告别杂乱无章。';
-            const tipsTitle = TimelineI18n.getMessage('starredHelpTipsTitle') || '使用小技巧：';
-            const tip1 = TimelineI18n.getMessage('starredHelpTip1') || '拖动对话到文件夹。';
-            const tip2 = TimelineI18n.getMessage('starredHelpTip2') || '拖动文件夹中的对话调整位置。';
-            const tip3 = TimelineI18n.getMessage('starredHelpTip3') || '拖动二级文件夹调整位置。';
-            const tip4 = TimelineI18n.getMessage('starredHelpTip4') || '双击文件夹或对话，快速编辑。';
-            const html = `<div style="font-size:12px;line-height:1.6">`
-                + `<div style="font-size:13px;font-weight:600;margin-bottom:6px">${desc}</div>`
-                + `<div style="font-weight:600;margin-bottom:4px">${tipsTitle}</div>`
-                + `<div style="padding-left:2px">`
-                + `<div>· ${tip1}</div>`
-                + `<div>· ${tip2}</div>`
-                + `<div>· ${tip3}</div>`
-                + `<div>· ${tip4}</div>`
-                + `</div></div>`;
-            window.globalTooltipManager.show('starred-help', 'button', helpBtn, { html }, { placement: 'top', gap: 6, maxWidth: 260, allowHover: true, noArrow: true });
+            const desc = TimelineI18n.getMessage('starredHelpDesc')
+                || 'Save important conversations in folders to organize them by topic and revisit them anytime.';
+            const tip = TimelineI18n.getMessage('starredHelpShortTip') || 'Drag to reorder and double-click to edit.';
+            const html = `<div style="display:grid;gap:6px;font-size:13px;font-weight:600;line-height:1.6">`
+                + `<div>${this._escapeText(desc)}</div>`
+                + `<div>${this._escapeText(tip)}</div>`
+                + `</div>`;
+            window.globalTooltipManager.show('starred-help', 'button', helpBtn, { html }, { placement: 'top', gap: 6, maxWidth: 260, allowHover: true, noArrow: true, theme: 'inverse' });
         });
         helpBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
         helpBtn.addEventListener('click', (e) => e.stopPropagation());
@@ -29086,7 +29226,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-settings', 'button', settingsBtn,
                 TimelineI18n.getMessage('sidebarStarredManage'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         settingsBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
@@ -29112,7 +29252,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-search', 'button', this.searchBtn,
                 TimelineI18n.getMessage('mvkzpx'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         this.searchBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
@@ -29128,7 +29268,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-add-folder', 'button', addBtn,
                 TimelineI18n.getMessage('kxvpmz'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         addBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
@@ -29938,6 +30078,1123 @@ class CustomSiteFloatButton {
 
 ;
 
+// Source: js/messageActions/selection-store.js
+/** Selection is keyed by message identity, never DOM position or checkbox state. */
+class MessageSelectionStore {
+    constructor() {
+        this.messages = new Map();
+        this.order = [];
+        this.selected = new Set();
+        this.excluded = new Set();
+        this.allIntent = false;
+        this.complete = false;
+    }
+
+    merge(records) {
+        const incoming = [...new Set(records.map(record => record.key))];
+        let previous = -1;
+        for (const key of incoming) {
+            const index = this.order.indexOf(key);
+            if (index >= 0) { previous = index; continue; }
+            const next = incoming.slice(incoming.indexOf(key) + 1).find(value => this.order.includes(value));
+            const insertion = previous >= 0 ? previous + 1 : next ? this.order.indexOf(next) : this.order.length;
+            this.order.splice(insertion, 0, key);
+            previous = insertion;
+            this.complete = false;
+        }
+        for (const record of records) {
+            this.messages.set(record.key, record);
+            if (record.generating) this.selected.delete(record.key);
+            else if (this.allIntent && !this.excluded.has(record.key)) this.selected.add(record.key);
+        }
+        // Indexed virtual lists can expose non-overlapping windows in either order.
+        if (records.some(record => Number.isInteger(record.position)) && this.order.every(key => Number.isInteger(this.messages.get(key)?.position))) {
+            this.order.sort((a, b) => this.messages.get(a).position - this.messages.get(b).position);
+        }
+    }
+
+    remove(key) {
+        this.messages.delete(key);
+        this.order = this.order.filter(value => value !== key);
+        this.selected.delete(key);
+        this.excluded.delete(key);
+        this.complete = false;
+    }
+
+    setSelected(key, checked) {
+        if (!this.messages.has(key) || this.messages.get(key).generating) return;
+        if (checked) { this.selected.add(key); this.excluded.delete(key); }
+        else { this.selected.delete(key); this.excluded.add(key); }
+    }
+
+    selectAll() {
+        this.allIntent = true;
+        this.excluded.clear();
+        for (const message of this.messages.values()) if (!message.generating) this.selected.add(message.key);
+    }
+
+    clear() {
+        this.selected.clear(); this.excluded.clear(); this.allIntent = false;
+    }
+
+    get eligible() { return this.order.map(key => this.messages.get(key)).filter(message => !message.generating); }
+    get selection() { return this.eligible.filter(message => this.selected.has(message.key)); }
+    get allChecked() { return this.complete && this.eligible.length > 0 && this.selection.length === this.eligible.length; }
+}
+
+;
+
+// Source: js/messageActions/adapters/base.js
+/** Shared page facts. Output formats and image rendering do not belong here. */
+class MessageActionsAdapter {
+    constructor(platformId) { this.platformId = platformId; }
+    isConversationPage() { return false; }
+    getMessages() { return []; }
+    getToolbar(message) { return null; }
+    getToolbarMount(toolbar) { return { container: toolbar, before: null }; }
+    getHistoryTargets() { return []; }
+    getTargetId(element) { return element.id; }
+    isHistoryLoading() { return false; }
+    getConversationState() { return null; }
+    subscribeConversationChanges(callback) { return () => {}; }
+    getDockBounds() { return null; }
+    getSnapshotRules() { return { selector: '', attributes: [] }; }
+    getScrollContainer() { return document.scrollingElement || document.documentElement; }
+    getViewportBounds() {
+        return this.getScrollContainer()?.getBoundingClientRect?.() || { top: 0, bottom: innerHeight };
+    }
+    getTimelineAdapter() {
+        return window.timelineManager?.adapter?.platformId === this.platformId
+            ? window.timelineManager.adapter
+            : window.siteAdapterRegistry?.getAllAdapters().find(adapter => adapter.platformId === this.platformId);
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/chatgpt.js
+class ChatGPTMessageActionsAdapter extends MessageActionsAdapter {
+    static MESSAGE_SELECTOR = '[data-turn][data-turn-id], [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids]';
+    constructor() { super('chatgpt'); }
+    isConversationPage() {
+        return /^\/(?:c|share)\/[^/]+/.test(location.pathname) || /^\/g\/[^/]+\/c\/[^/]+/.test(location.pathname);
+    }
+    getRole(element) {
+        return element.getAttribute('data-turn') || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
+    }
+    getId(element) {
+        return element.getAttribute('data-turn-id') || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0] || '';
+    }
+    getRoot() { return document.querySelector('[data-thread-find-target="conversation"]') || document.querySelector('main'); }
+    getConversationState() {
+        return this.branchSource?.getConversationBranch?.() || this.getTimelineAdapter()?.getConversationBranch?.() || null;
+    }
+    subscribeConversationChanges(callback) {
+        // Timeline can initialize with a different adapter after message actions have subscribed.
+        const source = this.getTimelineAdapter();
+        this.branchSource = source;
+        const unsubscribe = source?.subscribeCapturedChatsDataUpdated?.(callback);
+        return () => { unsubscribe?.(); this.branchSource = null; };
+    }
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        const selector = ChatGPTMessageActionsAdapter.MESSAGE_SELECTOR;
+        const elements = [...(this.getRoot()?.querySelectorAll(selector) || [])].filter(element => {
+            const rect = element.getBoundingClientRect();
+            return ['user', 'assistant'].includes(this.getRole(element)) && this.getId(element) && rect.width > 0 && rect.height > 0
+                && !element.parentElement?.closest(selector) && !element.closest('[data-ait-owned-ui]');
+        });
+        let questionId = '';
+        return elements.map((element, index) => {
+            const role = this.getRole(element), id = this.getId(element);
+            if (role === 'user') questionId = id;
+            const state = element.closest('[data-talvt-turn-state]')?.getAttribute('data-talvt-turn-state');
+            const streaming = !!element.querySelector('[data-is-streaming="true"], .result-streaming') || element.matches('[data-is-streaming="true"]');
+            const lastGenerating = !state && index === elements.length - 1 && !!window.AIStateMonitor?.getInstance().isGenerating;
+            return { key: `${role}:${id}`, id, role, element,
+                turnId: element.closest('[data-turn-key]')?.getAttribute('data-turn-key') || questionId || id,
+                generating: role === 'assistant' && (streaming || (state ? state !== 'complete' : lastGenerating)) };
+        });
+    }
+    getToolbar(message) {
+        const reply = message.element;
+        const turn = reply.closest('[data-turn-key]') || reply.closest('article') || reply;
+        const rows = [...turn.querySelectorAll('.turn-action-controls')].filter(row =>
+            !row.closest('[data-chatgpt-search-unit-key$=":user"], [data-turn="user"]'));
+        const row = rows.find(row => row.closest('[data-turn="assistant"]')
+            || row.querySelector('[data-testid="copy-turn-action-button"], [data-testid="good-response-turn-action-button"]')) || rows.at(-1);
+        if (row) return row;
+        const copy = turn.querySelector('[data-testid="copy-turn-action-button"]');
+        for (let parent = copy?.parentElement, depth = 0; parent && depth < 4; parent = parent.parentElement, depth++) {
+            if (parent.querySelectorAll('[data-testid$="turn-action-button"]').length >= 2) return parent;
+            if (parent === turn) break;
+        }
+        return null;
+    }
+    getToolbarMount(toolbar) {
+        const nativeButtons = [...toolbar.querySelectorAll('button')].filter(button =>
+            !button.closest('[data-ait-owned-ui]'));
+        const last = nativeButtons.at(-1);
+        if (!last) return super.getToolbarMount(toolbar);
+        // A single button may have its own tooltip wrapper; keep our entries in the action row.
+        let container = last.parentElement;
+        while (container !== toolbar && nativeButtons.filter(button => container.contains(button)).length < 2) {
+            container = container.parentElement;
+        }
+        let before = last;
+        while (before.parentElement !== container) before = before.parentElement;
+        return { container, before };
+    }
+    getHistoryTargets() {
+        return [...(this.getRoot()?.querySelectorAll('[data-turn-id-container], [data-turn-key]') || [])];
+    }
+    getTargetId(element) { return element.getAttribute('data-turn-id-container') || element.getAttribute('data-turn-key'); }
+    isHistoryLoading() {
+        return this.getTimelineAdapter()?.isTimelineHistoryLoading?.() === true
+            || !!this.getRoot()?.querySelector('[role="progressbar"], [data-testid="conversation-loading-spinner"]');
+    }
+    getScrollContainer() {
+        return window.timelineManager?.scrollContainer || document.querySelector('.thread-scroll-container') || super.getScrollContainer();
+    }
+    getDockBounds() {
+        for (const element of document.querySelectorAll('[class*="ComposerLayoutFooter-"], #prompt-textarea')) {
+            const rect = element.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) return rect;
+        }
+        return null;
+    }
+    getSnapshotRules() {
+        return {
+            selector: '.turn-action-controls, [data-testid="message-actions"], [data-conversation-role], .sr-only',
+            attributes: ['data-turn', 'data-turn-id', 'data-turn-key', 'data-turn-id-container', 'data-chatgpt-search-unit-key',
+                'data-chatgpt-search-message-ids', 'data-content-search-unit-key', 'data-message-author-role', 'data-message-id', 'data-testid', 'data-ait-turn']
+        };
+    }
+    getViewportBounds() {
+        const bounds = super.getViewportBounds();
+        const header = document.querySelector('header')?.getBoundingClientRect();
+        return { top: Math.max(0, bounds.top, header?.bottom || 0), bottom: Math.min(innerHeight, bounds.bottom) };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/gemini.js
+class GeminiMessageActionsAdapter extends MessageActionsAdapter {
+    constructor() { super('gemini'); }
+
+    isConversationPage() {
+        const path = location.pathname;
+        const isChatRoute = /^\/(?:app\/[^/]+|share\/[^/]+|gem\/[^/]+\/[^/]+)(?:\/|$)/.test(path);
+        const isTemporaryChat = path === '/app' && document.querySelector('chat-window.is-temporary-chat');
+        return !!((isChatRoute || isTemporaryChat) && this.getRoot().querySelector('user-query, model-response'));
+    }
+
+    getRoot() {
+        return document.querySelector('infinite-scroller.chat-history') || document.querySelector('#chat-history') || document;
+    }
+
+    getTurns() {
+        const root = this.getRoot();
+        const turns = [...root.querySelectorAll('.conversation-container')];
+        if (turns.length) return turns;
+        // Some share layouts omit the conversation-container class.
+        return [...new Set([...root.querySelectorAll('user-query')].map(query => query.parentElement))];
+    }
+
+    getTargetId(turn) {
+        return turn.id || turn.querySelector('message-content[id]')?.id || '';
+    }
+
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        const turns = this.getTurns();
+        const messages = [];
+        const generating = this.getTimelineAdapter()?.isAIGenerating?.() === true;
+        turns.forEach((turn, index) => {
+            const turnId = this.getTargetId(turn);
+            if (!turnId) return;
+            const question = turn.querySelector('user-query');
+            const reply = turn.querySelector('model-response');
+            const add = (element, role, id, streaming) => {
+                const rect = element?.getBoundingClientRect();
+                if (!rect?.width || !rect.height) return;
+                messages.push({ key: `${role}:${id}`, id, role, turnId, element, generating: streaming });
+            };
+            add(question, 'user', turnId, false);
+            const replyId = reply?.querySelector('message-content[id]')?.id || turnId;
+            add(reply, 'assistant', replyId, generating && index === turns.length - 1);
+        });
+        return messages;
+    }
+
+    getToolbar(message) {
+        const actions = message.element.querySelector('message-actions');
+        return actions?.querySelector('.buttons-container-v2, .buttons-container') || actions;
+    }
+
+    getSelectionColumn(message) {
+        if (message.role !== 'assistant') return null;
+        // Gemini's Markdown wrapper spans the history pane. Its blocks and footer
+        // are constrained to the response column, with room for wider rich content.
+        const body = message.element.querySelector('message-content .markdown, .model-response-text .markdown');
+        const footer = message.element.querySelector('.response-container-footer') || this.getToolbar(message);
+        let left = Infinity, right = -Infinity;
+        const include = element => {
+            const rect = element.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            left = Math.min(left, rect.left);
+            right = Math.max(right, rect.right);
+        };
+        if (footer) include(footer);
+        for (const block of body?.children || []) include(block);
+        return right > left ? { left, right } : null;
+    }
+
+    getToolbarMount(toolbar) {
+        const menu = toolbar.querySelector('[data-test-id="more-menu-button"], .more-menu-button-container');
+        const buttons = [...toolbar.querySelectorAll('button')].filter(button => !button.closest('[data-ait-owned-ui]'));
+        let before = menu || buttons.at(-1);
+        if (!before) return super.getToolbarMount(toolbar);
+        while (before.parentElement !== toolbar) before = before.parentElement;
+        return { container: toolbar, before };
+    }
+
+    getHistoryTargets() { return this.getTurns().filter(turn => this.getTargetId(turn)); }
+    isHistoryLoading() { return GeminiAdapter.isHistoryLoading(); }
+
+    getScrollContainer() {
+        const firstTurn = this.getTurns()[0];
+        return GeminiAdapter.findChatScroller(firstTurn) || super.getScrollContainer();
+    }
+
+    getViewportBounds() {
+        const bounds = super.getViewportBounds();
+        const header = document.querySelector('.top-bar-actions')?.getBoundingClientRect();
+        return { top: Math.max(0, bounds.top, header?.bottom || 0), bottom: Math.min(innerHeight, bounds.bottom) };
+    }
+
+    getDockBounds() {
+        const rect = document.querySelector('input-area-v2, .input-area')?.getBoundingClientRect();
+        return rect?.width > 0 && rect.height > 0 ? rect : null;
+    }
+
+    getSnapshotRules() {
+        return {
+            selector: 'message-actions, .response-container-footer, .luminous-actions-container, .table-footer, '
+                + '[data-test-id="prompt-copy-button"], [data-test-id="prompt-edit-button"]',
+            attributes: ['jslog', 'data-hveid', 'data-ved', 'decode-data-ved']
+        };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/claude.js
+class ClaudeMessageActionsAdapter extends MessageActionsAdapter {
+    static USER = '[data-testid="user-message"]';
+    static REPLY = '[data-testid="assistant-message"], .font-claude-response';
+    static ROW = '[data-testid="transcript-row"][data-index]';
+    static ROOT = '[data-testid="transcript-list"]';
+
+    constructor() { super('claude'); this.virtualHistory = true; }
+
+    isConversationPage() {
+        return /^\/(chat|share)\/[a-f0-9-]+\/?$/i.test(location.pathname)
+            && !!document.querySelector(`${ClaudeMessageActionsAdapter.USER}, ${ClaudeMessageActionsAdapter.REPLY}`);
+    }
+
+    subscribeConversationChanges(callback) {
+        const source = this.branchSource = this.getTimelineAdapter();
+        source?.syncCapturedChatsData?.();
+        return source?.subscribeCapturedChatsDataUpdated?.(() => {
+            source.syncCapturedChatsData();
+            callback();
+        });
+    }
+
+    getConversationState() {
+        return (this.branchSource || this.getTimelineAdapter())?.getConversationBranch?.() || null;
+    }
+
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        const { USER, REPLY, ROW, ROOT } = ClaudeMessageActionsAdapter;
+        const selector = `${USER}, ${REPLY}`;
+        const root = document.querySelector(ROOT) || document;
+        const elements = [...root.querySelectorAll(selector)].filter(element => {
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && !element.parentElement?.closest(selector);
+        });
+        const questions = this.getConversationState()?.questions || [];
+        const generating = this.getTimelineAdapter()?.isAIGenerating?.() === true;
+        let questionId = '';
+        return elements.map((element, index) => {
+            const role = element.matches(USER) ? 'user' : 'assistant';
+            const row = element.closest(ROW);
+            const position = row ? Number(row.getAttribute('data-index')) : undefined;
+            const id = ClaudeAdapter.getMessageId(element) || (row ? `row-${position}` : `legacy-${index}`);
+            if (role === 'user') questionId = id;
+            const previous = Number.isInteger(position) ? questions.findLast(question => question.rowIndex <= position) : null;
+            return { key: `${role}:${id}`, id, role, element, position,
+                slot: Number.isInteger(position) ? `row:${position}` : undefined,
+                turnId: role === 'user' ? id : questionId || previous?.id || id,
+                generating: role === 'assistant' && generating && index === elements.length - 1 };
+        });
+    }
+
+    getToolbar(message) {
+        return message.element.querySelector('[data-testid="message-actions"]')
+            || message.element.closest(ClaudeMessageActionsAdapter.ROW)?.querySelector('[data-testid="message-actions"]');
+    }
+
+    getToolbarMount(toolbar) {
+        const nativeButtons = [...toolbar.children].filter(child => child.matches('button:not([data-ait-owned-ui])'));
+        // Leave collapsed toolbars' reveal buttons first in the tab order.
+        const before = nativeButtons.length > 1 ? nativeButtons.at(-1) : toolbar.querySelector(':scope > time');
+        return { container: toolbar, before };
+    }
+
+    getScrollContainer() {
+        return ClaudeAdapter.findChatScroller(document.querySelector(ClaudeMessageActionsAdapter.ROOT)
+            || document.querySelector(ClaudeMessageActionsAdapter.USER)) || super.getScrollContainer();
+    }
+
+    beforeHistoryScroll() { window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 1000 }); }
+
+    getHistoryGap(records) {
+        const scope = document.querySelector('[data-testid="transcript-sizer"]');
+        if (!scope) return null;
+        const total = Number(scope.querySelector('[aria-setsize]')?.getAttribute('aria-setsize'));
+        const seen = new Set([...records.messages.values()].map(message => message.position).filter(Number.isInteger));
+        if (total && seen.size >= total) return null;
+        const gap = ClaudeAdapter.findTranscriptGap(scope, index => seen.has(index), total);
+        if (!gap) return total > seen.size ? {} : null;
+        const height = gap.spacer.getBoundingClientRect().height;
+        return { element: gap.spacer, offset: height * gap.fraction + Math.min(height / 2, this.getScrollContainer().clientHeight / 2) };
+    }
+
+    getDockBounds() {
+        const rect = document.querySelector('[data-testid="chat-input"], [data-chat-input-container]')?.getBoundingClientRect();
+        return rect?.width > 0 ? rect : null;
+    }
+
+    getSnapshotElement(message) {
+        if (message.role !== 'user') return message.element;
+        return message.element.closest('[data-cds="UserMessage"]') || message.element;
+    }
+
+    getSnapshotRules() {
+        return { selector: '[data-testid="message-actions"], [data-testid="growth-inline-line"], [data-find-omitted], '
+            + '[data-testid="code-block-copy"], [data-cds="MessageActions"], button[aria-label^="Show message actions"]',
+            attributes: ['data-testid', 'data-turn-key', 'data-index', 'data-perf-row', 'data-find-omitted'] };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/deepseek.js
+class DeepSeekMessageActionsAdapter extends MessageActionsAdapter {
+    static SCROLLER = '.ds-virtual-list--printable';
+    static ITEM = '[data-virtual-list-item-key]';
+    static REPLY = '.ds-assistant-message-main-content';
+
+    constructor() {
+        super('deepseek');
+        this.virtualHistory = true;
+        this.replyTurns = new Map();
+        this.path = '';
+    }
+
+    isConversationPage() {
+        return /^\/(?:a\/chat\/s|share)\/[^/]+/.test(location.pathname) && !!document.querySelector('.ds-message');
+    }
+
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        if (this.path !== location.pathname) {
+            this.path = location.pathname;
+            this.replyTurns.clear();
+        }
+        const { SCROLLER, ITEM, REPLY } = DeepSeekMessageActionsAdapter;
+        const root = document.querySelector(SCROLLER) || document;
+        const elements = [...root.querySelectorAll('.ds-message')].filter(element => {
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && !element.parentElement?.closest('.ds-message');
+        });
+        const generating = this.getTimelineAdapter()?.isAIGenerating?.() === true;
+        let questionId = '';
+        return elements.map((element, index) => {
+            const role = element.querySelector(REPLY) ? 'assistant' : 'user';
+            const itemId = element.closest(ITEM)?.getAttribute('data-virtual-list-item-key');
+            const id = itemId || element.getAttribute('data-message-id') || element.id || `legacy-${index}`;
+            if (role === 'user') questionId = id;
+            else if (questionId) this.replyTurns.set(id, questionId);
+            return { key: `${role}:${id}`, id, role, element, turnId: questionId || this.replyTurns.get(id) || id,
+                generating: role === 'assistant' && generating && index === elements.length - 1 };
+        });
+    }
+
+    getToolbar(message) {
+        // DeepSeek mounts its native controls alongside the .ds-message inside the same row.
+        const row = message.element.closest(DeepSeekMessageActionsAdapter.ITEM) || message.element.parentElement;
+        const controls = [...(row?.children || [])].find(child => child !== message.element && !child.contains(message.element)
+            && child.querySelector('.ds-button[role="button"], .ds-icon-button'));
+        return controls?.querySelector('.ds-button[role="button"], .ds-icon-button')?.parentElement || null;
+    }
+
+    getToolbarMount(toolbar) {
+        const buttons = [...toolbar.children].filter(child => child.matches('.ds-button[role="button"], .ds-icon-button'));
+        return { container: toolbar, before: buttons.at(-1) || null };
+    }
+
+    isHistoryLoading() { return DeepSeekAdapter.isHistoryLoading(); }
+
+    getScrollContainer() {
+        return document.querySelector(DeepSeekMessageActionsAdapter.SCROLLER) || super.getScrollContainer();
+    }
+
+    getDockBounds() {
+        const rect = document.querySelector('textarea:not([data-ait-owned-ui] *)')?.getBoundingClientRect();
+        return rect?.width > 0 ? rect : null;
+    }
+
+    getSnapshotRules() {
+        return { selector: '.ds-icon-button, .ds-button--icon, .ds-loading', attributes: ['data-message-id', 'data-virtual-list-item-key'] };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/kimi.js
+class KimiMessageActionsAdapter extends MessageActionsAdapter {
+    static USER = '.chat-content-item-user, .chat-content-item:has(.user-content)';
+    static REPLY = '.chat-content-item-assistant';
+    static SCROLLER = '.chat-detail-main';
+    static ACTIONS = '.segment-assistant-actions';
+
+    constructor() {
+        super('kimi');
+        this.elementIds = new WeakMap();
+        this.nextId = 0;
+    }
+
+    isConversationPage() {
+        return /^\/(?:chat|share)\/[^/]+/.test(location.pathname)
+            && !!document.querySelector(`${KimiMessageActionsAdapter.USER}, ${KimiMessageActionsAdapter.REPLY}`);
+    }
+
+    getMessageId(element) {
+        const id = element.getAttribute('data-message-id') || element.id;
+        if (id) return id;
+        if (!this.elementIds.has(element)) this.elementIds.set(element, `dom:${++this.nextId}`);
+        return this.elementIds.get(element);
+    }
+
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        const { USER, REPLY, SCROLLER } = KimiMessageActionsAdapter;
+        const selector = `${USER}, ${REPLY}`;
+        const root = document.querySelector(SCROLLER) || document;
+        const elements = [...root.querySelectorAll(selector)].filter(element => {
+            const rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && !element.parentElement?.closest(selector);
+        });
+        const generating = this.getTimelineAdapter()?.isAIGenerating?.() === true;
+        let questionId = '';
+        return elements.map((element, index) => {
+            const role = element.matches(REPLY) ? 'assistant' : 'user';
+            const id = this.getMessageId(element);
+            if (role === 'user') questionId = id;
+            return { key: `${role}:${id}`, id, role, element, turnId: questionId || id,
+                generating: role === 'assistant' && generating && index === elements.length - 1 };
+        });
+    }
+
+    getScrollContainer() {
+        return document.querySelector(KimiMessageActionsAdapter.SCROLLER) || super.getScrollContainer();
+    }
+
+    getToolbar(message) {
+        const actions = message.element.querySelector(KimiMessageActionsAdapter.ACTIONS);
+        return actions?.querySelector('.segment-assistant-actions-content') || actions;
+    }
+
+    getToolbarMount(toolbar) {
+        const controls = [...toolbar.children].filter(child => !child.hasAttribute('data-ait-owned-ui'));
+        return { container: toolbar, before: controls.at(-1) || null };
+    }
+
+    getDockBounds() {
+        const rect = document.querySelector('.chat-editor, .chat-input-editor[contenteditable="true"]')?.getBoundingClientRect();
+        return rect?.width > 0 && rect.height > 0 ? rect : null;
+    }
+
+    getSnapshotRules() {
+        return { selector: `${KimiMessageActionsAdapter.ACTIONS}, .segment-user-action-row`, attributes: ['data-message-id'] };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/doubao.js
+class DoubaoMessageActionsAdapter extends MessageActionsAdapter {
+    static MESSAGE = '[data-message-id]';
+    static SCROLLER = '.scroller[class*="v_list_scroller"]';
+    static ACTIONS = '[class*="message-action-bar-"]';
+
+    constructor() {
+        super('doubao');
+        this.virtualHistory = true;
+        this.replyTurns = new Map();
+        this.url = '';
+    }
+
+    isConversationPage() {
+        return (/^\/chat\/[^/]+/.test(location.pathname) || /^\/share(?:\/|$)/.test(location.pathname))
+            && !!document.querySelector(DoubaoMessageActionsAdapter.MESSAGE);
+    }
+
+    getMessages() {
+        if (!this.isConversationPage()) return [];
+        if (this.url !== location.href) {
+            this.url = location.href;
+            this.replyTurns.clear();
+        }
+        const { MESSAGE, SCROLLER } = DoubaoMessageActionsAdapter;
+        const root = document.querySelector(SCROLLER) || document;
+        const elements = [...root.querySelectorAll(MESSAGE)].filter(element => {
+            const rect = element.getBoundingClientRect();
+            return !!element.getAttribute('data-message-id') && rect.width > 0 && rect.height > 0
+                && !element.parentElement?.closest(MESSAGE);
+        });
+        const generating = this.getTimelineAdapter()?.isAIGenerating?.() === true;
+        let questionId = '';
+        return elements.map((element, index) => {
+            const role = element.classList.contains('justify-end') ? 'user' : 'assistant';
+            const id = element.getAttribute('data-message-id');
+            if (role === 'user') questionId = id;
+            else if (questionId) this.replyTurns.set(id, questionId);
+            return { key: `${role}:${id}`, id, role, element, turnId: questionId || this.replyTurns.get(id) || id,
+                generating: role === 'assistant' && generating && index === elements.length - 1 };
+        });
+    }
+
+    getScrollContainer() {
+        return document.querySelector(DoubaoMessageActionsAdapter.SCROLLER) || super.getScrollContainer();
+    }
+
+    getToolbar(message) {
+        const { ACTIONS, MESSAGE } = DoubaoMessageActionsAdapter;
+        let actions = message.element.querySelector(ACTIONS);
+        const parent = message.element.parentElement;
+        if (!actions && parent?.querySelectorAll(`:scope > ${MESSAGE}`).length === 1) {
+            actions = parent.querySelector(ACTIONS);
+        }
+        return actions?.querySelector('.bp5-overflow-list') || actions;
+    }
+
+    getToolbarMount(toolbar) {
+        const tail = toolbar.querySelector(':scope > [class*="message-action-tail-"], :scope > .bp5-overflow-list-spacer');
+        const controls = [...toolbar.children].filter(child => !child.hasAttribute('data-ait-owned-ui'));
+        return { container: toolbar, before: tail || controls.at(-1) || null };
+    }
+
+    isHistoryLoading() {
+        const root = document.querySelector(DoubaoMessageActionsAdapter.SCROLLER);
+        return [...(root?.querySelectorAll('[role="progressbar"]') || [])]
+            .some(node => !node.closest(DoubaoMessageActionsAdapter.MESSAGE) && node.getClientRects().length > 0);
+    }
+
+    getDockBounds() {
+        const rect = document.querySelector('[class*="input-content-container-"], textarea.semi-input-textarea')?.getBoundingClientRect();
+        return rect?.width > 0 && rect.height > 0 ? rect : null;
+    }
+
+    getSnapshotRules() {
+        return { selector: DoubaoMessageActionsAdapter.ACTIONS,
+            attributes: ['data-message-id', 'data-testid'] };
+    }
+}
+
+;
+
+// Source: js/messageActions/adapters/registry.js
+const MESSAGE_ACTION_PAGE_ADAPTERS = {
+    chatgpt: ChatGPTMessageActionsAdapter, gemini: GeminiMessageActionsAdapter,
+    claude: ClaudeMessageActionsAdapter, deepseek: DeepSeekMessageActionsAdapter,
+    kimi: KimiMessageActionsAdapter, doubao: DoubaoMessageActionsAdapter
+};
+function getMessageActionsAdapter() {
+    for (const [platformId, Adapter] of Object.entries(MESSAGE_ACTION_PAGE_ADAPTERS)) {
+        if (matchesCurrentPlatformSync(platformId)) return new Adapter();
+    }
+    return null;
+}
+
+;
+
+// Source: js/messageActions/message-loader.js
+/** Shared history traversal, extracted from the ChatGPT export collection flow. */
+class MessageActionLoader {
+    static async load(adapter, { signal, shouldCancel, onMessages = () => {}, stopWhen } = {}) {
+        const url = location.href;
+        const scroller = adapter.getScrollContainer();
+        const isWindow = scroller === window;
+        const reverse = !isWindow && getComputedStyle(scroller).flexDirection === 'column-reverse';
+        const top = () => isWindow ? window.scrollY : scroller.scrollTop;
+        const range = () => Math.max(0, isWindow ? document.documentElement.scrollHeight - innerHeight : scroller.scrollHeight - scroller.clientHeight);
+        const scroll = value => {
+            adapter.beforeHistoryScroll?.();
+            if (isWindow) window.scrollTo(0, value);
+            else scroller.scrollTop = value;
+        };
+        const initial = top();
+        const records = new MessageSelectionStore();
+        const processed = new Set();
+        const check = () => {
+            if (signal?.aborted || shouldCancel?.() || location.href !== url) throw new DOMException('Cancelled', 'AbortError');
+        };
+        const wait = ms => new Promise((resolve, reject) => {
+            const abort = () => { clearTimeout(timer); reject(new DOMException('Cancelled', 'AbortError')); };
+            const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); try { check(); resolve(); } catch (error) { reject(error); } }, ms);
+            signal?.addEventListener('abort', abort, { once: true });
+            if (signal?.aborted) abort();
+        });
+        const settle = async () => {
+            for (let attempt = 0; attempt < 30 && adapter.isHistoryLoading(); attempt++) await wait(100);
+            if (adapter.isHistoryLoading()) throw new Error('LoadIncomplete');
+        };
+        const collect = async () => {
+            check();
+            const current = adapter.getMessages();
+            records.merge(current);
+            for (const message of current) {
+                processed.add(message.id);
+                processed.add(message.turnId);
+            }
+            await onMessages(current, records.order);
+            check();
+        };
+        try {
+            // Establish a stable top before sweeping down, as in the existing exporter.
+            let stable = 0;
+            for (let attempt = 0; attempt < 30 && stable < 2; attempt++) {
+                check();
+                const before = range();
+                const count = records.messages.size;
+                scroll(reverse ? -before : 0);
+                await wait(500);
+                await settle();
+                await collect();
+                if (stopWhen?.()) return records;
+                const atTop = Math.abs(top() - (reverse ? -range() : 0)) <= 2;
+                stable = atTop && Math.abs(before - range()) <= 2 && records.messages.size === count ? stable + 1 : 0;
+            }
+            if (stable < 2) throw new Error('LoadIncomplete');
+            let stagnant = 0;
+            const nextTarget = () => adapter.getHistoryTargets().find(element => !processed.has(adapter.getTargetId(element)));
+            for (let iteration = 0; iteration < 800; iteration++) {
+                await collect();
+                if (stopWhen?.()) return records;
+                let target = nextTarget();
+                let targetOffset = -80;
+                const bottom = reverse ? 0 : range();
+                if (!target && Math.abs(top() - bottom) <= 2) {
+                    await wait(300); await settle(); await collect();
+                    if (stopWhen?.()) return records;
+                    target = nextTarget();
+                    if (!target && Math.abs(top() - (reverse ? 0 : range())) <= 2) {
+                        const gap = adapter.getHistoryGap?.(records);
+                        if (!gap) {
+                            records.complete = true;
+                            return records;
+                        }
+                        if (!gap.element) throw new Error('LoadIncomplete');
+                        target = gap.element;
+                        targetOffset = gap.offset;
+                    }
+                }
+                const before = records.messages.size;
+                const previous = top();
+                if (target) {
+                    const viewportTop = isWindow ? 0 : scroller.getBoundingClientRect().top;
+                    scroll(top() + target.getBoundingClientRect().top - viewportTop + targetOffset);
+                } else {
+                    const viewport = isWindow ? innerHeight : scroller.clientHeight || innerHeight;
+                    scroll(Math.min(bottom, top() + Math.max(1, viewport * .8)));
+                }
+                await wait(400); await settle(); await collect();
+                if (stopWhen?.()) return records;
+                if (records.messages.size === before && Math.abs(top() - previous) < 1) {
+                    if (++stagnant >= 5) throw new Error('LoadIncomplete');
+                } else stagnant = 0;
+            }
+            throw new Error('LoadIncomplete');
+        } finally {
+            if (location.href === url && window.AITContentSession?.active !== false) scroll(initial);
+        }
+    }
+}
+
+;
+
+// Source: js/messageActions/action-manager.js
+/** Coordinates registered actions. No file formats or image-library dependencies. */
+class MessageActionManager {
+    constructor(adapter, actions) {
+        this.adapter = adapter; this.actions = actions; this.enabled = new Map();
+        this.entries = new Map(); this.session = null; this.revision = 0; this.stopped = false;
+        this.events = new AbortController();
+    }
+    async init() {
+        document.addEventListener('click', event => {
+            const button = event.target.closest('[data-ait-message-action]');
+            if (!button || !this.entries.has(button) || button.disabled) return;
+            event.preventDefault(); event.stopPropagation();
+            const entry = this.entries.get(button);
+            void this.open(entry.action, entry.key);
+        }, { signal: this.events.signal });
+        window.addEventListener('url:change', () => { this.close(); this.removeEntries(); this.scan(); }, { signal: this.events.signal });
+        // Back/forward can return to the same URL before the shared SPA monitor polls.
+        window.addEventListener('popstate', () => { this.close(); this.removeEntries(); this.scan(); }, { signal: this.events.signal });
+        this.unsubscribe = window.DOMObserverManager?.getInstance().subscribeBody('message-actions', {
+            callback: () => this.scan(), filter: { hasAddedNodes: true }, throttle: 200, debounce: 200
+        });
+        this.unsubscribeConversation = this.adapter.subscribeConversationChanges?.(() => this.scan());
+        this.unwatch = window.AIStateMonitor?.getInstance().watch(this.adapter.getTimelineAdapter(), generating => {
+            // A new generation may edit an earlier question or replace a reply before the branch snapshot arrives.
+            if (generating && this.session) this.invalidate(this.session);
+            else this.scan();
+        });
+        await this.refresh();
+    }
+    async refresh() {
+        const revision = ++this.revision;
+        const settings = await chrome.storage.local.get([...this.actions.values()].map(action => action.settingsKey).filter(Boolean));
+        if (this.stopped || revision !== this.revision) return;
+        this.enabled.clear();
+        for (const action of this.actions.values()) {
+            if (action.supports(this.adapter.platformId) && (!action.settingsKey || settings[action.settingsKey]?.[this.adapter.platformId] !== false)) this.enabled.set(action.id, action);
+        }
+        if (this.session && !this.enabled.has(this.session.action.id)) this.close();
+        this.scan();
+    }
+    makeEntry(action, key, header = false) {
+        const headerButton = header ? action.createHeaderButton?.({ adapter: this.adapter }) : null;
+        const button = headerButton || document.createElement('button'); button.type = 'button';
+        if (!headerButton) {
+            button.className = `ait-message-action-entry${header && action.headerClassName ? ` ${action.headerClassName}` : ''}`;
+            button.innerHTML = action.icon;
+            if (header) button.title = action.label();
+        }
+        button.setAttribute('data-ait-owned-ui', '');
+        button.setAttribute('data-ait-message-action', action.id);
+        button.setAttribute('aria-label', action.label());
+        const events = new AbortController();
+        if (!header) {
+            button.addEventListener('mouseenter', () => {
+                if (this.stopped || this.session || button.disabled) return;
+                this.tooltipEntry = button;
+                window.globalTooltipManager?.show(`message-action-${action.id}-${key}`, 'button', button, action.label(), {
+                    placement: 'bottom', theme: 'inverse', noArrow: true
+                });
+            }, { signal: events.signal });
+            button.addEventListener('mouseleave', () => this.hideEntryTooltip(button), { signal: events.signal });
+            button.addEventListener('mousedown', () => this.hideEntryTooltip(button), { signal: events.signal });
+        }
+        this.entries.set(button, { action, key, events });
+        return button;
+    }
+    hideEntryTooltip(button = this.tooltipEntry) {
+        if (!button || this.tooltipEntry !== button) return;
+        this.tooltipEntry = null;
+        window.globalTooltipManager?.hide(true);
+    }
+    removeEntry(button) {
+        this.hideEntryTooltip(button);
+        this.entries.get(button)?.events?.abort();
+        button.remove();
+        this.entries.delete(button);
+    }
+    scan() {
+        if (this.stopped) return;
+        if (this.session && this.session.url !== location.href) { this.close(); return; }
+        const records = this.adapter.getMessages();
+        if (this.session && this.conversationChanged(this.session, records)) { this.invalidate(this.session); return; }
+        const currentKeys = new Set(records.map(message => message.key));
+        for (const [button, entry] of this.entries) {
+            if (!button.isConnected || !this.enabled.has(entry.action.id) || (entry.key && !currentKeys.has(entry.key))) {
+                this.removeEntry(button);
+            } else button.disabled = !!this.session;
+        }
+        if (!this.adapter.isConversationPage()) { this.removeEntries(); this.close(); return; }
+        for (const message of records.filter(record => record.role === 'assistant')) {
+            const toolbar = this.adapter.getToolbar(message);
+            if (!toolbar) continue;
+            const buttons = [];
+            for (const action of this.enabled.values()) {
+                let button = [...toolbar.querySelectorAll('[data-ait-message-action]')].find(element =>
+                    this.entries.get(element)?.action.id === action.id && this.entries.get(element)?.key === message.key);
+                if (!button) button = this.makeEntry(action, message.key);
+                button.disabled = !!this.session || message.generating;
+                buttons.push(button);
+            }
+            const mount = this.adapter.getToolbarMount?.(toolbar) || { container: toolbar, before: null };
+            let before = mount.before;
+            // Align backwards so rescanning an already-correct row makes no DOM changes.
+            for (const button of buttons.reverse()) {
+                if (button.parentElement !== mount.container || button.nextElementSibling !== before) {
+                    mount.container.insertBefore(button, before);
+                }
+                before = button;
+            }
+        }
+        for (const action of this.enabled.values()) {
+            if (!action.mountHeader || [...this.entries.values()].some(entry => entry.action.id === action.id && !entry.key)) continue;
+            const button = this.makeEntry(action, null, true);
+            if (!action.mountHeader(button, { adapter: this.adapter })) this.removeEntry(button);
+        }
+        if (this.session) {
+            const store = this.session.store;
+            for (const previous of [...store.messages.values()]) {
+                if (currentKeys.has(previous.key)) continue;
+                const replacement = records.find(record => (record.slot ?? record.turnId) === (previous.slot ?? previous.turnId)
+                    && record.role === previous.role);
+                if (replacement) { store.remove(previous.key); this.session.collector?.remove?.(previous.key); }
+            }
+            store.merge(records);
+            this.session.ui?.update(this.session);
+        }
+    }
+    conversationChanged(session, records) {
+        const next = this.adapter.getConversationState?.();
+        if (next) {
+            const turnIds = new Set(next.turnIds);
+            const previousIds = session.conversation?.turnIds
+                || [...session.store.messages.values()].filter(message => message.role === 'user').map(message => message.id);
+            if (previousIds.some(id => !turnIds.has(id))) return true;
+            session.conversation = next;
+        }
+        // Replacing a selected reply can also invalidate every later turn on that branch.
+        const currentKeys = new Set(records.map(record => record.key));
+        const turns = new Set(records.map(record => `${record.role}:${record.slot ?? record.turnId}`));
+        return session.store.selection.some(previous => !currentKeys.has(previous.key)
+            && turns.has(`${previous.role}:${previous.slot ?? previous.turnId}`));
+    }
+    invalidate(session) {
+        this.showError(new Error('Changed'), session.action);
+        this.close();
+    }
+    async open(action, initialKey) {
+        if (this.session || this.stopped) return;
+        this.hideEntryTooltip();
+        const session = { action, store: new MessageSelectionStore(), controller: new AbortController(), url: location.href, loading: false, busy: false,
+            conversation: this.adapter.getConversationState?.(),
+            trigger: [...this.entries].find(([, entry]) => entry.action === action && entry.key === initialKey)?.[0] };
+        this.session = session; this.scan();
+        session.store.merge(this.adapter.getMessages());
+        if (initialKey) session.store.setSelected(initialKey, true);
+        try {
+            await window.AITContentLoader.load('message-actions-ui');
+            if (!this.current(session)) return;
+            const options = await action.createOptions({ adapter: this.adapter });
+            if (!this.current(session)) { options.destroy?.(); return; }
+            session.options = options;
+            session.ui = new MessageSelectionUI({ adapter: this.adapter, action, options,
+                onSelect: (key, checked) => {
+                    session.store.setSelected(key, checked);
+                    if (checked) this.captureSelection(session, key);
+                    session.ui.update(session);
+                },
+                onAll: checked => { if (checked) void this.selectAll(session); else { this.stopLoading(session); session.store.clear(); session.notice = ''; session.ui.update(session); } },
+                onStop: () => this.stopLoading(session), onCancel: () => this.close(),
+                onConfirm: () => { void this.execute(session); }, onCopy: () => { void this.execute(session, 'copy'); }
+            });
+            if (initialKey) this.captureSelection(session, initialKey);
+            session.ui.update(session);
+        } catch (error) {
+            if (this.current(session)) { this.showError(error, action); this.close(); }
+        }
+    }
+    current(session) { return !this.stopped && this.session === session && session.url === location.href && !session.controller.signal.aborted; }
+    async collector(session) {
+        if (!session.collectorTask) session.collectorTask = Promise.resolve(session.action.createCollector?.({ adapter: this.adapter, signal: session.controller.signal }))
+            .then(collector => { if (!this.current(session)) { collector?.destroy?.(); return null; } return (session.collector = collector); })
+            .catch(error => { session.collectorTask = null; throw error; });
+        return await session.collectorTask;
+    }
+    captureSelection(session, key) {
+        if (!this.adapter.virtualHistory) return;
+        void this.collector(session).then(collector => {
+            if (!this.current(session) || !session.store.selected.has(key)) return;
+            return collector?.capture(session.store.messages.get(key));
+        }).catch(() => {}); // Confirm can retry if a virtual row detached before capture.
+    }
+    async selectAll(session) {
+        if (!this.current(session) || session.busy) return;
+        session.store.selectAll();
+        if (session.loading) { session.ui.update(session); return; }
+        const operation = new AbortController(); session.load = operation; session.loading = true; session.notice = '';
+        const abort = () => operation.abort(); session.controller.signal.addEventListener('abort', abort, { once: true });
+        session.ui.update(session);
+        try {
+            const collector = await this.collector(session);
+            if (!this.current(session) || operation.signal.aborted) return;
+            const result = await MessageActionLoader.load(this.adapter, {
+                signal: operation.signal,
+                onMessages: async (records, order) => {
+                    if (!this.current(session) || operation.signal.aborted) return;
+                    session.store.merge(records);
+                    // Keep selected later messages visible while the loader sweeps down from the top.
+                    const loadedKeys = new Set(order);
+                    session.store.order = [...order, ...session.store.order.filter(key => !loadedKeys.has(key))];
+                    for (const message of records) {
+                        if (!this.current(session) || operation.signal.aborted) return;
+                        if (session.store.selected.has(message.key)) await collector?.capture(message);
+                    }
+                    if (this.current(session) && !operation.signal.aborted) session.ui.update(session);
+                }
+            });
+            if (this.current(session) && !operation.signal.aborted) {
+                session.store.complete = result.complete;
+                session.notice = 'Loaded';
+            }
+        } catch (error) {
+            if (this.current(session) && !operation.signal.aborted) {
+                session.notice = 'LoadIncomplete';
+                if (error.message !== 'LoadIncomplete') this.showError(error, session.action);
+            }
+        } finally {
+            session.controller.signal.removeEventListener('abort', abort);
+            if (this.current(session) && session.load === operation) {
+                session.store.allIntent = false; session.loading = false; session.load = null; session.ui.update(session);
+            }
+        }
+    }
+    stopLoading(session) {
+        session.load?.abort(); session.load = null; session.loading = false; session.store.allIntent = false;
+        session.notice = 'LoadStopped'; session.ui?.update(session);
+    }
+    async prepareOutput(session, options, signal) {
+        const check = () => { if (signal.aborted || !this.current(session)) throw new DOMException('Cancelled', 'AbortError'); };
+        const collector = await this.collector(session);
+        check();
+        this.scan();
+        check();
+        let messages = session.store.selection;
+        if (!messages.length) throw new Error('Changed');
+        const missing = new Set(messages.filter(message => !message.element?.isConnected && !collector?.has?.(message.key)).map(message => message.key));
+        if (this.adapter.virtualHistory && missing.size) {
+            await MessageActionLoader.load(this.adapter, { signal, stopWhen: () => !missing.size, onMessages: async records => {
+                for (const message of records) {
+                    check();
+                    if (!missing.has(message.key) || message.generating) continue;
+                    await collector?.capture(message);
+                    if (collector?.has?.(message.key)) missing.delete(message.key);
+                }
+            } });
+            check();
+            this.scan();
+            check();
+            messages = session.store.selection;
+        }
+        for (const message of messages) {
+            check();
+            if (message.element?.isConnected && !message.generating) await collector?.capture(message);
+            else if (!collector?.has?.(message.key)) throw new Error('Changed');
+        }
+        check();
+        if (session.action.optionsKey) await chrome.storage.local.set({ [session.action.optionsKey]: options }).catch(() => {});
+        check();
+        return { messages, collector, options, adapter: this.adapter, signal };
+    }
+    async execute(session, destination = 'download') {
+        if (!this.current(session) || session.busy || session.loading || !session.store.selection.length) return;
+        const copying = destination === 'copy';
+        const options = session.options.getValue();
+        const type = copying ? session.action.copyType?.(options) : null;
+        if (copying && (!type || !session.action.copy)) return;
+        const operation = new AbortController();
+        const abort = () => operation.abort();
+        session.controller.signal.addEventListener('abort', abort, { once: true });
+        session.busy = true; session.busyKind = destination; session.ui.update(session);
+        try {
+            if (copying) {
+                // Invoke write before any await; data collection/rendering runs through its deferred payload.
+                await AITClipboard.write(type, async () => session.action.copy(await this.prepareOutput(session, options, operation.signal)), { signal: operation.signal });
+            } else {
+                await session.action.execute(await this.prepareOutput(session, options, operation.signal));
+            }
+            if (this.current(session)) {
+                window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
+                if (!copying) this.close();
+            }
+        } catch (error) {
+            if (this.current(session)) this.showError(error, session.action, copying);
+        } finally {
+            operation.abort();
+            session.controller.signal.removeEventListener('abort', abort);
+            if (this.current(session)) { session.busy = false; session.busyKind = null; session.ui.update(session); }
+        }
+    }
+    showError(error, action, copying = false) {
+        const copyError = ['CopyUnsupported', 'CopyTooLong', 'CopyFailed'].includes(error.message) ? error.message : null;
+        const message = (copyError && TimelineI18n.getMessage(`messageActions${copyError}`)) || action?.errorMessage?.(error)
+            || TimelineI18n.getMessage(error.message === 'Changed' ? 'messageActionsChanged' : copying ? 'messageActionsCopyFailed' : 'messageActionsFailed');
+        window.globalToastManager?.error(message);
+        console.warn('[messageActions]', error);
+    }
+    close() {
+        const session = this.session; this.session = null;
+        if (!session) return;
+        const restoreFocus = session.url === location.href && session.ui?.root?.contains(document.activeElement);
+        session.controller.abort(); session.load?.abort(); session.ui?.destroy(); session.collector?.destroy?.();
+        if (!this.stopped) this.scan();
+        if (restoreFocus && session.trigger?.isConnected) session.trigger.focus?.({ preventScroll: true });
+    }
+    removeEntries() { for (const button of this.entries.keys()) this.removeEntry(button); window.AITChatHeaderActions?.removeEmptyContainer?.(); }
+    destroy() { this.stopped = true; this.revision++; this.close(); this.events.abort(); this.unsubscribe?.(); this.unsubscribeConversation?.(); this.unwatch?.(); this.removeEntries(); }
+}
+
+;
+
+// Source: js/messageActions/index.js
+/** Registered actions share interaction infrastructure, not output implementations. */
+(function initializeMessageActions() {
+    const actions = new Map();
+    let manager = null, stopped = false;
+    function registerAction(action) {
+        if (!/^[a-z][a-z0-9-]*$/.test(action.id) || actions.has(action.id)) throw new Error('Invalid or duplicate message action');
+        actions.set(action.id, action);
+        if (manager) void manager.refresh().catch(() => {});
+        return () => { actions.delete(action.id); if (manager) void manager.refresh().catch(() => {}); };
+    }
+    const storageListener = (changes, area) => {
+        if (area === 'local' && [...actions.values()].some(action => changes[action.settingsKey])) void manager?.refresh().catch(() => {});
+    };
+    window.AITMessageActions = Object.freeze({ registerAction, supportsCurrentPlatform: () => !!getMessageActionsAdapter() });
+    window.AITPlatformFeatures.register('message-actions', async () => {
+        await TimelineI18n.ready();
+        const adapter = getMessageActionsAdapter();
+        if (!adapter || stopped || manager) return;
+        const instance = new MessageActionManager(adapter, actions);
+        manager = instance;
+        try {
+            await instance.init();
+            if (stopped) { instance.destroy(); return; }
+            chrome.storage.onChanged.addListener(storageListener);
+        }
+        catch (error) { instance.destroy(); manager = null; throw error; }
+    });
+    window.AITContentSession?.onStop(() => {
+        stopped = true; manager?.destroy(); manager = null; actions.clear();
+        try { chrome.storage.onChanged.removeListener(storageListener); } catch {}
+    });
+})();
+
+;
+
 // Source: js/conversationExport/constants.js
 /**
  * Conversation Export - 常量与共享工具
@@ -29966,7 +31223,7 @@ const CE_TEXT_FALLBACK = {
 
     sectionRange: '导出范围',
     sectionFormat: '导出格式',
-    sectionHeader: '更多配置',
+    sectionHeader: '更多信息',
     sectionTheme: '主题色',
     sectionList: '选择对话',
 
@@ -29989,6 +31246,7 @@ const CE_TEXT_FALLBACK = {
 
     cancel: '取消',
     confirm: '导出',
+    download: '下载文件',
 
     loading: '加载对话中...',
     loadingProgress: '加载对话中...（已加载 {count} 条）',
@@ -30041,6 +31299,7 @@ const CE_TEXT_I18N_KEYS = {
 
     cancel: 'conversationExportCancel',
     confirm: 'conversationExportConfirm',
+    download: 'conversationExportDownload',
 
     loading: 'conversationExportLoading',
     loadingProgress: 'conversationExportLoadingProgress',
@@ -30996,6 +32255,21 @@ class CEExportAdapter {
         return this._resolveTimelineAdapter()?.getAssistantMessageSelector?.() || '';
     }
 
+    /** 提问时间按时间轴的稳定消息 ID 保存，供滚动过程中采集新挂载的消息。 */
+    async _loadAskTimes() {
+        try {
+            if (typeof ChatTimeStorageManager === 'undefined') return null;
+            const conversationKey = location.href.replace(/^https?:\/\//, '').split(/[?#]/)[0];
+            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
+            const nodes = data?.nodes || {};
+            return Object.keys(nodes).length ? nodes : null;
+        } catch {
+            return null;
+        }
+    }
+
+    getSelectedAskTimeKey(message) { return `${this.platformId}-${message.id}`; }
+
     /**
      * 构建「用户消息元素 → 提问时间戳」映射。
      *
@@ -31010,17 +32284,10 @@ class CEExportAdapter {
     async _buildAskTimeMap() {
         try {
             const adapter = window.timelineManager?.adapter;
-            if (!adapter?.generateTurnId || typeof ChatTimeStorageManager === 'undefined') return null;
+            if (!adapter?.generateTurnId) return null;
 
-            const conversationKey = location.href
-                .replace(/^https?:\/\//, '')
-                .split('?')[0]
-                .split('#')[0];
-            if (!conversationKey) return null;
-
-            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
-            const nodes = data?.nodes || {};
-            if (!Object.keys(nodes).length) return null;
+            const nodes = await this._loadAskTimes();
+            if (!nodes) return null;
 
             const selector = adapter.getUserMessageSelector?.();
             if (!selector) return null;
@@ -31288,15 +32555,7 @@ class CEGeminiExportAdapter extends CEExportAdapter {
         const selector = this.getUserMessageSelector();
         const firstContainer = document.querySelector('.conversation-container') ||
             (selector ? document.querySelector(selector) : null);
-        let node = firstContainer;
-        while (node && node !== document.body) {
-            const style = window.getComputedStyle(node);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                return node;
-            }
-            node = node.parentElement;
-        }
-        return null;
+        return GeminiAdapter.findChatScroller(firstContainer);
     }
 
     getTurnContainers() {
@@ -31343,16 +32602,7 @@ class CEGeminiExportAdapter extends CEExportAdapter {
      * @returns {boolean}
      */
     isLoadingMore() {
-        try {
-            const bars = document.querySelectorAll(
-                'mat-progress-bar[mode="indeterminate"], .mdc-linear-progress--indeterminate'
-            );
-            for (const bar of bars) {
-                const rect = bar.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) return true;
-            }
-        } catch { /* ignore */ }
-        return false;
+        return GeminiAdapter.isHistoryLoading();
     }
 
     _resolveTurnId(container, userEl) {
@@ -31410,266 +32660,41 @@ class CEGeminiExportAdapter extends CEExportAdapter {
 ;
 
 // Source: js/conversationExport/adapters/chatgpt.js
-/**
- * Conversation Export - ChatGPT 导出适配器
- *
- * 与 Gemini 的关键差异：
- * 1. ChatGPT 是「视口窗口式」虚拟渲染：任意时刻 DOM 里只有视口附近一屏的轮次是
- *    已渲染的 <article>，其余全部是 [data-turn-id-container]
- *    [data-is-intersecting="false"] 空壳（运行日志实证：121 个容器滚到顶后仅 8 对
- *    已渲染，反复滚顶无增益）。因此基类「先加载完、再统一读」的编排不成立，
- *    本类覆盖 collectAllTurns：从顶到底逐屏滚动，分别采集用户和助手消息，
- *    结束后按容器 DOM 顺序配对输出。提问和回复无需在同一滚动窗口内同时存在。
- * 2. ChatGPT 的用户与助手是各自独立的 <article data-turn="user|assistant" data-turn-id>，
- *    不像 Gemini 用一个 .conversation-container 同时装问答。因此需要按文档顺序把
- *    「用户轮 + 紧随其后的助手轮」配成一对。
- *
- * 内容完全来自 DOM（滚动渲染后采集）；
- * 用户/助手消息选择器复用基类共享方法（优先取时间轴 adapter）。
- */
-
+/** ChatGPT content extraction; message discovery and history loading live in messageActions. */
 class CEChatGPTExportAdapter extends CEExportAdapter {
-    static MODERN_MESSAGE_SELECTOR = '[data-thread-find-target="conversation"] [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids]';
-    static MODERN_TURN_SELECTOR = '[data-thread-find-target="conversation"] [data-turn-key]';
+    constructor() { super('chatgpt'); }
 
-    constructor() {
-        super('chatgpt');
-    }
-
-    /**
-     * 未渲染的虚拟化空壳轮次列表。
-     * ChatGPT 给视口外轮次保留 [data-turn-id-container] 容器，
-     * 并以 data-is-intersecting="false" 标记（内部 React 子树已卸载）。
-     * @returns {Element[]}
-     */
-    _getUnrenderedShells() {
-        return Array.from(document.querySelectorAll(
-            `[data-turn-id-container][data-is-intersecting="false"], ${CEChatGPTExportAdapter.MODERN_TURN_SELECTOR}`
-        ));
-    }
-
-    _getMessageId(element) {
-        return element.getAttribute('data-turn-id')
-            || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0]
-            || null;
-    }
-
-    _getMessageRole(element) {
-        return element.getAttribute('data-turn')
-            || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
-    }
+    _getMessageId(element) { return new ChatGPTMessageActionsAdapter().getId(element); }
+    _getMessageRole(element) { return new ChatGPTMessageActionsAdapter().getRole(element); }
 
     _getRenderedMessages() {
-        return Array.from(document.querySelectorAll(
-            `[data-turn-id][data-turn], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`
-        )).filter(el => ['user', 'assistant'].includes(this._getMessageRole(el)));
+        return new ChatGPTMessageActionsAdapter().getMessages().map(message => message.element);
     }
 
-    /**
-     * 覆盖基类采集编排：以「空壳」为锚点逐个滚动渲染、边滚边采集。
-     *
-     * 为什么不能用基类「先加载完、再统一读」的两段式编排：
-     * ChatGPT 的虚拟化是视口窗口式的——滚到哪里就只渲染哪里，滚过去的轮次
-     * 会被卸载回空壳。不存在「全部渲染完成」的时刻，必须在滚动途中即时提取。
-     *
-     * 为什么按空壳元素锚定、而不是按像素逐屏步进（运行日志实证的两个坑）：
-     * 1. 空壳渲染成真实内容后高度膨胀（一次运行页面总高从 35250 涨到 43986），
-     *    下方内容整体下移，固定像素步进会被重排反超、整段跳过；
-     *    元素锚定用空壳的实时位置滚动，天然免疫重排。
-     * 2. [data-turn-id-container] 容器本身也是窗口化的（同一运行中 121 → 85），
-     *    结束时的单次快照排不出完整顺序——改为每轮把当前窗口的容器 id 序列
-     *    增量合并进全局有序表（相邻窗口高度重叠，按锚点插入）。
-     *
-     * 流程：跳到顶部 → 每轮找文档序第一个「未处理过的空壳」滚到视口 → 等待渲染
-     * 稳定（固定启动等待 + DOM 安静确认）→ 提取当前已渲染轮次（按用户轮 turn id
-     * 去重）并合并容器顺序 → 无未处理空壳或连续多轮无进展时结束 → 按全局有序表
-     * 排序输出，恢复用户原始滚动位置。
-     *
-     * @param {Object} options
-     * @param {(count:number)=>void} [options.onProgress]
-     * @param {()=>boolean} [options.shouldCancel]
-     * @returns {Promise<Array>}
-     */
+    /** Legacy callers share the same ordered DOM traversal as message actions. */
     async collectAllTurns({ onProgress, shouldCancel } = {}) {
-        const scroller = this.getScrollContainer();
-        const isWin = scroller === window;
-        const reverse = !isWin && scroller.nodeType === 1
-            && getComputedStyle(scroller).flexDirection === 'column-reverse';
-        const scrollRange = () => Math.max(0, (isWin
-            ? document.documentElement.scrollHeight - window.innerHeight
-            : scroller.scrollHeight - scroller.clientHeight) || 0);
-        const getScrollTop = () => (isWin ? window.scrollY : scroller.scrollTop);
-        const scrollTo = (top) => {
-            if (isWin) window.scrollTo(0, top);
-            else scroller.scrollTop = top;
-        };
-
-        const initialScrollTop = getScrollTop();
-
-        // 提问时间表（按 turn id 查，替代基类按元素的 WeakMap——
-        // 逐屏采集时元素随滚动创建/卸载，元素键在跨屏后失效）
-        const askTimes = await this._loadAskTimes();
-
-        const capturedMessages = new Map(); // 消息 turn id → { id, role, content }
-        const capturedUserIds = new Set(); // 进度统计，避免每轮扫描全部快照
-        const capturedOrder = [];      // 消息首次渲染顺序（旧版 DOM / 顺序表兜底）
-        const processedIds = new Set(); // 渲染过（内容采集过）的容器 id
-        const masterOrder = [];         // 全局容器 id 顺序（跨窗口增量合并）
-
-        // 把当前窗口的容器 id 序列合并进全局有序表。
-        // 相邻轮次的窗口高度重叠：已知 id 作为锚点推进，未知 id 插到锚点之后。
-        const mergeContainerOrder = () => {
-            const seen = new Set();
-            const current = [];
-            // 新版 data-turn-key 包含一问一答，排序必须使用内部消息 ID，
-            // 不能把整轮的用户 ID 当作两条消息的顺序。
-            document.querySelectorAll(`[data-turn-id-container], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`).forEach(el => {
-                if (el.hasAttribute('data-chatgpt-search-unit-key')
-                    && !['user', 'assistant'].includes(this._getMessageRole(el))) return;
-                const id = el.getAttribute('data-turn-id-container') || this._getMessageId(el);
-                if (id && !seen.has(id)) { seen.add(id); current.push(id); }
-            });
-            // 从顶部向下扫描时，无共同节点的新窗口应接到末尾。
-            if (current.length && !current.some(id => masterOrder.includes(id))) {
-                masterOrder.push(...current);
-                return;
-            }
-            let ptr = -1; // masterOrder 中最后命中的锚点位置
-            for (const id of current) {
-                const idx = masterOrder.indexOf(id);
-                if (idx >= 0) {
-                    ptr = Math.max(ptr, idx);
-                } else {
-                    masterOrder.splice(ptr + 1, 0, id);
-                    ptr += 1;
-                }
-            }
-        };
-
-        // 标记当前已渲染的容器（内部有 [data-turn] 真实内容，或明确 intersecting）
-        const markProcessed = () => {
-            document.querySelectorAll('[data-turn-id-container]').forEach(el => {
-                const id = el.getAttribute('data-turn-id-container');
-                if (!id || processedIds.has(id)) return;
-                if (el.getAttribute('data-is-intersecting') === 'true' || el.querySelector('[data-turn]')) {
-                    processedIds.add(id);
-                }
-            });
-        };
-
-        const collectRendered = () => {
-            this._getRenderedMessages().forEach(element => {
-                const id = this._getMessageId(element);
-                const role = this._getMessageRole(element);
-                if (!id || (role !== 'user' && role !== 'assistant')) return;
-
-                let content;
-                try {
-                    if (role === 'user') {
-                        content = this._extractUser(element);
-                        if (askTimes) content.time = askTimes[`chatgpt-${id}`] || null;
-                    } else {
-                        content = this._extractAssistant(element);
+        const adapter = new ChatGPTMessageActionsAdapter();
+        const times = await this._loadAskTimes();
+        const messages = new Map();
+        const order = [];
+        try {
+            const result = await MessageActionLoader.load(adapter, {
+                shouldCancel,
+                onMessages: records => {
+                    for (const record of records) {
+                        const content = record.role === 'user' ? this._extractUser(record.element) : this._extractAssistant(record.element);
+                        if (record.role === 'user' && times) content.time = times[`chatgpt-${record.id}`] || null;
+                        messages.set(record.id, { id: record.id, role: record.role, content });
                     }
-                } catch {
-                    return;
+                    onProgress?.([...messages.values()].filter(message => message.role === 'user').length);
                 }
-
-                if (!capturedMessages.has(id)) capturedOrder.push(id);
-                if (role === 'user') capturedUserIds.add(id);
-                // 同一消息再次渲染时使用最新快照，兼容延迟补齐的正文、图片和公式。
-                capturedMessages.set(id, { id, role, content });
             });
-            markProcessed();
-            mergeContainerOrder();
-            onProgress?.(capturedUserIds.size);
-        };
-
-        // 文档序第一个「未处理过的空壳」（渲染过的容器被虚拟化卸载回空壳时不再重复处理）
-        const nextPendingShell = () =>
-            this._getUnrenderedShells().find(el => {
-                const id = el.getAttribute('data-turn-id-container') || el.getAttribute('data-turn-key');
-                return id && !processedIds.has(id);
-            }) || null;
-
-        // 从顶部开始（建立全局顺序表的头部）
-        // 顶部历史分页加载后需再次到顶，连续两次确认稳定才开始采集。
-        let stableTop = 0;
-        for (let attempt = 0; attempt < 30 && stableTop < 2; attempt++) {
-            if (shouldCancel?.()) {
-                try { scrollTo(initialScrollTop); } catch {}
-                return [];
-            }
-            const beforeRange = scrollRange();
-            scrollTo(reverse ? -beforeRange : 0);
-            await this._wait(1000);
-            await this._waitWhileLoading(2000);
-            const range = scrollRange();
-            const atTop = Math.abs(getScrollTop() - (reverse ? -range : 0)) <= 2;
-            stableTop = atTop && Math.abs(range - beforeRange) <= 2 ? stableTop + 1 : 0;
+            order.push(...result.order.map(key => result.messages.get(key).id));
+        } catch (error) {
+            if (error.name === 'AbortError') return [];
+            throw error;
         }
-        collectRendered();
-
-        // 逐个把未处理空壳滚进视口渲染并采集
-        const maxRounds = 800;
-        let stagnantRounds = 0;
-        for (let round = 0; round < maxRounds; round++) {
-            if (shouldCancel?.()) {
-                try { scrollTo(initialScrollTop); } catch { /* ignore */ }
-                return [];
-            }
-
-            const shell = nextPendingShell();
-            if (!shell) {
-                // 当前 DOM 已采完不代表历史已采完；向下扫屏触发下一窗口渲染。
-                const bottom = reverse ? 0 : scrollRange();
-                const current = getScrollTop();
-                if (bottom - current <= 1) break;
-                const viewport = isWin ? window.innerHeight : (scroller.clientHeight || window.innerHeight);
-                scrollTo(Math.min(bottom, current + Math.max(1, viewport * 0.8)));
-                await this._wait(400);
-                await this._waitWhileLoading(2000);
-                collectRendered();
-                if (Math.abs(getScrollTop() - current) < 1) {
-                    if (++stagnantRounds >= 5) break;
-                } else stagnantRounds = 0;
-                continue;
-            }
-
-            const beforeCaptured = capturedMessages.size;
-            const beforeProcessed = processedIds.size;
-
-            // 元素锚定滚动：按空壳当前实时位置，把它滚到视口上沿附近
-            const rect = shell.getBoundingClientRect();
-            const viewTop = isWin ? 0 : scroller.getBoundingClientRect().top;
-            scrollTo(getScrollTop() + (rect.top - viewTop) - 80);
-            await this._wait(400);              // 渲染启动
-            await this._waitWhileLoading(2000); // DOM 稳定确认
-            collectRendered();
-            // 新版每轮都滚动到一次，触发虚拟内容渲染后才标记完成。
-            const modernTurnId = shell.getAttribute('data-turn-key');
-            if (modernTurnId && capturedMessages.has(modernTurnId)) {
-                processedIds.add(modernTurnId);
-            }
-
-            // 连续多轮既无新采集也无新渲染 → 虚拟化不再响应，避免死循环
-            if (capturedMessages.size === beforeCaptured && processedIds.size === beforeProcessed) {
-                stagnantRounds++;
-                if (stagnantRounds >= 5) break;
-            } else {
-                stagnantRounds = 0;
-            }
-        }
-        collectRendered(); // 结束前最后再采一次
-
-        // 用户和助手独立采集，最后才按完整顺序配对，避免虚拟窗口边界漏回复。
-        const turns = this._pairCapturedMessages(capturedMessages, masterOrder, capturedOrder);
-
-        // 恢复用户原始滚动位置（尽量不打扰）
-        try { scrollTo(initialScrollTop); } catch { /* ignore */ }
-
-        turns.forEach((turn, index) => { turn.order = index + 1; });
-        return turns;
+        return this._pairCapturedMessages(messages, order, []).map((turn, index) => ({ ...turn, order: index + 1 }));
     }
 
     /**
@@ -31721,28 +32746,6 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         });
         flushPending();
         return turns;
-    }
-
-    /**
-     * 读取扩展记录的提问时间表（ChatTimeRecorder 写入的 chatTimes 存储）。
-     * 键为时间轴 generateTurnId 的产物（chatgpt-<turnId>），值为毫秒时间戳。
-     * 无记录/存储不可用时返回 null。
-     * @returns {Promise<Object|null>}
-     */
-    async _loadAskTimes() {
-        try {
-            if (typeof ChatTimeStorageManager === 'undefined') return null;
-            const conversationKey = location.href
-                .replace(/^https?:\/\//, '')
-                .split('?')[0]
-                .split('#')[0];
-            if (!conversationKey) return null;
-            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
-            const nodes = data?.nodes || {};
-            return Object.keys(nodes).length ? nodes : null;
-        } catch {
-            return null;
-        }
     }
 
     /** 兜底：与时间轴 getStarChatButtonTarget 相同的分享按钮锚点 */
@@ -31827,8 +32830,7 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
     }
 
     _fallbackButtonInsertTarget() {
-        const path = document.querySelector('path[d^="M15.7484 11.1004"]');
-        return path?.closest('.ds-icon-button') || null;
+        return DeepSeekAdapter.getHeaderActionTarget();
     }
 
     _fallbackScrollContainer() {
@@ -31844,11 +32846,8 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, [':scope > div']);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.ds-assistant-message-main-content',
-            '.ds-markdown',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -31859,11 +32858,21 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
         };
     }
 
+    _extractUser(element) { return this._extractUserFrom(element, [':scope > div']); }
+
+    getSelectedAskTimeKey(message) {
+        // Existing DeepSeek timestamps are stored by the timeline's question index.
+        const timeline = window.timelineManager;
+        if (timeline?.adapter?.platformId !== this.platformId) return null;
+        return timeline.markers?.find(marker => marker.element === message.element)?.id || null;
+    }
+
+    _extractAssistant(element) {
+        return this._extractAssistantFrom(element, ['.ds-assistant-message-main-content', '.ds-markdown']);
+    }
+
     isLoadingMore() {
-        const loading = document.querySelector('.ds-loading');
-        if (!loading) return false;
-        const rect = loading.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
+        return DeepSeekAdapter.isHistoryLoading();
     }
 }
 
@@ -31904,11 +32913,8 @@ class CEKimiExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, ['.user-content']);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.markdown-container',
-            '.markdown',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -31917,6 +32923,15 @@ class CEKimiExportAdapter extends CEExportAdapter {
             user,
             assistant,
         };
+    }
+
+    _extractUser(element) { return this._extractUserFrom(element, ['.user-content']); }
+
+    _extractAssistant(element) { return this._extractAssistantFrom(element, ['.markdown-container', '.markdown']); }
+
+    getSelectedAskTimeKey(message) {
+        const index = [...document.querySelectorAll(this.getUserMessageSelector())].indexOf(message.element);
+        return index < 0 ? null : `kimi-${index}`;
     }
 }
 
@@ -32001,17 +33016,8 @@ class CEDoubaoExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, [
-            '[data-plugin-identifier="Symbol(infra:send-message-box:text)"]',
-            '[data-plugin-identifier="block_type:10000"] .md-box-root',
-            '[data-plugin-identifier]',
-        ]);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.flow-markdown-body',
-            '[data-plugin-identifier="block_type:10000"] .md-box-root',
-            '.md-box-root',
-            '[data-container-type^="block"]',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -32020,6 +33026,23 @@ class CEDoubaoExportAdapter extends CEExportAdapter {
             user,
             assistant,
         };
+    }
+
+    _extractUser(element) {
+        return this._extractUserFrom(element, [
+            '[data-plugin-identifier="Symbol(infra:send-message-box:text)"]',
+            '[data-plugin-identifier="block_type:10000"] .md-box-root',
+            '[data-plugin-identifier]',
+        ]);
+    }
+
+    _extractAssistant(element) {
+        return this._extractAssistantFrom(element, [
+            '.flow-markdown-body',
+            '[data-plugin-identifier="block_type:10000"] .md-box-root',
+            '.md-box-root',
+            '[data-container-type^="block"]',
+        ]);
     }
 }
 
@@ -32055,13 +33078,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _fallbackScrollContainer() {
-        let element = document.querySelector('[data-testid="transcript-list"]')
-            || document.querySelector(this.getUserMessageSelector());
-        while (element) {
-            if (/^(auto|scroll)$/.test(getComputedStyle(element).overflowY)) return element;
-            element = element.parentElement;
-        }
-        return null;
+        return ClaudeAdapter.findChatScroller(document.querySelector('[data-testid="transcript-list"]')
+            || document.querySelector(this.getUserMessageSelector()));
     }
 
     getConversationTitle() {
@@ -32070,10 +33088,7 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _messageId(element) {
-        return element?.getAttribute('data-turn-key')
-            || element?.closest('[data-turn-key]')?.getAttribute('data-turn-key')
-            || element?.id?.match(/([a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i)?.[1]
-            || null;
+        return ClaudeAdapter.getMessageId(element);
     }
 
     _messages(root = document) {
@@ -32186,22 +33201,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
 
     /** 找到仍有未采集消息的占位区；用它的实时位置补齐滚动重排造成的缺口。 */
     _missingSpacer(captured) {
-        for (const spacer of document.querySelectorAll('[data-testid="transcript-spacer"]')) {
-            if (spacer.getBoundingClientRect().height <= 1) continue;
-            let before = spacer.previousElementSibling;
-            let after = spacer.nextElementSibling;
-            while (before && !before.hasAttribute('data-index')) before = before.previousElementSibling;
-            while (after && !after.hasAttribute('data-index')) after = after.nextElementSibling;
-            const start = before ? Number(before.getAttribute('data-index')) + 1 : 0;
-            // 尾部占位可在没有已挂载后继行时存在。
-            const total = Number(document.querySelector('[data-testid="transcript-row"] [aria-setsize]')
-                ?.getAttribute('aria-setsize'));
-            const end = after ? Number(after.getAttribute('data-index')) : total;
-            for (let index = start; index < end; index++) {
-                if (!captured.has(index)) return { spacer, fraction: (index - start) / (end - start) };
-            }
-        }
-        return null;
+        const total = Number(document.querySelector('[data-testid="transcript-row"] [aria-setsize]')?.getAttribute('aria-setsize'));
+        return ClaudeAdapter.findTranscriptGap(document, index => captured.has(index), total);
     }
 
     async collectAllTurns({ onProgress, shouldCancel } = {}) {
@@ -32339,6 +33340,55 @@ class CEExportManager {
             <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>`;
 
+    /** Reuse the native-header appearance and hover behavior in both export flows. */
+    static createHeaderButton(platformId) {
+        const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(platformId)
+            ?? (platformId !== 'chatgpt');
+        const button = document.createElement('button');
+        button.className = CEExportManager.BUTTON_CLASS;
+        button.type = 'button';
+        const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
+        button.setAttribute('aria-label', exportLabel);
+        button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}${showLabel ? `<span class="ait-ce-export-btn-label">${exportLabel}</span>` : ''}`;
+        button.style.cssText = `
+            min-width: 36px;
+            width: ${showLabel ? 'auto' : '36px'};
+            height: 36px;
+            padding: ${showLabel ? '0 10px' : '0'};
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: ${showLabel ? '6px' : '0'};
+            color: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+            position: relative;
+        `;
+
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = 'rgba(127, 127, 127, 0.15)';
+            window.globalTooltipManager?.show(
+                'ce-export-btn',
+                'button',
+                button,
+                CE_TEXT.buttonTooltip,
+                { placement: 'bottom', theme: 'inverse' }
+            );
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = 'transparent';
+            window.globalTooltipManager?.hide();
+        });
+        return button;
+    }
+
     constructor(adapter) {
         this.adapter = adapter;
         this.modal = null;
@@ -32379,7 +33429,7 @@ class CEExportManager {
                 this._removeButton();
                 return;
             }
-            // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
+            // 仅图标/图标+文字由共享模块按平台约定统一决定。
             const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
                 ?? (this.adapter.platformId !== 'chatgpt');
 
@@ -32413,48 +33463,7 @@ class CEExportManager {
             const target = this.adapter.getButtonInsertTarget();
             if (!target || !target.parentNode) return;
 
-            const button = document.createElement('button');
-            button.className = CEExportManager.BUTTON_CLASS;
-            button.type = 'button';
-            const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
-            button.setAttribute('aria-label', exportLabel);
-            button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}${showLabel ? `<span class="ait-ce-export-btn-label">${exportLabel}</span>` : ''}`;
-            button.style.cssText = `
-                min-width: 36px;
-                width: ${showLabel ? 'auto' : '36px'};
-                height: 36px;
-                padding: ${showLabel ? '0 10px' : '0'};
-                background: transparent;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: ${showLabel ? '6px' : '0'};
-                color: inherit;
-                font-size: 14px;
-                font-weight: 500;
-                line-height: 1;
-                white-space: nowrap;
-                transition: background-color 0.2s;
-                position: relative;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = 'rgba(127, 127, 127, 0.15)';
-                window.globalTooltipManager?.show(
-                    'ce-export-btn',
-                    'button',
-                    button,
-                    CE_TEXT.buttonTooltip,
-                    { placement: 'bottom' }
-                );
-            });
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = 'transparent';
-                window.globalTooltipManager?.hide();
-            });
+            const button = CEExportManager.createHeaderButton(this.adapter.platformId);
 
             const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
                 && window.AITChatHeaderActions?.mount?.(button, 'export');
@@ -32654,6 +33663,113 @@ class CEExportManager {
 
 ;
 
+// Source: js/conversationExport/export-action.js
+/** Export action adapter. Page selection and traversal are owned by messageActions. */
+class ConversationExportAction {
+    constructor() {
+        this.id = 'export'; this.settingsKey = 'conversationExportPlatformSettings'; this.optionsKey = 'messageActionsExportOptions';
+        this.barLayout = 'panel';
+        this.settingsTabId = 'conversation-export';
+        this.showConfirmIcon = false;
+        // Lucide file-down (ISC); see ../messageActions/LUCIDE-LICENSE.
+        this.icon = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>';
+    }
+    label() { return TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm; }
+    confirmLabel() { return CE_TEXT.download; }
+    copyType(options) {
+        if (options.formatId === 'png') return 'image/png';
+        return ['markdown', 'txt', 'json', 'csv'].includes(options.formatId) ? 'text/plain' : null;
+    }
+    copyLabel(options) { return TimelineI18n.getMessage(options.formatId === 'png' ? 'messageActionsCopyImage' : 'messageActionsCopyContent'); }
+    supports(platformId) { return !!CE_EXPORT_ADAPTERS[platformId] && _isExportFeatureEnabled(platformId); }
+    createHeaderButton({ adapter }) { return CEExportManager.createHeaderButton(adapter.platformId); }
+    mountHeader(button, { adapter }) {
+        if (adapter.platformId === 'chatgpt') return window.AITChatHeaderActions?.mount(button, 'export');
+        const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
+        const target = exporter.getButtonInsertTarget();
+        if (!target?.parentElement) return false;
+        if (adapter.platformId === 'deepseek' && window.AITChatHeaderActions?.mount(button, 'export', target)) return true;
+        target.before(button);
+        return true;
+    }
+    async createOptions({ adapter }) {
+        const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
+        const stored = await chrome.storage.local.get(this.optionsKey);
+        return new CEExportOptions(await exporter.getDefaultThemeId(), stored[this.optionsKey]);
+    }
+    async createCollector({ adapter }) {
+        const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
+        const times = await exporter._loadAskTimes?.();
+        const cache = new Map();
+        return {
+            capture(message) {
+                if (!message.element?.isConnected || message.generating) return;
+                const content = message.role === 'user' ? exporter._extractUser(message.element) : exporter._extractAssistant(message.element);
+                if (message.role === 'user' && times) {
+                    const timeKey = exporter.getSelectedAskTimeKey(message);
+                    if (timeKey) content.time = times[timeKey] || content.time || null;
+                }
+                cache.set(message.key, content);
+            },
+            has: key => cache.has(key), get: key => cache.get(key), remove: key => cache.delete(key), destroy: () => cache.clear()
+        };
+    }
+    buildTurns(messages, collector) {
+        const turns = [];
+        for (const message of messages) {
+            const role = message.role === 'user' ? 'user' : 'assistant';
+            let turn = turns.at(-1);
+            if (role === 'user' || !turn || turn.id !== message.turnId || turn.selection.assistant) {
+                turn = { id: message.turnId, order: turns.length + 1, selection: { user: false, assistant: false } };
+                turns.push(turn);
+            }
+            const content = collector.get(message.key);
+            if (!content) throw new Error('Changed');
+            turn[role] = content; turn.selection[role] = true;
+        }
+        return turns;
+    }
+    async createJob({ messages, collector, options, adapter, signal }) {
+        await window.AITContentLoader.load('export-ui');
+        signal.throwIfAborted();
+        const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
+        const meta = { title: exporter.getConversationTitle(), url: location.href, exportTime: new Date(),
+            platformId: adapter.platformId, platformName: await exporter.getPlatformName() };
+        const format = CE_FORMATS.find(format => format.id === options.formatId);
+        if (!format) throw new Error('InvalidFormat');
+        const job = { meta, options: { ...options, rangeId: 'select' }, turns: this.buildTurns(messages, collector) };
+        const filename = ceSanitizeFilename(meta.title);
+        signal.throwIfAborted();
+        return { job, filename, format };
+    }
+    async render(job, format, themeId) {
+        if (format.id === 'png') return new CEPngExporter().export(job, themeId);
+        const methods = { markdown: 'buildMarkdown', txt: 'buildTxt', csv: 'buildCsv', json: 'buildJson' };
+        return CETextExporters[methods[format.id]](job);
+    }
+    async copy(context) {
+        const type = this.copyType(context.options);
+        if (!type) throw new Error('CopyUnsupported');
+        const { job, format } = await this.createJob(context);
+        const content = await this.render(job, format, context.options.themeId);
+        context.signal.throwIfAborted();
+        return type === 'image/png' ? content : new Blob([content], { type });
+    }
+    async execute(context) {
+        const { options, signal } = context;
+        const { job, filename, format } = await this.createJob(context);
+        if (format.id === 'pdf') {
+            await new CEPdfExporter().export(job, options.themeId, new CEPngExporter(), { signal });
+            return;
+        }
+        const content = await this.render(job, format, options.themeId);
+        signal.throwIfAborted();
+        ceTriggerDownload(filename, format, content);
+    }
+}
+
+;
+
 // Source: js/conversationExport/index.js
 /**
  * Conversation Export - 入口
@@ -32690,8 +33806,16 @@ async function isConversationExportEnabled(platformId) {
     let manager = null;
     let initInFlight = false;
     let listenersAttached = false;
+    let actionRegistered = false;
 
     async function ensureManager() {
+        if (window.AITMessageActions?.supportsCurrentPlatform()) {
+            if (!actionRegistered) {
+                window.AITMessageActions.registerAction(new ConversationExportAction());
+                actionRegistered = true;
+            }
+            return;
+        }
         if (manager || initInFlight) return;
         initInFlight = true;
         try {
@@ -32728,6 +33852,7 @@ async function isConversationExportEnabled(platformId) {
      * 依据当前平台与用户开关，决定初始化还是销毁管理器（供开关实时切换调用）。
      */
     async function reevaluate() {
+        if (window.AITMessageActions?.supportsCurrentPlatform()) return;
         const adapter = getConversationExportAdapter();
         const platformId = adapter?.platformId || null;
         const enabled = platformId ? await isConversationExportEnabled(platformId) : false;
@@ -32758,5 +33883,97 @@ async function isConversationExportEnabled(platformId) {
 })();
 
 ;
-Object.assign(globalThis, { BaseTab, FolderManager, StarredTreeRenderer, TIMELINE_CONFIG, TimelineUtils, StorageAdapter, StarStorageManager, PinStorageManager, ChatTimeStorageManager, ContainerFinder, createPromptDropdownUI, CE_TEXT_FALLBACK, CE_TEXT_I18N_KEYS, ceGetText, CE_TEXT, CE_FORMATS, CE_DEFAULT_FORMAT, CE_LOAD_STRATEGY, CE_THEMES, CE_DEFAULT_THEME, CE_MIN_IMAGE_SIZE, CE_MAX_FILENAME_LENGTH, CE_MAX_CANVAS_HEIGHT, ceFormatText, ceGetTheme, ceSanitizeFilename, ceFormatLocalTime, ceFormatChatTime, ceIsDarkMode, CEDomToMarkdown, CHANGELOG_DATA });
+
+// Source: js/messageScreenshot/screenshot-action.js
+/** DOM snapshot/image generation only. Message discovery belongs to messageActions. */
+class MessageScreenshotAction {
+    constructor() {
+        this.id = 'screenshot'; this.settingsKey = 'messageScreenshotPlatformSettings'; this.optionsKey = 'messageScreenshotOptions';
+        this.barLayout = 'panel';
+        this.settingsTabId = 'conversation-export';
+        this.showConfirmIcon = false;
+        // Lucide scissors (ISC); see ../messageActions/LUCIDE-LICENSE.
+        this.icon = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(90 12 12)"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></g></svg>';
+    }
+    label() { return TimelineI18n.getMessage('messageScreenshotButton'); }
+    confirmLabel() { return TimelineI18n.getMessage('messageScreenshotDownload'); }
+    copyType() { return 'image/png'; }
+    copyLabel() { return TimelineI18n.getMessage('messageActionsCopyImage'); }
+    supports(platformId) { return getSiteInfoListSync().some(site => site.id === platformId && site.features.messageScreenshot === true); }
+    async createOptions() {
+        const stored = await chrome.storage.local.get(this.optionsKey);
+        return new MessageScreenshotOptions(stored[this.optionsKey]);
+    }
+    errorMessage(error) {
+        const known = ['ImageFailed', 'Unsupported', 'TooLarge', 'Timeout', 'Changed'];
+        return TimelineI18n.getMessage(`messageScreenshot${known.includes(error.message) ? error.message : 'Failed'}`);
+    }
+    async createCollector({ signal, adapter }) {
+        await window.AITContentLoader.load('message-screenshot-renderer');
+        signal.throwIfAborted();
+        const cache = new Map();
+        const rules = adapter.getSnapshotRules();
+        let nodeCount = 0;
+        return {
+            async capture(message) {
+                // Give cancellation and selection events a turn between DOM snapshots.
+                await new Promise(resolve => setTimeout(resolve, 0));
+                signal.throwIfAborted();
+                if (!message.element?.isConnected || message.generating) return;
+                const element = adapter.getSnapshotElement?.(message) || message.element;
+                const previous = cache.get(message.key);
+                const html = element.innerHTML;
+                const style = getComputedStyle(element);
+                const signature = [element.getBoundingClientRect().width, style.color, style.backgroundColor, style.colorScheme,
+                    document.documentElement.className, document.documentElement.getAttribute('data-theme')].join('|');
+                // Canvas pixels can change without changing markup, dimensions or the page theme.
+                const hasCanvas = element.matches('canvas') || !!element.querySelector('canvas');
+                if (!hasCanvas && previous?.source === element && previous.html === html && previous.signature === signature) return;
+                const count = element.querySelectorAll('*').length;
+                if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
+                const snapshot = MessageScreenshotSnapshot.capture(element, rules.selector, rules.attributes);
+                nodeCount += count - (previous?.nodeCount || 0);
+                cache.set(message.key, { ...snapshot, source: element, html, signature, nodeCount: count });
+            },
+            has: key => cache.has(key), get: key => cache.get(key),
+            remove(key) { nodeCount -= cache.get(key)?.nodeCount || 0; cache.delete(key); },
+            destroy() { cache.clear(); nodeCount = 0; }
+        };
+    }
+    async render({ messages, collector, options, signal }, singleImage = false) {
+        signal.throwIfAborted();
+        const snapshots = messages.map(message => {
+            const snapshot = collector.get(message.key);
+            if (!snapshot) throw new Error('Changed');
+            return snapshot;
+        });
+        return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage });
+    }
+    async copy(context) {
+        const blobs = await this.render(context, true);
+        context.signal.throwIfAborted();
+        if (blobs.length !== 1) throw new Error('CopyTooLong');
+        return blobs[0];
+    }
+    async execute(context) {
+        const { signal } = context;
+        const blobs = await this.render(context);
+        signal.throwIfAborted();
+        const filename = `${AITDownload.filename(document.title.replace(/\s*[-–]\s*ChatGPT$/, ''))}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
+        for (let index = 0; index < blobs.length; index++) {
+            signal.throwIfAborted();
+            AITDownload.saveBlob(blobs[index], `${filename}${blobs.length > 1 ? `-${index + 1}` : ''}.png`);
+        }
+    }
+}
+
+;
+
+// Source: js/messageScreenshot/index.js
+window.AITPlatformFeatures.register('message-screenshot', () => {
+    if (window.AITMessageActions?.supportsCurrentPlatform()) window.AITMessageActions.registerAction(new MessageScreenshotAction());
+});
+
+;
+Object.assign(globalThis, { BaseTab, FolderManager, StarredTreeRenderer, TIMELINE_CONFIG, TimelineUtils, StorageAdapter, StarStorageManager, PinStorageManager, ChatTimeStorageManager, ContainerFinder, createPromptDropdownUI, CE_TEXT_FALLBACK, CE_TEXT_I18N_KEYS, ceGetText, CE_TEXT, CE_FORMATS, CE_DEFAULT_FORMAT, CE_LOAD_STRATEGY, CE_THEMES, CE_DEFAULT_THEME, CE_MIN_IMAGE_SIZE, CE_MAX_FILENAME_LENGTH, CE_MAX_CANVAS_HEIGHT, ceFormatText, ceGetTheme, ceSanitizeFilename, ceFormatLocalTime, ceFormatChatTime, ceIsDarkMode, CEDomToMarkdown, CHANGELOG_DATA, AITDownload, AITClipboard, createAITSettingsIcon, MessageSelectionStore });
 }).call(globalThis);

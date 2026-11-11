@@ -8,6 +8,35 @@
 class ClaudeAdapter extends SiteAdapter {
     static STOP_SELECTOR = '[data-testid="chat-input-stop"], path[d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm40-112v56a12,12,0,0,1-12,12H100a12,12,0,0,1-12-12V100a12,12,0,0,1,12-12h56A12,12,0,0,1,168,100Z"]';
 
+    static getMessageId(element) {
+        return element?.closest('[data-turn-key]')?.getAttribute('data-turn-key')
+            || element?.id?.match(/([a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i)?.[1]
+            || null;
+    }
+
+    static findChatScroller(element) {
+        for (let node = element; node; node = node.parentElement) {
+            if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY)) return node;
+        }
+        return null;
+    }
+
+    static findTranscriptGap(root, isCaptured, total) {
+        for (const spacer of root.querySelectorAll('[data-testid="transcript-spacer"]')) {
+            if (spacer.getBoundingClientRect().height <= 1) continue;
+            let before = spacer.previousElementSibling;
+            let after = spacer.nextElementSibling;
+            while (before && !before.hasAttribute('data-index')) before = before.previousElementSibling;
+            while (after && !after.hasAttribute('data-index')) after = after.nextElementSibling;
+            const start = before ? Number(before.getAttribute('data-index')) + 1 : 0;
+            const end = after ? Number(after.getAttribute('data-index')) : total;
+            for (let index = start; index < end; index++) {
+                if (!isCaptured(index)) return { spacer, fraction: (index - start) / (end - start) };
+            }
+        }
+        return null;
+    }
+
     constructor() {
         super();
         this._conversationId = null;
@@ -88,6 +117,11 @@ class ClaudeAdapter extends SiteAdapter {
         };
         document.addEventListener('ait-claude-timeline-updated', handler);
         return () => document.removeEventListener('ait-claude-timeline-updated', handler);
+    }
+
+    getConversationBranch() {
+        if (!this._snapshot || this._snapshot.conversationId !== this.extractConversationId(location.pathname)) return null;
+        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
     }
 
     getCapturedTimelineEntries(userElements) {

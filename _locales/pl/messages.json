@@ -387,7 +387,7 @@
     "message": "Format eksportu"
   },
   "conversationExportSectionHeader": {
-    "message": "Więcej opcji"
+    "message": "Więcej informacji"
   },
   "conversationExportSectionTheme": {
     "message": "Kolor motywu"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "Eksportuj"
+  },
+  "conversationExportDownload": {
+    "message": "Pobierz plik"
   },
   "conversationExportLoading": {
     "message": "Wczytywanie rozmowy..."
@@ -690,22 +693,10 @@
     "message": "Przeniesiono"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "Zapisuj ważne rozmowy w folderach, porządkuj je według tematów i wracaj do nich w dowolnym momencie."
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "Przeciągnij, aby zmienić kolejność, lub kliknij dwukrotnie, aby edytować."
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "Spróbuj ponownie"
+  },
+  "messageScreenshotButton": {
+    "message": "Zrzut ekranu"
+  },
+  "messageScreenshotDownload": {
+    "message": "Pobierz zrzut ekranu"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "Ultrawysoka"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "Wysoka"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "Wyraźna"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "Standardowa"
+  },
+  "messageScreenshotReply": {
+    "message": "Zrzut odpowiedzi"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "Zrzut pytania i odpowiedzi"
+  },
+  "messageScreenshotDone": {
+    "message": "Zrzut zapisany"
+  },
+  "messageScreenshotFailed": {
+    "message": "Nie udało się wykonać zrzutu. Spróbuj ponownie."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "Nie znaleziono pasującego pytania. Możesz zapisać samą odpowiedź."
+  },
+  "messageScreenshotChanged": {
+    "message": "Wiadomość uległa zmianie. Spróbuj ponownie."
+  },
+  "messageScreenshotGenerating": {
+    "message": "Poczekaj na zakończenie tej odpowiedzi."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "Nie można wczytać obrazu. Spróbuj po jego wczytaniu."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "Wiadomość zawiera osadzoną treść, której nie można przechwycić."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "Wiadomość jest zbyt duża do przechwycenia."
+  },
+  "messageScreenshotTimeout": {
+    "message": "Upłynął limit czasu. Spróbuj ponownie."
+  },
+  "conversationExportTabName": {
+    "message": "Eksport i zrzuty ekranu"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "Zrzuty wiadomości"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "Wyświetla przycisk zrzutu pod odpowiedziami. Wybierz wiele pytań lub odpowiedzi i zapisz PNG w rozdzielczości 1×–4×."
+  },
+  "messageActionsSelectAll": {
+    "message": "Zaznacz wszystko"
+  },
+  "messageActionsStopLoading": {
+    "message": "Zatrzymaj ładowanie"
+  },
+  "messageActionsSettings": {
+    "message": "Ustawienia"
+  },
+  "messageActionsCancel": {
+    "message": "Anuluj"
+  },
+  "messageActionsSelected": {
+    "message": "Wybrano {count} / {total} wiadomości"
+  },
+  "messageActionsCopyContent": {
+    "message": "Kopiuj treść"
+  },
+  "messageActionsCopyImage": {
+    "message": "Kopiuj obraz"
+  },
+  "messageActionsCopying": {
+    "message": "Kopiowanie…"
+  },
+  "messageActionsCopied": {
+    "message": "Skopiowano. Możesz wkleić."
+  },
+  "messageActionsCopyFailed": {
+    "message": "Nie udało się skopiować. Spróbuj ponownie lub pobierz plik."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "Ta przeglądarka nie obsługuje kopiowania. Pobierz plik."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "Obraz jest zbyt długi do skopiowania. Pobierz zrzut ekranu."
+  },
+  "messageActionsWorking": {
+    "message": "Przetwarzanie…"
+  },
+  "messageActionsLoading": {
+    "message": "Ładowanie historii…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "Wczytano {count} wiadomości"
+  },
+  "messageActionsQuestion": {
+    "message": "Wybierz pytanie"
+  },
+  "messageActionsReply": {
+    "message": "Wybierz odpowiedź"
+  },
+  "messageActionsLoaded": {
+    "message": "Wszystkie wiadomości wczytane"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "Ładowanie niepełne; zaznacz wszystko, aby ponowić"
+  },
+  "messageActionsLoadStopped": {
+    "message": "Ładowanie zatrzymane"
+  },
+  "messageActionsDone": {
+    "message": "Gotowe"
+  },
+  "messageActionsFailed": {
+    "message": "Operacja nie powiodła się. Spróbuj ponownie."
+  },
+  "messageActionsChanged": {
+    "message": "Wiadomość zmieniła się. Wybierz ją ponownie."
+  },
+  "messageActionsResolution": {
+    "message": "Rozdzielczość"
+  },
+  "messageActionsScale1": {
+    "message": "Standardowa"
+  },
+  "messageActionsScale2": {
+    "message": "Wysoka"
+  },
+  "messageActionsScale3": {
+    "message": "Ultra"
+  },
+  "messageActionsScale4": {
+    "message": "Maksymalna"
+  },
+  "messageActionsClear": {
+    "message": "Wyczyść"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "Zaznacz wszystko i wczytaj całą rozmowę"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "Wybierz wiadomości do zapisania."
   }
 }

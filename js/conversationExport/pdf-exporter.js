@@ -18,13 +18,15 @@ class CEPdfExporter {
      * @param {CEPngExporter} [markdownParser] - 复用其 _parseMarkdownBlocks
      * @returns {Promise<void>}
      */
-    async export(job, themeId, markdownParser) {
+    async export(job, themeId, markdownParser, { signal } = {}) {
+        signal?.throwIfAborted();
         this._parser = markdownParser || null;
         this._mjReady = this._containsFormula(job)
             ? await this._ensureMathJax()
             : false;
+        signal?.throwIfAborted();
         const html = this._buildHtml(job, themeId);
-        await this._printHtml(html);
+        await this._printHtml(html, signal);
     }
 
     // ==================== HTML 构建 ====================
@@ -113,6 +115,7 @@ a { color: #2563eb; text-decoration: none; }
 
         return `
 <div class="ce-turn">
+  ${CETextExporters.roleSelected(turn, 'user') ? `
   <div class="ce-row">
     <span class="ce-badge q">Q</span>
     <div class="ce-body">
@@ -120,10 +123,12 @@ a { color: #2563eb; text-decoration: none; }
       ${userImages}
     </div>
   </div>
+` : ''}
+  ${CETextExporters.roleSelected(turn, 'assistant') ? `
   <div class="ce-row">
     <span class="ce-badge a">A</span>
     <div class="ce-body"><div class="ce-content">${assistantBody}</div></div>
-  </div>
+  </div>` : ''}
 </div>`;
     }
 
@@ -264,6 +269,7 @@ a { color: #2563eb; text-decoration: none; }
 
     _containsFormula(job) {
         return (job?.turns || []).some((turn) => {
+            if (!CETextExporters.roleSelected(turn, 'assistant')) return false;
             const markdown = turn?.assistant?.markdown || '';
             if (!markdown) return false;
             return /\\\(|\\\[|\$\$/.test(markdown)
@@ -317,8 +323,9 @@ a { color: #2563eb; text-decoration: none; }
 
     // ==================== 打印 ====================
 
-    _printHtml(html) {
-        return new Promise((resolve) => {
+    _printHtml(html, signal) {
+        signal?.throwIfAborted();
+        return new Promise((resolve, reject) => {
             const iframe = document.createElement('iframe');
             iframe.setAttribute('aria-hidden', 'true');
             iframe.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;height:1123px;border:0;opacity:0;';
@@ -331,6 +338,14 @@ a { color: #2563eb; text-decoration: none; }
             doc.close();
 
             let printed = false;
+            let imageTimer, startTimer;
+            const cleanup = () => {
+                clearTimeout(imageTimer); clearTimeout(startTimer);
+                signal?.removeEventListener('abort', abort);
+                iframe.remove();
+            };
+            const abort = () => { if (printed) return; printed = true; cleanup(); reject(new DOMException('Cancelled', 'AbortError')); };
+            signal?.addEventListener('abort', abort, { once: true });
             const finish = () => {
                 if (printed) return;
                 printed = true;
@@ -340,7 +355,7 @@ a { color: #2563eb; text-decoration: none; }
                 } catch { /* ignore */ }
                 // 打印对话框关闭后再移除 iframe
                 setTimeout(() => {
-                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    cleanup();
                     resolve();
                 }, 500);
             };
@@ -356,13 +371,13 @@ a { color: #2563eb; text-decoration: none; }
                     im.addEventListener('error', onSettle, { once: true });
                 });
                 // 兜底：图片迟迟不返回也照常打印
-                setTimeout(finish, 4000);
+                imageTimer = setTimeout(finish, 4000);
             };
 
             let started = false;
             const start = () => { if (started) return; started = true; waitImagesThenPrint(); };
             win.addEventListener('load', start);
-            setTimeout(start, 800);
+            startTimer = setTimeout(start, 800);
         });
     }
 }

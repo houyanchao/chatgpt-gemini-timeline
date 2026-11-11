@@ -10,6 +10,7 @@
  */
 
 const CETextExporters = {
+    roleSelected(turn, role) { return turn.selection?.[role] !== false; },
     /** 只对实际的 Markdown 图片去重，代码示例和转义文本不算图片。 */
     _hasMarkdownImage(markdown, src) {
         if (!markdown || !src) return false;
@@ -124,8 +125,8 @@ const CETextExporters = {
      * 汇总一轮对话的全部图片（用户 + 助手）。
      */
     _turnImages(turn) {
-        const userImages = (turn.user?.images || []);
-        const assistantImages = (turn.assistant?.images || []);
+        const userImages = this.roleSelected(turn, 'user') ? (turn.user?.images || []) : [];
+        const assistantImages = this.roleSelected(turn, 'assistant') ? (turn.assistant?.images || []) : [];
         return [...userImages, ...assistantImages];
     },
 
@@ -171,40 +172,44 @@ const CETextExporters = {
         lines.push('---');
 
         for (const turn of turns) {
-            // 用户
-            lines.push('');
-            lines.push(`**${CE_TEXT.exportRoleUser}：**`);
-            const mdAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            if (mdAskTime) {
+            if (this.roleSelected(turn, 'user')) {
+                // 用户
                 lines.push('');
-                lines.push(`> ${CE_TEXT.askTimeLabel}: ${mdAskTime}`);
+                lines.push(`**${CE_TEXT.exportRoleUser}：**`);
+                const mdAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                if (mdAskTime) {
+                    lines.push('');
+                    lines.push(`> ${CE_TEXT.askTimeLabel}: ${mdAskTime}`);
+                }
+                lines.push('');
+                lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+
+                (turn.user?.images || []).forEach(image => {
+                    lines.push('');
+                    lines.push(...this._imageMarkdownLines(image));
+                });
+
             }
-            lines.push('');
-            lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+            if (this.roleSelected(turn, 'assistant')) {
+                // 助手
+                lines.push('');
+                lines.push(`**${CE_TEXT.exportRoleAssistant}：**`);
+                const mdAsstImages = turn.assistant?.images || [];
+                if (turn.assistant?.markdown) {
+                    lines.push('');
+                    lines.push(turn.assistant.markdown);
+                } else if (!mdAsstImages.length) {
+                    // 无文本且无图片时才显示占位（纯图片回复不应提示“未找到回复内容”）
+                    lines.push('');
+                    lines.push(CE_TEXT.emptyAssistant);
+                }
 
-            (turn.user?.images || []).forEach(image => {
-                lines.push('');
-                lines.push(...this._imageMarkdownLines(image));
-            });
+                mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
+                    lines.push('');
+                    lines.push(...this._imageMarkdownLines(image));
+                });
 
-            // 助手
-            lines.push('');
-            lines.push(`**${CE_TEXT.exportRoleAssistant}：**`);
-            const mdAsstImages = turn.assistant?.images || [];
-            if (turn.assistant?.markdown) {
-                lines.push('');
-                lines.push(turn.assistant.markdown);
-            } else if (!mdAsstImages.length) {
-                // 无文本且无图片时才显示占位（纯图片回复不应提示“未找到回复内容”）
-                lines.push('');
-                lines.push(CE_TEXT.emptyAssistant);
             }
-
-            mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
-                lines.push('');
-                lines.push(...this._imageMarkdownLines(image));
-            });
-
             lines.push('');
             lines.push('---');
         }
@@ -228,16 +233,21 @@ const CETextExporters = {
 
         for (const turn of turns) {
             lines.push('');
-            const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
-            lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
-            lines.push('');
-            lines.push(`${CE_TEXT.exportRoleAssistant}：`);
-            if (turn.assistant?.text) {
-                lines.push(turn.assistant.text);
-            } else if (!(turn.assistant?.images || []).length) {
-                // 无文本且无图片时才显示占位（图片在下方图片清单中列出）
-                lines.push(CE_TEXT.emptyAssistant);
+            if (this.roleSelected(turn, 'user')) {
+                const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
+                lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+                lines.push('');
+            }
+            if (this.roleSelected(turn, 'assistant')) {
+                lines.push(`${CE_TEXT.exportRoleAssistant}：`);
+                if (turn.assistant?.text) {
+                    lines.push(turn.assistant.text);
+                } else if (!(turn.assistant?.images || []).length) {
+                    // 无文本且无图片时才显示占位（图片在下方图片清单中列出）
+                    lines.push(CE_TEXT.emptyAssistant);
+                }
+
             }
 
             const images = this._turnImages(turn);
@@ -280,18 +290,18 @@ const CETextExporters = {
 
         const conversation = turns.map(turn => ({
             order: turn.order,
-            user: {
+            ...(this.roleSelected(turn, 'user') ? { user: {
                 text: turn.user?.text || '',
                 ...(options.showConversationTime && turn.user?.time
                     ? { time: ceFormatChatTime(turn.user.time) }
                     : {}),
                 images: (turn.user?.images || []).map(this._serializeImage),
-            },
-            assistant: {
+            } } : {}),
+            ...(this.roleSelected(turn, 'assistant') ? { assistant: {
                 text: turn.assistant?.text || '',
                 markdown: turn.assistant?.markdown || '',
                 images: (turn.assistant?.images || []).map(this._serializeImage),
-            },
+            } } : {}),
         }));
 
         return JSON.stringify({ metadata, conversation }, null, 2);
@@ -327,9 +337,9 @@ const CETextExporters = {
 
         turns.forEach(turn => {
             const cells = [turn.order];
-            if (withTime) cells.push(ceFormatChatTime(turn.user?.time) || '');
-            cells.push(turn.user?.text || '');
-            cells.push(turn.assistant?.text || turn.assistant?.markdown || '');
+            if (withTime) cells.push(this.roleSelected(turn, 'user') ? ceFormatChatTime(turn.user?.time) || '' : '');
+            cells.push(this.roleSelected(turn, 'user') ? turn.user?.text || '' : '');
+            cells.push(this.roleSelected(turn, 'assistant') ? turn.assistant?.text || turn.assistant?.markdown || '' : '');
             const imgs = this._turnImages(turn)
                 .map(img => (img.src ? img.src : `（${CE_TEXT.imageNotRendered}）`))
                 .join('\n');
@@ -369,17 +379,5 @@ function ceTriggerDownload(filenameBase, format, content) {
         ? content
         : new Blob([content], { type: `${format.mime};charset=utf-8` });
 
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${filenameBase}${format.ext}`;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-
-    // 释放资源
-    setTimeout(() => {
-        if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
-        URL.revokeObjectURL(url);
-    }, 1000);
+    AITDownload.saveBlob(blob, `${filenameBase}${format.ext}`);
 }

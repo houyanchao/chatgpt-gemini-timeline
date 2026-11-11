@@ -69,6 +69,7 @@ After installation, open a supported AI chat page. Most features are enabled by 
 | Question list | Displays all questions in the current conversation with jump, bookmark, and pin support. |
 | Bookmarks and archives | Saves individual Q&A entries or entire conversations, with folders, notes, search, and optional native-sidebar access on supported platforms. |
 | Input enhancements | Provides a prompt library, quick follow-up actions, Smart Enter behavior, input animations, and common settings. |
+| Message screenshots | Reply export and screenshot entries share individual-message selection and a bottom action bar on ChatGPT, Gemini, Claude, DeepSeek, Kimi and Doubao. Screenshots support 1×–4× resolution and split long content into multiple files. |
 | Reading and copying | Supports text highlighting, LaTeX / MathML formula copy, Mermaid diagram preview, and code block helpers. |
 | Code running | Runs or previews common code blocks including JavaScript, TypeScript, SQL, HTML, JSON, and Markdown. |
 | Data management | Supports JSON import/export and Google Drive backup/restore for migration and multi-device use. |
@@ -175,7 +176,9 @@ Unknown domains are checked against built-in platforms' user-message DOM selecto
 | `core` | Loads on supported sites; provides automatic features such as the timeline, prompt button, and shared components |
 | `panel` | Loads when settings or a related settings dialog first opens |
 | `runner-ui` | Loads on the first code-run action |
-| `export-ui` | Loads when conversation export first opens |
+| `message-actions-ui` | Loads on first use of message selection for export or screenshots, providing shared selection and action-specific controls |
+| `export-ui` | Loads on confirmed ChatGPT export; on other platforms, when the existing export dialog first opens |
+| `message-screenshot-renderer` | Loads when a message screenshot is requested |
 
 With constructed stylesheets, each bundle reads its CSS concurrently, applies it in the order listed in `styles`, then executes its JavaScript after all styles are ready. If the API exists but accessing or applying sheets fails, loading switches to the sequential `<link>` fallback. Concurrent requests share a loading task, and subsequent calls reuse the successful result within the same page. Shared UI styles must load with their consumers. For example, the input's prompt menu works before settings opens, so its stylesheet belongs in `core`, not only in `panel`. Generated configuration and custom-site configuration are read consistently from `globalThis`, supporting Firefox content scripts where `window` and `globalThis` differ.
 

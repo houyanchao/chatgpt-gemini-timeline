@@ -27,13 +27,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _fallbackScrollContainer() {
-        let element = document.querySelector('[data-testid="transcript-list"]')
-            || document.querySelector(this.getUserMessageSelector());
-        while (element) {
-            if (/^(auto|scroll)$/.test(getComputedStyle(element).overflowY)) return element;
-            element = element.parentElement;
-        }
-        return null;
+        return ClaudeAdapter.findChatScroller(document.querySelector('[data-testid="transcript-list"]')
+            || document.querySelector(this.getUserMessageSelector()));
     }
 
     getConversationTitle() {
@@ -42,10 +37,7 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _messageId(element) {
-        return element?.getAttribute('data-turn-key')
-            || element?.closest('[data-turn-key]')?.getAttribute('data-turn-key')
-            || element?.id?.match(/([a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i)?.[1]
-            || null;
+        return ClaudeAdapter.getMessageId(element);
     }
 
     _messages(root = document) {
@@ -158,22 +150,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
 
     /** 找到仍有未采集消息的占位区；用它的实时位置补齐滚动重排造成的缺口。 */
     _missingSpacer(captured) {
-        for (const spacer of document.querySelectorAll('[data-testid="transcript-spacer"]')) {
-            if (spacer.getBoundingClientRect().height <= 1) continue;
-            let before = spacer.previousElementSibling;
-            let after = spacer.nextElementSibling;
-            while (before && !before.hasAttribute('data-index')) before = before.previousElementSibling;
-            while (after && !after.hasAttribute('data-index')) after = after.nextElementSibling;
-            const start = before ? Number(before.getAttribute('data-index')) + 1 : 0;
-            // 尾部占位可在没有已挂载后继行时存在。
-            const total = Number(document.querySelector('[data-testid="transcript-row"] [aria-setsize]')
-                ?.getAttribute('aria-setsize'));
-            const end = after ? Number(after.getAttribute('data-index')) : total;
-            for (let index = start; index < end; index++) {
-                if (!captured.has(index)) return { spacer, fraction: (index - start) / (end - start) };
-            }
-        }
-        return null;
+        const total = Number(document.querySelector('[data-testid="transcript-row"] [aria-setsize]')?.getAttribute('aria-setsize'));
+        return ClaudeAdapter.findTranscriptGap(document, index => captured.has(index), total);
     }
 
     async collectAllTurns({ onProgress, shouldCancel } = {}) {

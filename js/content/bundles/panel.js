@@ -2421,7 +2421,7 @@ if (typeof window !== 'undefined') {
 
 // Source: js/panelModal/tabs/conversationExport/index.js
 /**
- * Conversation Export Tab - 对话导出设置
+ * Conversation Export Tab - 导出与截图设置
  *
  * 功能：
  * - 管理各平台「对话导出」功能的开关（仅列出具备导出适配器的平台）
@@ -2435,7 +2435,7 @@ class ConversationExportTab extends BaseTab {
     constructor() {
         super();
         this.id = 'conversation-export';
-        this.name = TimelineI18n.getMessage('conversationExportTabName') || '对话导出';
+        this.name = TimelineI18n.getMessage('conversationExportTabName') || '导出与截图';
         this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -2456,6 +2456,11 @@ class ConversationExportTab extends BaseTab {
                 <div class="platform-list-hint">${this._esc(TimelineI18n.getMessage('conversationExportSettingsHint') || '开启后，支持的平台对话页顶部会显示「导出对话」按钮')}</div>
                 <div class="platform-list-container" id="conversation-export-platform-list"></div>
             </div>
+            <div class="platform-list">
+                <div class="platform-list-title">${this._esc(TimelineI18n.getMessage('messageScreenshotSettingsTitle'))}</div>
+                <div class="platform-list-hint">${this._esc(TimelineI18n.getMessage('messageScreenshotSettingsHint'))}</div>
+                <div class="platform-list-container" id="message-screenshot-platform-list"></div>
+            </div>
         `;
         return container;
     }
@@ -2463,20 +2468,21 @@ class ConversationExportTab extends BaseTab {
     async mounted() {
         super.mounted();
         await this._renderList();
+        await this._renderList({ feature: 'messageScreenshot', storageKey: 'messageScreenshotPlatformSettings', containerId: 'message-screenshot-platform-list' });
     }
 
     unmounted() {
         super.unmounted();
     }
 
-    async _renderList() {
-        const list = document.getElementById('conversation-export-platform-list');
+    async _renderList({ feature = 'conversationExport', storageKey = ConversationExportTab.STORAGE_KEY, containerId = 'conversation-export-platform-list' } = {}) {
+        const list = document.getElementById(containerId);
         if (!list) return;
 
         let platforms = [];
         try {
             platforms = typeof getPlatformsByFeature === 'function'
-                ? await getPlatformsByFeature('conversationExport')
+                ? await getPlatformsByFeature(feature)
                 : [];
         } catch {
             platforms = [];
@@ -2489,8 +2495,8 @@ class ConversationExportTab extends BaseTab {
 
         let settings = {};
         try {
-            const result = await chrome.storage.local.get(ConversationExportTab.STORAGE_KEY);
-            settings = result?.[ConversationExportTab.STORAGE_KEY] || {};
+            const result = await chrome.storage.local.get(storageKey);
+            settings = result?.[storageKey] || {};
         } catch {
             settings = {};
         }
@@ -2515,17 +2521,17 @@ class ConversationExportTab extends BaseTab {
 
         list.querySelectorAll('input[data-platform-id]').forEach(cb => {
             this.addEventListener(cb, 'change', async () => {
-                await this._handleToggleChange(cb.dataset.platformId, cb.checked, cb);
+                await this._handleToggleChange(cb.dataset.platformId, cb.checked, cb, storageKey);
             });
         });
     }
 
-    async _handleToggleChange(platformId, enabled, toggle) {
+    async _handleToggleChange(platformId, enabled, toggle, storageKey = ConversationExportTab.STORAGE_KEY) {
         try {
-            const result = await chrome.storage.local.get(ConversationExportTab.STORAGE_KEY);
-            const settings = result?.[ConversationExportTab.STORAGE_KEY] || {};
+            const result = await chrome.storage.local.get(storageKey);
+            const settings = result?.[storageKey] || {};
             settings[platformId] = enabled;
-            await chrome.storage.local.set({ [ConversationExportTab.STORAGE_KEY]: settings });
+            await chrome.storage.local.set({ [storageKey]: settings });
         } catch (e) {
             // 保存失败，回滚开关状态
             if (toggle) toggle.checked = !toggle.checked;

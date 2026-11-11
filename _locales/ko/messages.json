@@ -411,7 +411,7 @@
     "message": "내보내기 형식"
   },
   "conversationExportSectionHeader": {
-    "message": "추가 옵션"
+    "message": "추가 정보"
   },
   "conversationExportSectionTheme": {
     "message": "테마 색상"
@@ -466,6 +466,9 @@
   },
   "conversationExportConfirm": {
     "message": "내보내기"
+  },
+  "conversationExportDownload": {
+    "message": "파일 다운로드"
   },
   "conversationExportLoading": {
     "message": "대화 불러오는 중..."
@@ -741,22 +744,10 @@
     "message": "이동됨"
   },
   "starredHelpDesc": {
-    "message": "폴더로 대화를 분류하고 깔끔하게 정리하세요."
+    "message": "중요한 대화를 폴더에 저장하고 주제별로 정리해 언제든 다시 볼 수 있습니다."
   },
-  "starredHelpTipsTitle": {
-    "message": "사용 팁:"
-  },
-  "starredHelpTip1": {
-    "message": "대화를 폴더로 드래그하세요."
-  },
-  "starredHelpTip2": {
-    "message": "폴더 내 대화를 드래그하여 순서를 변경하세요."
-  },
-  "starredHelpTip3": {
-    "message": "하위 폴더를 드래그하여 순서를 변경하세요."
-  },
-  "starredHelpTip4": {
-    "message": "폴더나 대화를 더블클릭하여 편집하세요."
+  "starredHelpShortTip": {
+    "message": "드래그해 순서를 바꾸고, 더블클릭해 편집할 수 있습니다."
   },
   "folderMoveHasChildren": {
     "message": "하위 폴더가 있어 중첩할 수 없습니다"
@@ -1162,5 +1153,158 @@
   },
   "timelineNodeRetry": {
     "message": "다시 시도"
+  },
+  "messageScreenshotButton": {
+    "message": "스크린샷"
+  },
+  "messageScreenshotDownload": {
+    "message": "스크린샷 다운로드"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "초고화질"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "고화질"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "선명"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "표준"
+  },
+  "messageScreenshotReply": {
+    "message": "답변 캡처"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "질문과 답변 캡처"
+  },
+  "messageScreenshotDone": {
+    "message": "스크린샷을 저장했습니다"
+  },
+  "messageScreenshotFailed": {
+    "message": "캡처하지 못했습니다. 다시 시도하세요."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "해당 질문을 찾을 수 없습니다. 답변만 캡처할 수 있습니다."
+  },
+  "messageScreenshotChanged": {
+    "message": "메시지가 변경되었습니다. 다시 시도하세요."
+  },
+  "messageScreenshotGenerating": {
+    "message": "이 답변의 생성이 끝날 때까지 기다려 주세요."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "이미지를 불러올 수 없습니다. 로드 후 다시 시도하세요."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "캡처할 수 없는 삽입 콘텐츠가 포함되어 있습니다."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "메시지가 너무 길어 캡처할 수 없습니다."
+  },
+  "messageScreenshotTimeout": {
+    "message": "캡처 시간이 초과되었습니다. 다시 시도하세요."
+  },
+  "conversationExportTabName": {
+    "message": "내보내기 및 스크린샷"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "메시지 스크린샷"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "답변 아래에 스크린샷 버튼을 표시합니다. 여러 질문이나 답변을 선택하여 1×~4× 해상도의 PNG로 저장합니다."
+  },
+  "messageActionsSelectAll": {
+    "message": "전체 선택"
+  },
+  "messageActionsStopLoading": {
+    "message": "불러오기 중지"
+  },
+  "messageActionsSettings": {
+    "message": "설정"
+  },
+  "messageActionsCancel": {
+    "message": "취소"
+  },
+  "messageActionsSelected": {
+    "message": "{total}개 중 {count}개 선택"
+  },
+  "messageActionsCopyContent": {
+    "message": "내용 복사"
+  },
+  "messageActionsCopyImage": {
+    "message": "이미지 복사"
+  },
+  "messageActionsCopying": {
+    "message": "복사 중…"
+  },
+  "messageActionsCopied": {
+    "message": "복사되었습니다. 붙여넣을 수 있습니다."
+  },
+  "messageActionsCopyFailed": {
+    "message": "복사하지 못했습니다. 다시 시도하거나 파일을 다운로드하세요."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "이 브라우저에서는 복사를 지원하지 않습니다. 파일을 다운로드하세요."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "이미지가 너무 길어 복사할 수 없습니다. 스크린샷을 다운로드하세요."
+  },
+  "messageActionsWorking": {
+    "message": "처리 중…"
+  },
+  "messageActionsLoading": {
+    "message": "이전 메시지 불러오는 중…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "메시지 {count}개 로드됨"
+  },
+  "messageActionsQuestion": {
+    "message": "질문 선택"
+  },
+  "messageActionsReply": {
+    "message": "답변 선택"
+  },
+  "messageActionsLoaded": {
+    "message": "모든 메시지를 불러왔습니다"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "불러오기 미완료. 전체 선택으로 다시 시도하세요"
+  },
+  "messageActionsLoadStopped": {
+    "message": "불러오기를 중지했습니다"
+  },
+  "messageActionsDone": {
+    "message": "완료"
+  },
+  "messageActionsFailed": {
+    "message": "작업에 실패했습니다. 다시 시도하세요."
+  },
+  "messageActionsChanged": {
+    "message": "메시지가 변경되었습니다. 다시 선택하세요."
+  },
+  "messageActionsResolution": {
+    "message": "해상도"
+  },
+  "messageActionsScale1": {
+    "message": "표준"
+  },
+  "messageActionsScale2": {
+    "message": "고화질"
+  },
+  "messageActionsScale3": {
+    "message": "초고화질"
+  },
+  "messageActionsScale4": {
+    "message": "최고 화질"
+  },
+  "messageActionsClear": {
+    "message": "비우기"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "모두 선택하고 전체 대화 불러오기"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "저장할 메시지를 선택하세요."
   }
 }

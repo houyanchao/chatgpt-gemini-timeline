@@ -25,15 +25,7 @@ class CEGeminiExportAdapter extends CEExportAdapter {
         const selector = this.getUserMessageSelector();
         const firstContainer = document.querySelector('.conversation-container') ||
             (selector ? document.querySelector(selector) : null);
-        let node = firstContainer;
-        while (node && node !== document.body) {
-            const style = window.getComputedStyle(node);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                return node;
-            }
-            node = node.parentElement;
-        }
-        return null;
+        return GeminiAdapter.findChatScroller(firstContainer);
     }
 
     getTurnContainers() {
@@ -80,16 +72,7 @@ class CEGeminiExportAdapter extends CEExportAdapter {
      * @returns {boolean}
      */
     isLoadingMore() {
-        try {
-            const bars = document.querySelectorAll(
-                'mat-progress-bar[mode="indeterminate"], .mdc-linear-progress--indeterminate'
-            );
-            for (const bar of bars) {
-                const rect = bar.getBoundingClientRect();
-                if (rect.width > 0 && rect.height > 0) return true;
-            }
-        } catch { /* ignore */ }
-        return false;
+        return GeminiAdapter.isHistoryLoading();
     }
 
     _resolveTurnId(container, userEl) {

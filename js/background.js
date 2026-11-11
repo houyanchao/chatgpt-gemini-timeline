@@ -306,6 +306,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
     
+    if (request.type === 'AIT_FETCH_GEMINI_WEATHER_ICON') {
+        if (sender.frameId !== 0 || !sender.url?.startsWith('https://gemini.google.com/')) {
+            sendResponse({ success: false });
+            return;
+        }
+        fetchGeminiWeatherIcon(request.url)
+            .then(data => sendResponse({ success: true, data }))
+            .catch(() => sendResponse({ success: false }));
+        return true;
+    }
+
     // --- 旧功能：图片获取（CORS 绕过）---
     
     if (request.type === 'FETCH_IMAGE') {
@@ -315,6 +326,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 });
+
+/** Only read public PNGs from Gemini's weather card, without cookies or redirects. */
+async function fetchGeminiWeatherIcon(source) {
+    const url = new URL(source);
+    if (url.origin !== 'https://www.gstatic.com' || url.username || url.password || url.search || url.hash
+        || !/^\/weather\/conditions\/v1\/png\/[a-z0-9_-]+\.png$/i.test(url.pathname)) {
+        throw new Error('ImageFailed');
+    }
+    const response = await fetch(url.href, {
+        credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(8000)
+    });
+    if (!response.ok) throw new Error('ImageFailed');
+    const blob = await response.blob();
+    if (blob.type !== 'image/png' || !blob.size || blob.size > 65536) throw new Error('ImageFailed');
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    return `data:image/png;base64,${btoa(String.fromCharCode(...bytes))}`;
+}
 
 /**
  * 获取图片并转换为 base64

@@ -71,7 +71,7 @@ class CEPngExporter {
 
         // 仅在导出内容实际包含公式时加载 MathJax 并预渲染，普通 PNG 导出不加载重型库
         const hasFormulas = job.turns.some((turn) =>
-            this._collectFormulas(turn.assistant?.markdown || '').length > 0
+            CETextExporters.roleSelected(turn, 'assistant') && this._collectFormulas(turn.assistant?.markdown || '').length > 0
         );
         this.formulaCapable = hasFormulas
             ? await this._probeFormulaRendering()
@@ -227,35 +227,39 @@ class CEPngExporter {
         job.turns.forEach((turn, index) => {
             if (index > 0) ops.push(this._dividerOp());
 
-            // 提问：首个内容块（气泡）挂上左侧「Q」标记，与首行对齐
-            const askTime = job.options?.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            const userOp = this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview, askTime);
-            ops.push(this._withRoleMarker(userOp, 'Q', true, theme));
-            (turn.user?.images || []).forEach(image => {
-                ops.push(this._imageOp(image, imageMap));
-            });
+            if (CETextExporters.roleSelected(turn, 'user')) {
+                // 提问：首个内容块（气泡）挂上左侧「Q」标记，与首行对齐
+                const askTime = job.options?.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                const userOp = this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview, askTime);
+                ops.push(this._withRoleMarker(userOp, 'Q', true, theme));
+                (turn.user?.images || []).forEach(image => {
+                    ops.push(this._imageOp(image, imageMap));
+                });
 
-            // 提问与回答之间留一点间距
-            ops.push(this._spacerOp(10));
+                // 提问与回答之间留一点间距
+                if (CETextExporters.roleSelected(turn, 'assistant')) ops.push(this._spacerOp(10));
 
-            // 回答：文本块 + 图片；图片也算内容，避免纯图片回复被判为“空”
-            const assistantOps = [];
-            const blocks = this._parseMarkdownBlocks(turn.assistant?.markdown || '');
-            if (blocks.length) {
-                blocks.forEach(block => assistantOps.push(this._markdownBlockOp(ctx, block)));
-            } else if (turn.assistant?.text) {
-                assistantOps.push(this._paragraphOp(ctx, turn.assistant.text));
             }
-            (turn.assistant?.images || []).forEach(image => {
-                assistantOps.push(this._imageOp(image, imageMap));
-            });
-            // 文本与图片都没有时才显示占位提示
-            if (!assistantOps.length) {
-                assistantOps.push(this._paragraphOp(ctx, CE_TEXT.emptyAssistant));
+            if (CETextExporters.roleSelected(turn, 'assistant')) {
+                // 回答：文本块 + 图片；图片也算内容，避免纯图片回复被判为“空”
+                const assistantOps = [];
+                const blocks = this._parseMarkdownBlocks(turn.assistant?.markdown || '');
+                if (blocks.length) {
+                    blocks.forEach(block => assistantOps.push(this._markdownBlockOp(ctx, block)));
+                } else if (turn.assistant?.text) {
+                    assistantOps.push(this._paragraphOp(ctx, turn.assistant.text));
+                }
+                (turn.assistant?.images || []).forEach(image => {
+                    assistantOps.push(this._imageOp(image, imageMap));
+                });
+                // 文本与图片都没有时才显示占位提示
+                if (!assistantOps.length) {
+                    assistantOps.push(this._paragraphOp(ctx, CE_TEXT.emptyAssistant));
+                }
+                // 首个回答内容（文本或图片）挂上左侧「A」标记
+                assistantOps[0] = this._withRoleMarker(assistantOps[0], 'A', false, theme);
+                assistantOps.forEach(op => ops.push(op));
             }
-            // 首个回答内容（文本或图片）挂上左侧「A」标记
-            assistantOps[0] = this._withRoleMarker(assistantOps[0], 'A', false, theme);
-            assistantOps.forEach(op => ops.push(op));
         });
 
         return ops;
@@ -947,8 +951,7 @@ class CEPngExporter {
     async _preloadImages(turns) {
         const srcs = new Set();
         turns.forEach(turn => {
-            (turn.user?.images || []).forEach(img => srcs.add(img.src));
-            (turn.assistant?.images || []).forEach(img => srcs.add(img.src));
+            CETextExporters._turnImages(turn).forEach(img => srcs.add(img.src));
         });
 
         const map = new Map();
@@ -1025,6 +1028,7 @@ class CEPngExporter {
         const seen = new Set();
         const items = [];
         turns.forEach(turn => {
+            if (!CETextExporters.roleSelected(turn, 'assistant')) return;
             this._collectFormulas(turn.assistant?.markdown || '').forEach(f => {
                 const key = (f.display ? 'D:' : 'I:') + f.latex;
                 if (!seen.has(key)) {

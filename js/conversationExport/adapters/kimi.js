@@ -32,11 +32,8 @@ class CEKimiExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, ['.user-content']);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.markdown-container',
-            '.markdown',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -45,5 +42,14 @@ class CEKimiExportAdapter extends CEExportAdapter {
             user,
             assistant,
         };
+    }
+
+    _extractUser(element) { return this._extractUserFrom(element, ['.user-content']); }
+
+    _extractAssistant(element) { return this._extractAssistantFrom(element, ['.markdown-container', '.markdown']); }
+
+    getSelectedAskTimeKey(message) {
+        const index = [...document.querySelectorAll(this.getUserMessageSelector())].indexOf(message.element);
+        return index < 0 ? null : `kimi-${index}`;
     }
 }

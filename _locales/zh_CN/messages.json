@@ -432,7 +432,7 @@
     "message": "开启后，代码块右上角将显示 Run 按钮，点击可直接运行代码"
   },
   "conversationExportTabName": {
-    "message": "对话导出"
+    "message": "导出与截图"
   },
   "conversationExportSettingsTitle": {
     "message": "对话导出"
@@ -456,7 +456,7 @@
     "message": "导出格式"
   },
   "conversationExportSectionHeader": {
-    "message": "更多配置"
+    "message": "更多信息"
   },
   "conversationExportSectionTheme": {
     "message": "主题色"
@@ -511,6 +511,9 @@
   },
   "conversationExportConfirm": {
     "message": "导出"
+  },
+  "conversationExportDownload": {
+    "message": "下载文件"
   },
   "conversationExportLoading": {
     "message": "加载对话中..."
@@ -810,22 +813,10 @@
     "message": "已移动"
   },
   "starredHelpDesc": {
-    "message": "文件夹，分类整理对话，告别杂乱无章。"
+    "message": "把重要对话收藏到文件夹，按主题整理，随时回顾。"
   },
-  "starredHelpTipsTitle": {
-    "message": "使用小技巧："
-  },
-  "starredHelpTip1": {
-    "message": "拖动对话到文件夹。"
-  },
-  "starredHelpTip2": {
-    "message": "拖动文件夹中的对话调整位置。"
-  },
-  "starredHelpTip3": {
-    "message": "拖动二级文件夹调整位置。"
-  },
-  "starredHelpTip4": {
-    "message": "双击文件夹或对话，快速编辑。"
+  "starredHelpShortTip": {
+    "message": "拖动可排序，双击可编辑。"
   },
   "folderMoveHasChildren": {
     "message": "含子文件夹，无法嵌套"
@@ -1291,5 +1282,155 @@
   },
   "usageQuotaRemaining": {
     "message": "剩余"
+  },
+  "messageScreenshotButton": {
+    "message": "截图"
+  },
+  "messageScreenshotDownload": {
+    "message": "下载截图"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "超高清"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "高清"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "清晰"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "标准"
+  },
+  "messageScreenshotReply": {
+    "message": "截图回复"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "截图提问＋回复"
+  },
+  "messageScreenshotDone": {
+    "message": "截图已保存"
+  },
+  "messageScreenshotFailed": {
+    "message": "截图失败，请重试。"
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "当前页面未找到对应提问，仍可选择“截图回复”。"
+  },
+  "messageScreenshotChanged": {
+    "message": "消息已变化，请重新截图。"
+  },
+  "messageScreenshotGenerating": {
+    "message": "请等待这条回复生成完成。"
+  },
+  "messageScreenshotImageFailed": {
+    "message": "部分图片无法读取，请等待图片加载后重试。"
+  },
+  "messageScreenshotUnsupported": {
+    "message": "这条消息包含暂不支持截图的嵌入内容。"
+  },
+  "messageScreenshotTooLarge": {
+    "message": "消息内容过长，暂时无法截图。"
+  },
+  "messageScreenshotTimeout": {
+    "message": "截图超时，请重试。"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "消息截图"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "在回复底部显示截图按钮，选择多条提问或回复，以 1×～4× 清晰度保存为 PNG。"
+  },
+  "messageActionsSelectAll": {
+    "message": "全选"
+  },
+  "messageActionsStopLoading": {
+    "message": "停止加载"
+  },
+  "messageActionsSettings": {
+    "message": "设置"
+  },
+  "messageActionsCancel": {
+    "message": "取消"
+  },
+  "messageActionsSelected": {
+    "message": "已选 {count} / {total} 条"
+  },
+  "messageActionsCopyContent": {
+    "message": "复制内容"
+  },
+  "messageActionsCopyImage": {
+    "message": "复制图片"
+  },
+  "messageActionsCopying": {
+    "message": "复制中…"
+  },
+  "messageActionsCopied": {
+    "message": "已复制，可直接粘贴"
+  },
+  "messageActionsCopyFailed": {
+    "message": "复制失败，请重试或下载文件。"
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "当前浏览器暂不支持复制，请下载文件。"
+  },
+  "messageActionsCopyTooLong": {
+    "message": "内容过长，请下载截图。"
+  },
+  "messageActionsWorking": {
+    "message": "处理中…"
+  },
+  "messageActionsLoading": {
+    "message": "正在加载历史消息…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "已加载 {count} 条消息"
+  },
+  "messageActionsQuestion": {
+    "message": "选择提问"
+  },
+  "messageActionsReply": {
+    "message": "选择回复"
+  },
+  "messageActionsLoaded": {
+    "message": "全部消息已加载"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "加载未完成，可重新全选重试"
+  },
+  "messageActionsLoadStopped": {
+    "message": "已停止加载"
+  },
+  "messageActionsDone": {
+    "message": "操作完成"
+  },
+  "messageActionsFailed": {
+    "message": "操作失败，请重试。"
+  },
+  "messageActionsChanged": {
+    "message": "消息已变化，请重新选择。"
+  },
+  "messageActionsResolution": {
+    "message": "清晰度"
+  },
+  "messageActionsScale1": {
+    "message": "标准"
+  },
+  "messageActionsScale2": {
+    "message": "高清"
+  },
+  "messageActionsScale3": {
+    "message": "超清"
+  },
+  "messageActionsScale4": {
+    "message": "极清"
+  },
+  "messageActionsClear": {
+    "message": "清空"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "全选并加载完整对话"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "勾选需要保存的消息"
   }
 }

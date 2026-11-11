@@ -25,6 +25,23 @@ class GeminiAdapter extends SiteAdapter {
         return 'model-response';
     }
 
+    static findChatScroller(element) {
+        for (let node = element; node && node !== document.body; node = node.parentElement) {
+            const { overflowY } = getComputedStyle(node);
+            if (overflowY === 'auto' || overflowY === 'scroll') return node;
+        }
+        return null;
+    }
+
+    static isHistoryLoading() {
+        const bars = document.querySelectorAll('mat-progress-bar[mode="indeterminate"], .mdc-linear-progress--indeterminate');
+        return [...bars].some(bar => {
+            if (bar.closest('.conversation-container, model-response')) return false;
+            const rect = bar.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && getComputedStyle(bar).visibility === 'visible';
+        });
+    }
+
     getConflictingTimelineSelectors() {
         return ['.gemini-timeline-bar'];
     }

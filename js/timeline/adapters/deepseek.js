@@ -6,6 +6,16 @@
  */
 
 class DeepSeekAdapter extends SiteAdapter {
+    static getHeaderActionTarget() {
+        const current = document.querySelector('path[d^="M7.95889 1.52285"]');
+        const legacy = document.querySelector('path[d^="M15.7484 11.1004"]');
+        return current?.closest('.ds-button[role="button"]') || legacy?.closest('.ds-icon-button') || null;
+    }
+
+    static isHistoryLoading() {
+        return [...document.querySelectorAll('.ds-virtual-list--printable .ds-loading:not(.ds-message .ds-loading)')]
+            .some(element => element.getClientRects().length > 0);
+    }
     constructor() {
         super();
         this._userMessageParentClass = null; // 动态检测的用户消息父容器 class
@@ -115,16 +125,7 @@ class DeepSeekAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        // DeepSeek: 通过 SVG path 查找图标，然后找父容器
-        // 这个图标通常在顶部工具栏中（分享按钮）
-        // 只匹配 path 的前几个字符（更稳定，不依赖完整 SVG 路径）
-        // 注意：页面可能有多个匹配的 path，querySelector 会自动返回第一个（通常就是顶部工具栏的）
-        const path = document.querySelector('path[d^="M15.7484 11.1004"]');
-        if (!path) return null;
-        
-        // 往上找到 .ds-icon-button 按钮容器
-        const iconButton = path.closest('.ds-icon-button');
-        return iconButton; // 收藏按钮将插入到这个按钮的左边
+        return DeepSeekAdapter.getHeaderActionTarget();
     }
     
     getDefaultChatTheme() {
@@ -144,7 +145,7 @@ class DeepSeekAdapter extends SiteAdapter {
         // 检测停止按钮
         const stopPath = document.querySelector('path[d="M2 4.88C2 3.68009 2 3.08013 2.30557 2.65954C2.40426 2.52371 2.52371 2.40426 2.65954 2.30557C3.08013 2 3.68009 2 4.88 2H11.12C12.3199 2 12.9199 2 13.3405 2.30557C13.4763 2.40426 13.5957 2.52371 13.6944 2.65954C14 3.08013 14 3.68009 14 4.88V11.12C14 12.3199 14 12.9199 13.6944 13.3405C13.5957 13.4763 13.4763 13.5957 13.3405 13.6944C12.9199 14 12.3199 14 11.12 14H4.88C3.68009 14 3.08013 14 2.65954 13.6944C2.52371 13.5957 2.40426 13.4763 2.30557 13.3405C2 12.9199 2 12.3199 2 11.12V4.88Z"]');
         // 检测加载动画
-        const loadingEl = document.querySelector('.ds-loading');
+        const loadingEl = document.querySelector('.ds-loading:not(.ds-virtual-list--printable .ds-loading), .ds-message .ds-loading');
         return !!stopPath || !!loadingEl;
     }
     

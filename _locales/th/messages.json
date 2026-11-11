@@ -387,7 +387,7 @@
     "message": "รูปแบบการส่งออก"
   },
   "conversationExportSectionHeader": {
-    "message": "ตัวเลือกเพิ่มเติม"
+    "message": "ข้อมูลเพิ่มเติม"
   },
   "conversationExportSectionTheme": {
     "message": "สีธีม"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "ส่งออก"
+  },
+  "conversationExportDownload": {
+    "message": "ดาวน์โหลดไฟล์"
   },
   "conversationExportLoading": {
     "message": "กำลังโหลดบทสนทนา..."
@@ -690,22 +693,10 @@
     "message": "ย้ายแล้ว"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "บันทึกบทสนทนาสำคัญไว้ในโฟลเดอร์ จัดตามหัวข้อ และกลับมาอ่านได้ทุกเมื่อ"
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "ลากเพื่อจัดลำดับใหม่ ดับเบิลคลิกเพื่อแก้ไข"
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "ลองอีกครั้ง"
+  },
+  "messageScreenshotButton": {
+    "message": "ภาพหน้าจอ"
+  },
+  "messageScreenshotDownload": {
+    "message": "ดาวน์โหลดภาพหน้าจอ"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "คมชัดสูงพิเศษ"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "คมชัดสูง"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "คมชัด"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "มาตรฐาน"
+  },
+  "messageScreenshotReply": {
+    "message": "จับภาพคำตอบ"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "จับภาพคำถามและคำตอบ"
+  },
+  "messageScreenshotDone": {
+    "message": "บันทึกภาพแล้ว"
+  },
+  "messageScreenshotFailed": {
+    "message": "จับภาพไม่สำเร็จ โปรดลองอีกครั้ง"
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "ไม่พบคำถามที่เกี่ยวข้อง คุณยังจับภาพเฉพาะคำตอบได้"
+  },
+  "messageScreenshotChanged": {
+    "message": "ข้อความเปลี่ยนแปลงแล้ว โปรดลองอีกครั้ง"
+  },
+  "messageScreenshotGenerating": {
+    "message": "รอให้คำตอบนี้เสร็จสิ้นก่อน"
+  },
+  "messageScreenshotImageFailed": {
+    "message": "โหลดรูปภาพไม่ได้ โปรดลองอีกครั้งหลังโหลดเสร็จ"
+  },
+  "messageScreenshotUnsupported": {
+    "message": "ข้อความนี้มีเนื้อหาฝังตัวที่ยังจับภาพไม่ได้"
+  },
+  "messageScreenshotTooLarge": {
+    "message": "ข้อความยาวเกินกว่าจะจับภาพได้"
+  },
+  "messageScreenshotTimeout": {
+    "message": "การจับภาพหมดเวลา โปรดลองอีกครั้ง"
+  },
+  "conversationExportTabName": {
+    "message": "ส่งออกและภาพหน้าจอ"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "ภาพหน้าจอข้อความ"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "แสดงปุ่มจับภาพใต้คำตอบ เลือกคำถามหรือคำตอบหลายรายการและบันทึกเป็น PNG ที่ความละเอียด 1×–4×"
+  },
+  "messageActionsSelectAll": {
+    "message": "เลือกทั้งหมด"
+  },
+  "messageActionsStopLoading": {
+    "message": "หยุดโหลด"
+  },
+  "messageActionsSettings": {
+    "message": "การตั้งค่า"
+  },
+  "messageActionsCancel": {
+    "message": "ยกเลิก"
+  },
+  "messageActionsSelected": {
+    "message": "เลือก {count} / {total} ข้อความ"
+  },
+  "messageActionsCopyContent": {
+    "message": "คัดลอกเนื้อหา"
+  },
+  "messageActionsCopyImage": {
+    "message": "คัดลอกรูปภาพ"
+  },
+  "messageActionsCopying": {
+    "message": "กำลังคัดลอก…"
+  },
+  "messageActionsCopied": {
+    "message": "คัดลอกแล้ว พร้อมวาง"
+  },
+  "messageActionsCopyFailed": {
+    "message": "คัดลอกไม่สำเร็จ ลองอีกครั้งหรือดาวน์โหลดไฟล์"
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "เบราว์เซอร์นี้ไม่รองรับการคัดลอก โปรดดาวน์โหลดไฟล์"
+  },
+  "messageActionsCopyTooLong": {
+    "message": "รูปภาพยาวเกินกว่าจะคัดลอก โปรดดาวน์โหลดภาพหน้าจอ"
+  },
+  "messageActionsWorking": {
+    "message": "กำลังประมวลผล…"
+  },
+  "messageActionsLoading": {
+    "message": "กำลังโหลดประวัติ…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "โหลดแล้ว {count} ข้อความ"
+  },
+  "messageActionsQuestion": {
+    "message": "เลือกคำถาม"
+  },
+  "messageActionsReply": {
+    "message": "เลือกคำตอบ"
+  },
+  "messageActionsLoaded": {
+    "message": "โหลดข้อความทั้งหมดแล้ว"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "โหลดยังไม่ครบ เลือกทั้งหมดเพื่อลองใหม่"
+  },
+  "messageActionsLoadStopped": {
+    "message": "หยุดโหลดแล้ว"
+  },
+  "messageActionsDone": {
+    "message": "เสร็จสิ้น"
+  },
+  "messageActionsFailed": {
+    "message": "ดำเนินการไม่สำเร็จ โปรดลองอีกครั้ง"
+  },
+  "messageActionsChanged": {
+    "message": "ข้อความเปลี่ยนไป โปรดเลือกอีกครั้ง"
+  },
+  "messageActionsResolution": {
+    "message": "ความละเอียด"
+  },
+  "messageActionsScale1": {
+    "message": "มาตรฐาน"
+  },
+  "messageActionsScale2": {
+    "message": "สูง"
+  },
+  "messageActionsScale3": {
+    "message": "สูงพิเศษ"
+  },
+  "messageActionsScale4": {
+    "message": "สูงสุด"
+  },
+  "messageActionsClear": {
+    "message": "ล้าง"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "เลือกทั้งหมดและโหลดบทสนทนาทั้งหมด"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "เลือกข้อความที่ต้องการบันทึก"
   }
 }

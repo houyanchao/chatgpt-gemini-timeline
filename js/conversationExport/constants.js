@@ -25,7 +25,7 @@ const CE_TEXT_FALLBACK = {
 
     sectionRange: '导出范围',
     sectionFormat: '导出格式',
-    sectionHeader: '更多配置',
+    sectionHeader: '更多信息',
     sectionTheme: '主题色',
     sectionList: '选择对话',
 
@@ -48,6 +48,7 @@ const CE_TEXT_FALLBACK = {
 
     cancel: '取消',
     confirm: '导出',
+    download: '下载文件',
 
     loading: '加载对话中...',
     loadingProgress: '加载对话中...（已加载 {count} 条）',
@@ -100,6 +101,7 @@ const CE_TEXT_I18N_KEYS = {
 
     cancel: 'conversationExportCancel',
     confirm: 'conversationExportConfirm',
+    download: 'conversationExportDownload',
 
     loading: 'conversationExportLoading',
     loadingProgress: 'conversationExportLoadingProgress',

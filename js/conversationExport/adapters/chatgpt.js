@@ -1,263 +1,38 @@
-/**
- * Conversation Export - ChatGPT 导出适配器
- *
- * 与 Gemini 的关键差异：
- * 1. ChatGPT 是「视口窗口式」虚拟渲染：任意时刻 DOM 里只有视口附近一屏的轮次是
- *    已渲染的 <article>，其余全部是 [data-turn-id-container]
- *    [data-is-intersecting="false"] 空壳（运行日志实证：121 个容器滚到顶后仅 8 对
- *    已渲染，反复滚顶无增益）。因此基类「先加载完、再统一读」的编排不成立，
- *    本类覆盖 collectAllTurns：从顶到底逐屏滚动，分别采集用户和助手消息，
- *    结束后按容器 DOM 顺序配对输出。提问和回复无需在同一滚动窗口内同时存在。
- * 2. ChatGPT 的用户与助手是各自独立的 <article data-turn="user|assistant" data-turn-id>，
- *    不像 Gemini 用一个 .conversation-container 同时装问答。因此需要按文档顺序把
- *    「用户轮 + 紧随其后的助手轮」配成一对。
- *
- * 内容完全来自 DOM（滚动渲染后采集）；
- * 用户/助手消息选择器复用基类共享方法（优先取时间轴 adapter）。
- */
-
+/** ChatGPT content extraction; message discovery and history loading live in messageActions. */
 class CEChatGPTExportAdapter extends CEExportAdapter {
-    static MODERN_MESSAGE_SELECTOR = '[data-thread-find-target="conversation"] [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids]';
-    static MODERN_TURN_SELECTOR = '[data-thread-find-target="conversation"] [data-turn-key]';
+    constructor() { super('chatgpt'); }
 
-    constructor() {
-        super('chatgpt');
-    }
-
-    /**
-     * 未渲染的虚拟化空壳轮次列表。
-     * ChatGPT 给视口外轮次保留 [data-turn-id-container] 容器，
-     * 并以 data-is-intersecting="false" 标记（内部 React 子树已卸载）。
-     * @returns {Element[]}
-     */
-    _getUnrenderedShells() {
-        return Array.from(document.querySelectorAll(
-            `[data-turn-id-container][data-is-intersecting="false"], ${CEChatGPTExportAdapter.MODERN_TURN_SELECTOR}`
-        ));
-    }
-
-    _getMessageId(element) {
-        return element.getAttribute('data-turn-id')
-            || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0]
-            || null;
-    }
-
-    _getMessageRole(element) {
-        return element.getAttribute('data-turn')
-            || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
-    }
+    _getMessageId(element) { return new ChatGPTMessageActionsAdapter().getId(element); }
+    _getMessageRole(element) { return new ChatGPTMessageActionsAdapter().getRole(element); }
 
     _getRenderedMessages() {
-        return Array.from(document.querySelectorAll(
-            `[data-turn-id][data-turn], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`
-        )).filter(el => ['user', 'assistant'].includes(this._getMessageRole(el)));
+        return new ChatGPTMessageActionsAdapter().getMessages().map(message => message.element);
     }
 
-    /**
-     * 覆盖基类采集编排：以「空壳」为锚点逐个滚动渲染、边滚边采集。
-     *
-     * 为什么不能用基类「先加载完、再统一读」的两段式编排：
-     * ChatGPT 的虚拟化是视口窗口式的——滚到哪里就只渲染哪里，滚过去的轮次
-     * 会被卸载回空壳。不存在「全部渲染完成」的时刻，必须在滚动途中即时提取。
-     *
-     * 为什么按空壳元素锚定、而不是按像素逐屏步进（运行日志实证的两个坑）：
-     * 1. 空壳渲染成真实内容后高度膨胀（一次运行页面总高从 35250 涨到 43986），
-     *    下方内容整体下移，固定像素步进会被重排反超、整段跳过；
-     *    元素锚定用空壳的实时位置滚动，天然免疫重排。
-     * 2. [data-turn-id-container] 容器本身也是窗口化的（同一运行中 121 → 85），
-     *    结束时的单次快照排不出完整顺序——改为每轮把当前窗口的容器 id 序列
-     *    增量合并进全局有序表（相邻窗口高度重叠，按锚点插入）。
-     *
-     * 流程：跳到顶部 → 每轮找文档序第一个「未处理过的空壳」滚到视口 → 等待渲染
-     * 稳定（固定启动等待 + DOM 安静确认）→ 提取当前已渲染轮次（按用户轮 turn id
-     * 去重）并合并容器顺序 → 无未处理空壳或连续多轮无进展时结束 → 按全局有序表
-     * 排序输出，恢复用户原始滚动位置。
-     *
-     * @param {Object} options
-     * @param {(count:number)=>void} [options.onProgress]
-     * @param {()=>boolean} [options.shouldCancel]
-     * @returns {Promise<Array>}
-     */
+    /** Legacy callers share the same ordered DOM traversal as message actions. */
     async collectAllTurns({ onProgress, shouldCancel } = {}) {
-        const scroller = this.getScrollContainer();
-        const isWin = scroller === window;
-        const reverse = !isWin && scroller.nodeType === 1
-            && getComputedStyle(scroller).flexDirection === 'column-reverse';
-        const scrollRange = () => Math.max(0, (isWin
-            ? document.documentElement.scrollHeight - window.innerHeight
-            : scroller.scrollHeight - scroller.clientHeight) || 0);
-        const getScrollTop = () => (isWin ? window.scrollY : scroller.scrollTop);
-        const scrollTo = (top) => {
-            if (isWin) window.scrollTo(0, top);
-            else scroller.scrollTop = top;
-        };
-
-        const initialScrollTop = getScrollTop();
-
-        // 提问时间表（按 turn id 查，替代基类按元素的 WeakMap——
-        // 逐屏采集时元素随滚动创建/卸载，元素键在跨屏后失效）
-        const askTimes = await this._loadAskTimes();
-
-        const capturedMessages = new Map(); // 消息 turn id → { id, role, content }
-        const capturedUserIds = new Set(); // 进度统计，避免每轮扫描全部快照
-        const capturedOrder = [];      // 消息首次渲染顺序（旧版 DOM / 顺序表兜底）
-        const processedIds = new Set(); // 渲染过（内容采集过）的容器 id
-        const masterOrder = [];         // 全局容器 id 顺序（跨窗口增量合并）
-
-        // 把当前窗口的容器 id 序列合并进全局有序表。
-        // 相邻轮次的窗口高度重叠：已知 id 作为锚点推进，未知 id 插到锚点之后。
-        const mergeContainerOrder = () => {
-            const seen = new Set();
-            const current = [];
-            // 新版 data-turn-key 包含一问一答，排序必须使用内部消息 ID，
-            // 不能把整轮的用户 ID 当作两条消息的顺序。
-            document.querySelectorAll(`[data-turn-id-container], ${CEChatGPTExportAdapter.MODERN_MESSAGE_SELECTOR}`).forEach(el => {
-                if (el.hasAttribute('data-chatgpt-search-unit-key')
-                    && !['user', 'assistant'].includes(this._getMessageRole(el))) return;
-                const id = el.getAttribute('data-turn-id-container') || this._getMessageId(el);
-                if (id && !seen.has(id)) { seen.add(id); current.push(id); }
-            });
-            // 从顶部向下扫描时，无共同节点的新窗口应接到末尾。
-            if (current.length && !current.some(id => masterOrder.includes(id))) {
-                masterOrder.push(...current);
-                return;
-            }
-            let ptr = -1; // masterOrder 中最后命中的锚点位置
-            for (const id of current) {
-                const idx = masterOrder.indexOf(id);
-                if (idx >= 0) {
-                    ptr = Math.max(ptr, idx);
-                } else {
-                    masterOrder.splice(ptr + 1, 0, id);
-                    ptr += 1;
-                }
-            }
-        };
-
-        // 标记当前已渲染的容器（内部有 [data-turn] 真实内容，或明确 intersecting）
-        const markProcessed = () => {
-            document.querySelectorAll('[data-turn-id-container]').forEach(el => {
-                const id = el.getAttribute('data-turn-id-container');
-                if (!id || processedIds.has(id)) return;
-                if (el.getAttribute('data-is-intersecting') === 'true' || el.querySelector('[data-turn]')) {
-                    processedIds.add(id);
-                }
-            });
-        };
-
-        const collectRendered = () => {
-            this._getRenderedMessages().forEach(element => {
-                const id = this._getMessageId(element);
-                const role = this._getMessageRole(element);
-                if (!id || (role !== 'user' && role !== 'assistant')) return;
-
-                let content;
-                try {
-                    if (role === 'user') {
-                        content = this._extractUser(element);
-                        if (askTimes) content.time = askTimes[`chatgpt-${id}`] || null;
-                    } else {
-                        content = this._extractAssistant(element);
+        const adapter = new ChatGPTMessageActionsAdapter();
+        const times = await this._loadAskTimes();
+        const messages = new Map();
+        const order = [];
+        try {
+            const result = await MessageActionLoader.load(adapter, {
+                shouldCancel,
+                onMessages: records => {
+                    for (const record of records) {
+                        const content = record.role === 'user' ? this._extractUser(record.element) : this._extractAssistant(record.element);
+                        if (record.role === 'user' && times) content.time = times[`chatgpt-${record.id}`] || null;
+                        messages.set(record.id, { id: record.id, role: record.role, content });
                     }
-                } catch {
-                    return;
+                    onProgress?.([...messages.values()].filter(message => message.role === 'user').length);
                 }
-
-                if (!capturedMessages.has(id)) capturedOrder.push(id);
-                if (role === 'user') capturedUserIds.add(id);
-                // 同一消息再次渲染时使用最新快照，兼容延迟补齐的正文、图片和公式。
-                capturedMessages.set(id, { id, role, content });
             });
-            markProcessed();
-            mergeContainerOrder();
-            onProgress?.(capturedUserIds.size);
-        };
-
-        // 文档序第一个「未处理过的空壳」（渲染过的容器被虚拟化卸载回空壳时不再重复处理）
-        const nextPendingShell = () =>
-            this._getUnrenderedShells().find(el => {
-                const id = el.getAttribute('data-turn-id-container') || el.getAttribute('data-turn-key');
-                return id && !processedIds.has(id);
-            }) || null;
-
-        // 从顶部开始（建立全局顺序表的头部）
-        // 顶部历史分页加载后需再次到顶，连续两次确认稳定才开始采集。
-        let stableTop = 0;
-        for (let attempt = 0; attempt < 30 && stableTop < 2; attempt++) {
-            if (shouldCancel?.()) {
-                try { scrollTo(initialScrollTop); } catch {}
-                return [];
-            }
-            const beforeRange = scrollRange();
-            scrollTo(reverse ? -beforeRange : 0);
-            await this._wait(1000);
-            await this._waitWhileLoading(2000);
-            const range = scrollRange();
-            const atTop = Math.abs(getScrollTop() - (reverse ? -range : 0)) <= 2;
-            stableTop = atTop && Math.abs(range - beforeRange) <= 2 ? stableTop + 1 : 0;
+            order.push(...result.order.map(key => result.messages.get(key).id));
+        } catch (error) {
+            if (error.name === 'AbortError') return [];
+            throw error;
         }
-        collectRendered();
-
-        // 逐个把未处理空壳滚进视口渲染并采集
-        const maxRounds = 800;
-        let stagnantRounds = 0;
-        for (let round = 0; round < maxRounds; round++) {
-            if (shouldCancel?.()) {
-                try { scrollTo(initialScrollTop); } catch { /* ignore */ }
-                return [];
-            }
-
-            const shell = nextPendingShell();
-            if (!shell) {
-                // 当前 DOM 已采完不代表历史已采完；向下扫屏触发下一窗口渲染。
-                const bottom = reverse ? 0 : scrollRange();
-                const current = getScrollTop();
-                if (bottom - current <= 1) break;
-                const viewport = isWin ? window.innerHeight : (scroller.clientHeight || window.innerHeight);
-                scrollTo(Math.min(bottom, current + Math.max(1, viewport * 0.8)));
-                await this._wait(400);
-                await this._waitWhileLoading(2000);
-                collectRendered();
-                if (Math.abs(getScrollTop() - current) < 1) {
-                    if (++stagnantRounds >= 5) break;
-                } else stagnantRounds = 0;
-                continue;
-            }
-
-            const beforeCaptured = capturedMessages.size;
-            const beforeProcessed = processedIds.size;
-
-            // 元素锚定滚动：按空壳当前实时位置，把它滚到视口上沿附近
-            const rect = shell.getBoundingClientRect();
-            const viewTop = isWin ? 0 : scroller.getBoundingClientRect().top;
-            scrollTo(getScrollTop() + (rect.top - viewTop) - 80);
-            await this._wait(400);              // 渲染启动
-            await this._waitWhileLoading(2000); // DOM 稳定确认
-            collectRendered();
-            // 新版每轮都滚动到一次，触发虚拟内容渲染后才标记完成。
-            const modernTurnId = shell.getAttribute('data-turn-key');
-            if (modernTurnId && capturedMessages.has(modernTurnId)) {
-                processedIds.add(modernTurnId);
-            }
-
-            // 连续多轮既无新采集也无新渲染 → 虚拟化不再响应，避免死循环
-            if (capturedMessages.size === beforeCaptured && processedIds.size === beforeProcessed) {
-                stagnantRounds++;
-                if (stagnantRounds >= 5) break;
-            } else {
-                stagnantRounds = 0;
-            }
-        }
-        collectRendered(); // 结束前最后再采一次
-
-        // 用户和助手独立采集，最后才按完整顺序配对，避免虚拟窗口边界漏回复。
-        const turns = this._pairCapturedMessages(capturedMessages, masterOrder, capturedOrder);
-
-        // 恢复用户原始滚动位置（尽量不打扰）
-        try { scrollTo(initialScrollTop); } catch { /* ignore */ }
-
-        turns.forEach((turn, index) => { turn.order = index + 1; });
-        return turns;
+        return this._pairCapturedMessages(messages, order, []).map((turn, index) => ({ ...turn, order: index + 1 }));
     }
 
     /**
@@ -309,28 +84,6 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
         });
         flushPending();
         return turns;
-    }
-
-    /**
-     * 读取扩展记录的提问时间表（ChatTimeRecorder 写入的 chatTimes 存储）。
-     * 键为时间轴 generateTurnId 的产物（chatgpt-<turnId>），值为毫秒时间戳。
-     * 无记录/存储不可用时返回 null。
-     * @returns {Promise<Object|null>}
-     */
-    async _loadAskTimes() {
-        try {
-            if (typeof ChatTimeStorageManager === 'undefined') return null;
-            const conversationKey = location.href
-                .replace(/^https?:\/\//, '')
-                .split('?')[0]
-                .split('#')[0];
-            if (!conversationKey) return null;
-            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
-            const nodes = data?.nodes || {};
-            return Object.keys(nodes).length ? nodes : null;
-        } catch {
-            return null;
-        }
     }
 
     /** 兜底：与时间轴 getStarChatButtonTarget 相同的分享按钮锚点 */

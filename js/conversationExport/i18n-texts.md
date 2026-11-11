@@ -22,7 +22,7 @@
 | --- | --- | --- |
 | conversationExportSectionRange | 导出范围 | 分区标题 |
 | conversationExportSectionFormat | 导出格式 | 分区标题 |
-| conversationExportSectionHeader | 更多配置 | 分区标题 |
+| conversationExportSectionHeader | 更多信息 | 分区标题 |
 | conversationExportSectionTheme | 主题色 | 分区标题 |
 | conversationExportSectionList | 选择对话 | 分区标题 |
 
@@ -33,7 +33,7 @@
 | conversationExportRangeAll | 整个会话 | 范围选项 |
 | conversationExportRangeSelect | 选择对话 | 范围选项 |
 
-## 四、更多配置 / 头部信息
+## 四、更多信息 / 头部信息
 
 | 建议 key | 中文文案 | 说明 |
 | --- | --- | --- |
@@ -62,6 +62,7 @@
 | --- | --- | --- |
 | conversationExportCancel | 取消 | 取消按钮 |
 | conversationExportConfirm | 导出 | 确认导出按钮 |
+| conversationExportDownload | 下载文件 | 消息选择操作区的确认按钮 |
 
 ## 七、状态提示
 

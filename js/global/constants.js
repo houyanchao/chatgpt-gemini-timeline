@@ -39,6 +39,7 @@ const SITE_INFO = [
             useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
             conversationExport: true,  // 对话导出（需存在对应导出适配器）
+            messageScreenshot: true,  // 单条回复 / 提问与回复截图
             chatWidth: { // 对话宽度
                 selectors: ['.text-token-text-primary > div > div'],
                 // 新版正文和输入区共用的限宽变量，随站点响应式断点自动变化。
@@ -68,6 +69,7 @@ const SITE_INFO = [
             useStableNodeId: true,  // 使用稳定的节点 ID（父元素 id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
             conversationExport: true,  // 对话导出（需存在对应导出适配器）
+            messageScreenshot: true,
             chatWidth: {
                 selectors: ['.conversation-container', 'user-query']
             }
@@ -90,7 +92,8 @@ const SITE_INFO = [
             chatTimes: true,  // 提问时间记录
             useStableNodeId: true,  // 使用稳定的节点 ID（data-message-id），需等待 id 分配后记录
             sidebarStarred: true,  // 侧边栏收藏列表
-            conversationExport: true
+            conversationExport: true,
+            messageScreenshot: true
         }
     },
     {
@@ -110,6 +113,7 @@ const SITE_INFO = [
             chatTimes: true,  // 提问时间记录
             sidebarStarred: true,  // 侧边栏收藏列表
             conversationExport: true,
+            messageScreenshot: true,
         }
     },
     {
@@ -183,7 +187,8 @@ const SITE_INFO = [
             quickAsk: true,
             chatTimes: true,  // 提问时间记录
             sidebarStarred: true,  // 侧边栏收藏列表
-            conversationExport: true
+            conversationExport: true,
+            messageScreenshot: true
         }
     },
     {
@@ -257,7 +262,8 @@ const SITE_INFO = [
             chatTimes: true,  // 提问时间记录
             useStableNodeId: true,  // 用户消息 UUID，不受虚拟列表挂载顺序影响
             sidebarStarred: true,  // 侧边栏收藏列表
-            conversationExport: true
+            conversationExport: true,
+            messageScreenshot: true
         }
     },
     {

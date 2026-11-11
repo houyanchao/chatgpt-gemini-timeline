@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Timeline",
-  "version": "4.8.3",
+  "version": "4.8.4",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
   "author": "yanchao hou",
@@ -22,6 +22,7 @@
     "https://*.chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://gemini.google.com/*",
+    "https://www.gstatic.com/*",
     "https://*.doubao.com/*",
     "https://chat.deepseek.com/*",
     "https://yiyan.baidu.com/*",
@@ -115,6 +116,7 @@
         "js/global/tooltip-manager/styles.css",
         "js/global/toast-manager/styles.css",
         "js/global/input-modal/styles.css",
+        "js/global/loading-notice/styles.css",
         "js/sidebarStarred/folder-edit-modal/styles.css",
         "js/sidebarStarred/styles.css",
         "js/global/dropdown-manager/styles.css",
@@ -155,7 +157,8 @@
         "js/runner/codemirror/codemirror.min.css",
         "js/runner/components/runner-panel.css",
         "js/runner/components/floating-runner.css",
-        "js/conversationExport/styles.css"
+        "js/conversationExport/styles.css",
+        "js/messageActions/styles.css"
       ],
       "matches": [
         "<all_urls>"

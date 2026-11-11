@@ -387,7 +387,7 @@
     "message": "Format ekspor"
   },
   "conversationExportSectionHeader": {
-    "message": "Opsi lainnya"
+    "message": "Informasi lainnya"
   },
   "conversationExportSectionTheme": {
     "message": "Warna tema"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "Ekspor"
+  },
+  "conversationExportDownload": {
+    "message": "Unduh file"
   },
   "conversationExportLoading": {
     "message": "Memuat percakapan..."
@@ -690,22 +693,10 @@
     "message": "Dipindahkan"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "Simpan percakapan penting dalam folder, kelompokkan berdasarkan topik, dan buka kembali kapan saja."
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "Seret untuk mengubah urutan dan klik dua kali untuk mengedit."
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "Coba lagi"
+  },
+  "messageScreenshotButton": {
+    "message": "Tangkapan layar"
+  },
+  "messageScreenshotDownload": {
+    "message": "Unduh tangkapan layar"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "Ultra tinggi"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "Tinggi"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "Jernih"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "Standar"
+  },
+  "messageScreenshotReply": {
+    "message": "Tangkap jawaban"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "Tangkap pertanyaan dan jawaban"
+  },
+  "messageScreenshotDone": {
+    "message": "Tangkapan layar disimpan"
+  },
+  "messageScreenshotFailed": {
+    "message": "Gagal mengambil tangkapan layar. Coba lagi."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "Pertanyaan terkait tidak ditemukan. Anda masih dapat menangkap jawaban saja."
+  },
+  "messageScreenshotChanged": {
+    "message": "Pesan telah berubah. Coba lagi."
+  },
+  "messageScreenshotGenerating": {
+    "message": "Tunggu hingga jawaban ini selesai."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "Gambar tidak dapat dimuat. Coba lagi setelah dimuat."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "Pesan ini berisi konten tersemat yang tidak dapat ditangkap."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "Pesan terlalu besar untuk ditangkap."
+  },
+  "messageScreenshotTimeout": {
+    "message": "Waktu pengambilan habis. Coba lagi."
+  },
+  "conversationExportTabName": {
+    "message": "Ekspor & tangkapan layar"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "Tangkapan layar pesan"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "Tampilkan tombol tangkapan layar di bawah balasan. Pilih beberapa pertanyaan atau balasan dan simpan PNG pada resolusi 1×–4×."
+  },
+  "messageActionsSelectAll": {
+    "message": "Pilih semua"
+  },
+  "messageActionsStopLoading": {
+    "message": "Hentikan pemuatan"
+  },
+  "messageActionsSettings": {
+    "message": "Pengaturan"
+  },
+  "messageActionsCancel": {
+    "message": "Batal"
+  },
+  "messageActionsSelected": {
+    "message": "{count} / {total} pesan dipilih"
+  },
+  "messageActionsCopyContent": {
+    "message": "Salin konten"
+  },
+  "messageActionsCopyImage": {
+    "message": "Salin gambar"
+  },
+  "messageActionsCopying": {
+    "message": "Menyalin…"
+  },
+  "messageActionsCopied": {
+    "message": "Disalin. Siap ditempel."
+  },
+  "messageActionsCopyFailed": {
+    "message": "Gagal menyalin. Coba lagi atau unduh file."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "Browser ini tidak mendukung penyalinan. Silakan unduh file."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "Gambar terlalu panjang untuk disalin. Silakan unduh tangkapan layar."
+  },
+  "messageActionsWorking": {
+    "message": "Memproses…"
+  },
+  "messageActionsLoading": {
+    "message": "Memuat riwayat…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "{count} pesan dimuat"
+  },
+  "messageActionsQuestion": {
+    "message": "Pilih pertanyaan"
+  },
+  "messageActionsReply": {
+    "message": "Pilih jawaban"
+  },
+  "messageActionsLoaded": {
+    "message": "Semua pesan dimuat"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "Pemuatan belum selesai; pilih semua untuk mencoba lagi"
+  },
+  "messageActionsLoadStopped": {
+    "message": "Pemuatan dihentikan"
+  },
+  "messageActionsDone": {
+    "message": "Selesai"
+  },
+  "messageActionsFailed": {
+    "message": "Operasi gagal. Coba lagi."
+  },
+  "messageActionsChanged": {
+    "message": "Pesan berubah. Pilih kembali."
+  },
+  "messageActionsResolution": {
+    "message": "Resolusi"
+  },
+  "messageActionsScale1": {
+    "message": "Standar"
+  },
+  "messageActionsScale2": {
+    "message": "Tinggi"
+  },
+  "messageActionsScale3": {
+    "message": "Ultra"
+  },
+  "messageActionsScale4": {
+    "message": "Maksimum"
+  },
+  "messageActionsClear": {
+    "message": "Kosongkan"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "Pilih semua dan muat percakapan lengkap"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "Pilih pesan yang ingin disimpan."
   }
 }

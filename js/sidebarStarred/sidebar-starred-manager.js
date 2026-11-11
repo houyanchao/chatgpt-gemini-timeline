@@ -118,22 +118,14 @@ class SidebarStarredManager {
         helpBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
         helpBtn.addEventListener('mouseenter', () => {
             if (!window.globalTooltipManager) return;
-            const desc = TimelineI18n.getMessage('starredHelpDesc') || '文件夹，分类整理对话，告别杂乱无章。';
-            const tipsTitle = TimelineI18n.getMessage('starredHelpTipsTitle') || '使用小技巧：';
-            const tip1 = TimelineI18n.getMessage('starredHelpTip1') || '拖动对话到文件夹。';
-            const tip2 = TimelineI18n.getMessage('starredHelpTip2') || '拖动文件夹中的对话调整位置。';
-            const tip3 = TimelineI18n.getMessage('starredHelpTip3') || '拖动二级文件夹调整位置。';
-            const tip4 = TimelineI18n.getMessage('starredHelpTip4') || '双击文件夹或对话，快速编辑。';
-            const html = `<div style="font-size:12px;line-height:1.6">`
-                + `<div style="font-size:13px;font-weight:600;margin-bottom:6px">${desc}</div>`
-                + `<div style="font-weight:600;margin-bottom:4px">${tipsTitle}</div>`
-                + `<div style="padding-left:2px">`
-                + `<div>· ${tip1}</div>`
-                + `<div>· ${tip2}</div>`
-                + `<div>· ${tip3}</div>`
-                + `<div>· ${tip4}</div>`
-                + `</div></div>`;
-            window.globalTooltipManager.show('starred-help', 'button', helpBtn, { html }, { placement: 'top', gap: 6, maxWidth: 260, allowHover: true, noArrow: true });
+            const desc = TimelineI18n.getMessage('starredHelpDesc')
+                || 'Save important conversations in folders to organize them by topic and revisit them anytime.';
+            const tip = TimelineI18n.getMessage('starredHelpShortTip') || 'Drag to reorder and double-click to edit.';
+            const html = `<div style="display:grid;gap:6px;font-size:13px;font-weight:600;line-height:1.6">`
+                + `<div>${this._escapeText(desc)}</div>`
+                + `<div>${this._escapeText(tip)}</div>`
+                + `</div>`;
+            window.globalTooltipManager.show('starred-help', 'button', helpBtn, { html }, { placement: 'top', gap: 6, maxWidth: 260, allowHover: true, noArrow: true, theme: 'inverse' });
         });
         helpBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
         helpBtn.addEventListener('click', (e) => e.stopPropagation());
@@ -145,7 +137,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-settings', 'button', settingsBtn,
                 TimelineI18n.getMessage('sidebarStarredManage'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         settingsBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
@@ -171,7 +163,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-search', 'button', this.searchBtn,
                 TimelineI18n.getMessage('mvkzpx'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         this.searchBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });
@@ -187,7 +179,7 @@ class SidebarStarredManager {
             window.globalTooltipManager?.show(
                 'starred-sidebar-add-folder', 'button', addBtn,
                 TimelineI18n.getMessage('kxvpmz'),
-                { style: 'mini', placement: 'top' }
+                { style: 'mini', placement: 'top', theme: 'inverse' }
             );
         });
         addBtn.addEventListener('mouseleave', () => { window.globalTooltipManager?.hide(); });

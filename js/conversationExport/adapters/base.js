@@ -327,6 +327,21 @@ class CEExportAdapter {
         return this._resolveTimelineAdapter()?.getAssistantMessageSelector?.() || '';
     }
 
+    /** 提问时间按时间轴的稳定消息 ID 保存，供滚动过程中采集新挂载的消息。 */
+    async _loadAskTimes() {
+        try {
+            if (typeof ChatTimeStorageManager === 'undefined') return null;
+            const conversationKey = location.href.replace(/^https?:\/\//, '').split(/[?#]/)[0];
+            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
+            const nodes = data?.nodes || {};
+            return Object.keys(nodes).length ? nodes : null;
+        } catch {
+            return null;
+        }
+    }
+
+    getSelectedAskTimeKey(message) { return `${this.platformId}-${message.id}`; }
+
     /**
      * 构建「用户消息元素 → 提问时间戳」映射。
      *
@@ -341,17 +356,10 @@ class CEExportAdapter {
     async _buildAskTimeMap() {
         try {
             const adapter = window.timelineManager?.adapter;
-            if (!adapter?.generateTurnId || typeof ChatTimeStorageManager === 'undefined') return null;
+            if (!adapter?.generateTurnId) return null;
 
-            const conversationKey = location.href
-                .replace(/^https?:\/\//, '')
-                .split('?')[0]
-                .split('#')[0];
-            if (!conversationKey) return null;
-
-            const data = await ChatTimeStorageManager.getByConversation(conversationKey);
-            const nodes = data?.nodes || {};
-            if (!Object.keys(nodes).length) return null;
+            const nodes = await this._loadAskTimes();
+            if (!nodes) return null;
 
             const selector = adapter.getUserMessageSelector?.();
             if (!selector) return null;

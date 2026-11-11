@@ -46,6 +46,20 @@ class GlobalTooltipManager {
         this.targetObserver = null;  // 监听目标元素被删除
         this.intersectionObserver = null;  // 监听目标元素离开视口
         
+        // 共用色板；颜色值由 Tooltip 自身的 CSS 变量统一管理。
+        const color = {
+            light: {
+                backgroundColor: '#f8fafc',
+                textColor: '#334155',
+                borderColor: '#e2e8f0'
+            },
+            dark: {
+                backgroundColor: 'var(--timeline-tooltip-dark-bg)',
+                textColor: 'var(--timeline-tooltip-dark-text)',
+                borderColor: '#3f3f46'
+            }
+        };
+
         // 配置
         this.config = {
             types: {
@@ -57,19 +71,7 @@ class GlobalTooltipManager {
                     className: 'timeline-tooltip',
                     placement: 'auto',
                     gap: 12,  // ✅ 修复：与CSS变量一致 (4+6+2=12)
-                    // ✅ 支持浅色/深色模式的颜色配置
-                    color: {
-                        light: {
-                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
-                            textColor: '#334155',        // 浅色模式：深灰文字
-                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
-                        },
-                        dark: {
-                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
-                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
-                            borderColor: '#3f3f46'       // 深色模式：深灰边框
-                        }
-                    }
+                    color
                 },
                 button: {
                     maxWidth: 200,
@@ -79,18 +81,7 @@ class GlobalTooltipManager {
                     className: 'timeline-tooltip-base',  // 只使用基础类，颜色由color配置控制
                     placement: 'bottom',
                     gap: 12,
-                    color: {
-                        light: {
-                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
-                            textColor: '#334155',        // 浅色模式：深灰文字
-                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
-                        },
-                        dark: {
-                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
-                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
-                            borderColor: '#3f3f46'       // 深色模式：深灰边框
-                        }
-                    }
+                    color
                 },
                 formula: {
                     maxWidth: 300,
@@ -100,18 +91,7 @@ class GlobalTooltipManager {
                     className: 'formula-tooltip timeline-tooltip-base',  // 只使用基础类，颜色由color配置控制
                     placement: 'top',
                     gap: 12,
-                    color: {
-                        light: {
-                            backgroundColor: '#f8fafc',  // 浅色模式：柔和浅灰背景
-                            textColor: '#334155',        // 浅色模式：深灰文字
-                            borderColor: '#e2e8f0'       // 浅色模式：浅灰边框
-                        },
-                        dark: {
-                            backgroundColor: '#27272a',  // 深色模式：柔和深灰背景
-                            textColor: '#e5e7eb',        // 深色模式：浅灰文字
-                            borderColor: '#3f3f46'       // 深色模式：深灰边框
-                        }
-                    }
+                    color
                 }
             }
         };
@@ -129,6 +109,20 @@ class GlobalTooltipManager {
         this._setupGlobalListeners();
         this._attachUrlListeners();  // ✅ 监听 URL 变化（组件自治）
     }
+
+    _resolveConfig(type, options = {}) {
+        const defaults = this.config.types[type];
+        const palette = defaults.color;
+        const inverse = options.theme === 'inverse';
+        return {
+            ...defaults,
+            ...options,
+            color: {
+                light: { ...palette[inverse ? 'dark' : 'light'], ...options.color?.light },
+                dark: { ...palette[inverse ? 'light' : 'dark'], ...options.color?.dark }
+            }
+        };
+    }
     
     /**
      * 显示 tooltip
@@ -137,6 +131,7 @@ class GlobalTooltipManager {
      * @param {HTMLElement} target - 触发元素
      * @param {Object} content - 内容配置
      * @param {Object} options - 可选配置（覆盖默认）
+     * @param {string} options.theme - 'inverse' 交换浅色/深色配色，沿用公共色板
      * @param {Object} options.color - 颜色配置对象 {light: {backgroundColor, textColor, borderColor}, dark: {...}}
      * @param {number} options.maxWidth - 最大宽度
      * @param {number} options.showDelay - 显示延迟
@@ -166,7 +161,7 @@ class GlobalTooltipManager {
             this.timers.hideDelay = this._clearTimer(this.timers.hideDelay);
             
             // 获取配置
-            const typeConfig = { ...this.config.types[type], ...options };
+            const typeConfig = this._resolveConfig(type, options);
             
             // 防抖延迟
             this.timers.showDebounce = setTimeout(() => {
@@ -276,7 +271,7 @@ class GlobalTooltipManager {
         if (!theme) {
             const parentTooltip = target.closest('[data-tooltip-theme]');
             if (parentTooltip) {
-                theme = parentTooltip.getAttribute('data-tooltip-theme') === 'dark' ? 'dark' : 'light';
+                theme = parentTooltip.getAttribute('data-tooltip-theme') === 'dark' ? 'light' : 'dark';
             }
         }
         if (theme) el.setAttribute('data-theme', theme);
@@ -415,6 +410,9 @@ class GlobalTooltipManager {
         if (!isMini && position.arrowOffset) {
             tooltip.style.setProperty('--arrow-offset', position.arrowOffset);
         }
+        if (!isMini && (position.placement === 'left' || position.placement === 'right')) {
+            tooltip.style.setProperty('--timeline-tooltip-side-arrow-size', `${this._getSideArrowSize(position.height)}px`);
+        }
         
         // ✅ 关键修复：根据箭头方向使用正确的定位属性
         const vw = window.innerWidth;
@@ -451,8 +449,9 @@ class GlobalTooltipManager {
             const isDarkMode = this._detectDarkMode();
             const themeColors = isDarkMode ? config.color.dark : config.color.light;
             
-            // ✅ 添加data属性标记tooltip主题（用于CSS选择器）
-            tooltip.setAttribute('data-tooltip-theme', isDarkMode ? 'dark' : 'light');
+            // 内文图标和时间颜色跟随 Tooltip 的实际配色，而非页面主题。
+            const isDarkSurface = config.theme === 'inverse' ? !isDarkMode : isDarkMode;
+            tooltip.setAttribute('data-tooltip-theme', isDarkSurface ? 'dark' : 'light');
             
             if (themeColors.backgroundColor) {
                 // 同时设置内联样式和CSS变量（CSS变量用于伪元素）
@@ -634,6 +633,11 @@ class GlobalTooltipManager {
         };
     }
     
+    // 单行提示框使用更小的侧向箭头；高度足够时保留原来的尺寸。
+    _getSideArrowSize(height) {
+        return Math.min(8, Math.max(6, Math.floor((height - 24) / 2)));
+    }
+
     /**
      * 计算箭头偏移量
      * 当 tooltip 被边界修正移动后，箭头需要调整位置来指向目标元素
@@ -659,8 +663,8 @@ class GlobalTooltipManager {
             // 计算目标中心相对于 tooltip 顶部的位置
             const offsetPx = targetCenterY - position.top;
             // 限制在 tooltip 范围内（留出边距）
-            const minOffset = 12;
-            const maxOffset = tooltipRect.height - 12;
+            const minOffset = Math.min(tooltipRect.height / 2, 16 + this._getSideArrowSize(tooltipRect.height));
+            const maxOffset = tooltipRect.height - minOffset;
             const clampedOffset = Math.max(minOffset, Math.min(maxOffset, offsetPx));
             arrowOffset = `${clampedOffset}px`;
         }

@@ -18,16 +18,25 @@
    通用 Tooltip 基础样式
    ============================================ */
 
+/* 仅作用于 Tooltip，避免影响使用同名变量的其他组件。 */
+.timeline-tooltip,
+.timeline-tooltip-base,
+.timeline-tooltip-overlay {
+    --timeline-tooltip-radius: 16px;
+    --timeline-tooltip-dark-bg: #0D0D0D;
+    --timeline-tooltip-dark-text: #FFFFFF;
+}
+
 /* 基础 tooltip 样式 */
 .timeline-tooltip-base {
     position: fixed;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: var(--timeline-tooltip-radius);
+    padding: 5px 12px;
     box-sizing: border-box;
     background-color: var(--timeline-tooltip-bg);
     color: var(--timeline-tooltip-text);
     border: 1px solid var(--timeline-tooltip-border);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     line-height: 1.5;
     white-space: normal;
@@ -122,43 +131,43 @@
 /* 显示在左侧时，箭头在右边指向右方 */
 .timeline-tooltip[data-placement="left"]::before,
 .timeline-tooltip-base[data-placement="left"]::before {
-    right: -8px;
+    right: calc(-1 * var(--timeline-tooltip-side-arrow-size, 8px));
     top: var(--arrow-offset, 50%);
-    margin-top: -8px;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-left: 8px solid var(--timeline-tooltip-border);
+    margin-top: calc(-1 * var(--timeline-tooltip-side-arrow-size, 8px));
+    border-top: var(--timeline-tooltip-side-arrow-size, 8px) solid transparent;
+    border-bottom: var(--timeline-tooltip-side-arrow-size, 8px) solid transparent;
+    border-left: var(--timeline-tooltip-side-arrow-size, 8px) solid var(--timeline-tooltip-border);
 }
 
 .timeline-tooltip[data-placement="left"]::after,
 .timeline-tooltip-base[data-placement="left"]::after {
-    right: -6px;
+    right: calc(2px - var(--timeline-tooltip-side-arrow-size, 8px));
     top: var(--arrow-offset, 50%);
-    margin-top: -7px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-left: 7px solid var(--timeline-tooltip-bg);
+    margin-top: calc(1px - var(--timeline-tooltip-side-arrow-size, 8px));
+    border-top: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid transparent;
+    border-bottom: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid transparent;
+    border-left: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid var(--timeline-tooltip-bg);
 }
 
 /* 显示在右侧时，箭头在左边指向左方 */
 .timeline-tooltip[data-placement="right"]::before,
 .timeline-tooltip-base[data-placement="right"]::before {
-    left: -8px;
+    left: calc(-1 * var(--timeline-tooltip-side-arrow-size, 8px));
     top: var(--arrow-offset, 50%);
-    margin-top: -8px;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-right: 8px solid var(--timeline-tooltip-border);
+    margin-top: calc(-1 * var(--timeline-tooltip-side-arrow-size, 8px));
+    border-top: var(--timeline-tooltip-side-arrow-size, 8px) solid transparent;
+    border-bottom: var(--timeline-tooltip-side-arrow-size, 8px) solid transparent;
+    border-right: var(--timeline-tooltip-side-arrow-size, 8px) solid var(--timeline-tooltip-border);
 }
 
 .timeline-tooltip[data-placement="right"]::after,
 .timeline-tooltip-base[data-placement="right"]::after {
-    left: -6px;
+    left: calc(2px - var(--timeline-tooltip-side-arrow-size, 8px));
     top: var(--arrow-offset, 50%);
-    margin-top: -7px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-right: 7px solid var(--timeline-tooltip-bg);
+    margin-top: calc(1px - var(--timeline-tooltip-side-arrow-size, 8px));
+    border-top: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid transparent;
+    border-bottom: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid transparent;
+    border-right: calc(var(--timeline-tooltip-side-arrow-size, 8px) - 1px) solid var(--timeline-tooltip-bg);
 }
 
 /* 无箭头 tooltip */
@@ -173,13 +182,13 @@
 
 .timeline-tooltip-overlay {
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: var(--timeline-tooltip-radius);
     font-size: 11px;
     font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     white-space: nowrap;
-    background: #333;
-    color: #fff;
+    background: var(--timeline-tooltip-dark-bg);
+    color: var(--timeline-tooltip-dark-text);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     opacity: 0;
     transition: opacity 0.12s ease;

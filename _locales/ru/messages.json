@@ -387,7 +387,7 @@
     "message": "Формат экспорта"
   },
   "conversationExportSectionHeader": {
-    "message": "Дополнительно"
+    "message": "Дополнительная информация"
   },
   "conversationExportSectionTheme": {
     "message": "Цвет темы"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "Экспорт"
+  },
+  "conversationExportDownload": {
+    "message": "Скачать файл"
   },
   "conversationExportLoading": {
     "message": "Загрузка разговора..."
@@ -690,22 +693,10 @@
     "message": "Перемещено"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "Сохраняйте важные беседы в папках, группируйте их по темам и возвращайтесь к ним в любое время."
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "Перетащите, чтобы изменить порядок, или дважды щёлкните, чтобы отредактировать."
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "Повторить"
+  },
+  "messageScreenshotButton": {
+    "message": "Снимок"
+  },
+  "messageScreenshotDownload": {
+    "message": "Скачать скриншот"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "Ультравысокое"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "Высокое"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "Чёткое"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "Стандартное"
+  },
+  "messageScreenshotReply": {
+    "message": "Снимок ответа"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "Снимок вопроса и ответа"
+  },
+  "messageScreenshotDone": {
+    "message": "Снимок сохранён"
+  },
+  "messageScreenshotFailed": {
+    "message": "Не удалось создать снимок. Повторите попытку."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "Соответствующий вопрос не найден. Можно сохранить только ответ."
+  },
+  "messageScreenshotChanged": {
+    "message": "Сообщение изменилось. Повторите попытку."
+  },
+  "messageScreenshotGenerating": {
+    "message": "Дождитесь завершения этого ответа."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "Не удалось загрузить изображение. Повторите после загрузки."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "Сообщение содержит встроенные элементы, недоступные для снимка."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "Сообщение слишком большое для снимка."
+  },
+  "messageScreenshotTimeout": {
+    "message": "Время ожидания истекло. Повторите попытку."
+  },
+  "conversationExportTabName": {
+    "message": "Экспорт и скриншоты"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "Снимки сообщений"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "Показывать кнопку снимка под ответами. Выберите несколько вопросов или ответов и сохраните PNG с разрешением 1×–4×."
+  },
+  "messageActionsSelectAll": {
+    "message": "Выбрать всё"
+  },
+  "messageActionsStopLoading": {
+    "message": "Остановить загрузку"
+  },
+  "messageActionsSettings": {
+    "message": "Настройки"
+  },
+  "messageActionsCancel": {
+    "message": "Отмена"
+  },
+  "messageActionsSelected": {
+    "message": "Выбрано {count} / {total} сообщений"
+  },
+  "messageActionsCopyContent": {
+    "message": "Копировать содержимое"
+  },
+  "messageActionsCopyImage": {
+    "message": "Копировать изображение"
+  },
+  "messageActionsCopying": {
+    "message": "Копирование…"
+  },
+  "messageActionsCopied": {
+    "message": "Скопировано. Можно вставлять."
+  },
+  "messageActionsCopyFailed": {
+    "message": "Не удалось скопировать. Повторите попытку или скачайте файл."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "Этот браузер не поддерживает копирование. Скачайте файл."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "Изображение слишком длинное для копирования. Скачайте снимок экрана."
+  },
+  "messageActionsWorking": {
+    "message": "Обработка…"
+  },
+  "messageActionsLoading": {
+    "message": "Загрузка истории…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "Загружено сообщений: {count}"
+  },
+  "messageActionsQuestion": {
+    "message": "Выбрать вопрос"
+  },
+  "messageActionsReply": {
+    "message": "Выбрать ответ"
+  },
+  "messageActionsLoaded": {
+    "message": "Все сообщения загружены"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "Загрузка неполная; выберите всё для повтора"
+  },
+  "messageActionsLoadStopped": {
+    "message": "Загрузка остановлена"
+  },
+  "messageActionsDone": {
+    "message": "Готово"
+  },
+  "messageActionsFailed": {
+    "message": "Ошибка операции. Повторите попытку."
+  },
+  "messageActionsChanged": {
+    "message": "Сообщение изменилось. Выберите его снова."
+  },
+  "messageActionsResolution": {
+    "message": "Разрешение"
+  },
+  "messageActionsScale1": {
+    "message": "Обычное"
+  },
+  "messageActionsScale2": {
+    "message": "Высокое"
+  },
+  "messageActionsScale3": {
+    "message": "Ультра"
+  },
+  "messageActionsScale4": {
+    "message": "Максимальное"
+  },
+  "messageActionsClear": {
+    "message": "Очистить"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "Выбрать всё и загрузить весь разговор"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "Выберите сообщения для сохранения."
   }
 }

@@ -14,6 +14,7 @@
  */
 
 const CETextExporters = {
+    roleSelected(turn, role) { return turn.selection?.[role] !== false; },
     /** 只对实际的 Markdown 图片去重，代码示例和转义文本不算图片。 */
     _hasMarkdownImage(markdown, src) {
         if (!markdown || !src) return false;
@@ -128,8 +129,8 @@ const CETextExporters = {
      * 汇总一轮对话的全部图片（用户 + 助手）。
      */
     _turnImages(turn) {
-        const userImages = (turn.user?.images || []);
-        const assistantImages = (turn.assistant?.images || []);
+        const userImages = this.roleSelected(turn, 'user') ? (turn.user?.images || []) : [];
+        const assistantImages = this.roleSelected(turn, 'assistant') ? (turn.assistant?.images || []) : [];
         return [...userImages, ...assistantImages];
     },
 
@@ -175,40 +176,44 @@ const CETextExporters = {
         lines.push('---');
 
         for (const turn of turns) {
-            // 用户
-            lines.push('');
-            lines.push(`**${CE_TEXT.exportRoleUser}：**`);
-            const mdAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            if (mdAskTime) {
+            if (this.roleSelected(turn, 'user')) {
+                // 用户
                 lines.push('');
-                lines.push(`> ${CE_TEXT.askTimeLabel}: ${mdAskTime}`);
+                lines.push(`**${CE_TEXT.exportRoleUser}：**`);
+                const mdAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                if (mdAskTime) {
+                    lines.push('');
+                    lines.push(`> ${CE_TEXT.askTimeLabel}: ${mdAskTime}`);
+                }
+                lines.push('');
+                lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+
+                (turn.user?.images || []).forEach(image => {
+                    lines.push('');
+                    lines.push(...this._imageMarkdownLines(image));
+                });
+
             }
-            lines.push('');
-            lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+            if (this.roleSelected(turn, 'assistant')) {
+                // 助手
+                lines.push('');
+                lines.push(`**${CE_TEXT.exportRoleAssistant}：**`);
+                const mdAsstImages = turn.assistant?.images || [];
+                if (turn.assistant?.markdown) {
+                    lines.push('');
+                    lines.push(turn.assistant.markdown);
+                } else if (!mdAsstImages.length) {
+                    // 无文本且无图片时才显示占位（纯图片回复不应提示“未找到回复内容”）
+                    lines.push('');
+                    lines.push(CE_TEXT.emptyAssistant);
+                }
 
-            (turn.user?.images || []).forEach(image => {
-                lines.push('');
-                lines.push(...this._imageMarkdownLines(image));
-            });
+                mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
+                    lines.push('');
+                    lines.push(...this._imageMarkdownLines(image));
+                });
 
-            // 助手
-            lines.push('');
-            lines.push(`**${CE_TEXT.exportRoleAssistant}：**`);
-            const mdAsstImages = turn.assistant?.images || [];
-            if (turn.assistant?.markdown) {
-                lines.push('');
-                lines.push(turn.assistant.markdown);
-            } else if (!mdAsstImages.length) {
-                // 无文本且无图片时才显示占位（纯图片回复不应提示“未找到回复内容”）
-                lines.push('');
-                lines.push(CE_TEXT.emptyAssistant);
             }
-
-            mdAsstImages.filter(image => !this._hasMarkdownImage(turn.assistant?.markdown, image.src)).forEach(image => {
-                lines.push('');
-                lines.push(...this._imageMarkdownLines(image));
-            });
-
             lines.push('');
             lines.push('---');
         }
@@ -232,16 +237,21 @@ const CETextExporters = {
 
         for (const turn of turns) {
             lines.push('');
-            const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
-            lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
-            lines.push('');
-            lines.push(`${CE_TEXT.exportRoleAssistant}：`);
-            if (turn.assistant?.text) {
-                lines.push(turn.assistant.text);
-            } else if (!(turn.assistant?.images || []).length) {
-                // 无文本且无图片时才显示占位（图片在下方图片清单中列出）
-                lines.push(CE_TEXT.emptyAssistant);
+            if (this.roleSelected(turn, 'user')) {
+                const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
+                lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
+                lines.push('');
+            }
+            if (this.roleSelected(turn, 'assistant')) {
+                lines.push(`${CE_TEXT.exportRoleAssistant}：`);
+                if (turn.assistant?.text) {
+                    lines.push(turn.assistant.text);
+                } else if (!(turn.assistant?.images || []).length) {
+                    // 无文本且无图片时才显示占位（图片在下方图片清单中列出）
+                    lines.push(CE_TEXT.emptyAssistant);
+                }
+
             }
 
             const images = this._turnImages(turn);
@@ -284,18 +294,18 @@ const CETextExporters = {
 
         const conversation = turns.map(turn => ({
             order: turn.order,
-            user: {
+            ...(this.roleSelected(turn, 'user') ? { user: {
                 text: turn.user?.text || '',
                 ...(options.showConversationTime && turn.user?.time
                     ? { time: ceFormatChatTime(turn.user.time) }
                     : {}),
                 images: (turn.user?.images || []).map(this._serializeImage),
-            },
-            assistant: {
+            } } : {}),
+            ...(this.roleSelected(turn, 'assistant') ? { assistant: {
                 text: turn.assistant?.text || '',
                 markdown: turn.assistant?.markdown || '',
                 images: (turn.assistant?.images || []).map(this._serializeImage),
-            },
+            } } : {}),
         }));
 
         return JSON.stringify({ metadata, conversation }, null, 2);
@@ -331,9 +341,9 @@ const CETextExporters = {
 
         turns.forEach(turn => {
             const cells = [turn.order];
-            if (withTime) cells.push(ceFormatChatTime(turn.user?.time) || '');
-            cells.push(turn.user?.text || '');
-            cells.push(turn.assistant?.text || turn.assistant?.markdown || '');
+            if (withTime) cells.push(this.roleSelected(turn, 'user') ? ceFormatChatTime(turn.user?.time) || '' : '');
+            cells.push(this.roleSelected(turn, 'user') ? turn.user?.text || '' : '');
+            cells.push(this.roleSelected(turn, 'assistant') ? turn.assistant?.text || turn.assistant?.markdown || '' : '');
             const imgs = this._turnImages(turn)
                 .map(img => (img.src ? img.src : `（${CE_TEXT.imageNotRendered}）`))
                 .join('\n');
@@ -373,19 +383,7 @@ function ceTriggerDownload(filenameBase, format, content) {
         ? content
         : new Blob([content], { type: `${format.mime};charset=utf-8` });
 
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${filenameBase}${format.ext}`;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    anchor.click();
-
-    // 释放资源
-    setTimeout(() => {
-        if (anchor.parentNode) anchor.parentNode.removeChild(anchor);
-        URL.revokeObjectURL(url);
-    }, 1000);
+    AITDownload.saveBlob(blob, `${filenameBase}${format.ext}`);
 }
 
 ;
@@ -464,7 +462,7 @@ class CEPngExporter {
 
         // 仅在导出内容实际包含公式时加载 MathJax 并预渲染，普通 PNG 导出不加载重型库
         const hasFormulas = job.turns.some((turn) =>
-            this._collectFormulas(turn.assistant?.markdown || '').length > 0
+            CETextExporters.roleSelected(turn, 'assistant') && this._collectFormulas(turn.assistant?.markdown || '').length > 0
         );
         this.formulaCapable = hasFormulas
             ? await this._probeFormulaRendering()
@@ -620,35 +618,39 @@ class CEPngExporter {
         job.turns.forEach((turn, index) => {
             if (index > 0) ops.push(this._dividerOp());
 
-            // 提问：首个内容块（气泡）挂上左侧「Q」标记，与首行对齐
-            const askTime = job.options?.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
-            const userOp = this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview, askTime);
-            ops.push(this._withRoleMarker(userOp, 'Q', true, theme));
-            (turn.user?.images || []).forEach(image => {
-                ops.push(this._imageOp(image, imageMap));
-            });
+            if (CETextExporters.roleSelected(turn, 'user')) {
+                // 提问：首个内容块（气泡）挂上左侧「Q」标记，与首行对齐
+                const askTime = job.options?.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
+                const userOp = this._userTextOp(ctx, turn.user?.text || CE_TEXT.emptyUserPreview, askTime);
+                ops.push(this._withRoleMarker(userOp, 'Q', true, theme));
+                (turn.user?.images || []).forEach(image => {
+                    ops.push(this._imageOp(image, imageMap));
+                });
 
-            // 提问与回答之间留一点间距
-            ops.push(this._spacerOp(10));
+                // 提问与回答之间留一点间距
+                if (CETextExporters.roleSelected(turn, 'assistant')) ops.push(this._spacerOp(10));
 
-            // 回答：文本块 + 图片；图片也算内容，避免纯图片回复被判为“空”
-            const assistantOps = [];
-            const blocks = this._parseMarkdownBlocks(turn.assistant?.markdown || '');
-            if (blocks.length) {
-                blocks.forEach(block => assistantOps.push(this._markdownBlockOp(ctx, block)));
-            } else if (turn.assistant?.text) {
-                assistantOps.push(this._paragraphOp(ctx, turn.assistant.text));
             }
-            (turn.assistant?.images || []).forEach(image => {
-                assistantOps.push(this._imageOp(image, imageMap));
-            });
-            // 文本与图片都没有时才显示占位提示
-            if (!assistantOps.length) {
-                assistantOps.push(this._paragraphOp(ctx, CE_TEXT.emptyAssistant));
+            if (CETextExporters.roleSelected(turn, 'assistant')) {
+                // 回答：文本块 + 图片；图片也算内容，避免纯图片回复被判为“空”
+                const assistantOps = [];
+                const blocks = this._parseMarkdownBlocks(turn.assistant?.markdown || '');
+                if (blocks.length) {
+                    blocks.forEach(block => assistantOps.push(this._markdownBlockOp(ctx, block)));
+                } else if (turn.assistant?.text) {
+                    assistantOps.push(this._paragraphOp(ctx, turn.assistant.text));
+                }
+                (turn.assistant?.images || []).forEach(image => {
+                    assistantOps.push(this._imageOp(image, imageMap));
+                });
+                // 文本与图片都没有时才显示占位提示
+                if (!assistantOps.length) {
+                    assistantOps.push(this._paragraphOp(ctx, CE_TEXT.emptyAssistant));
+                }
+                // 首个回答内容（文本或图片）挂上左侧「A」标记
+                assistantOps[0] = this._withRoleMarker(assistantOps[0], 'A', false, theme);
+                assistantOps.forEach(op => ops.push(op));
             }
-            // 首个回答内容（文本或图片）挂上左侧「A」标记
-            assistantOps[0] = this._withRoleMarker(assistantOps[0], 'A', false, theme);
-            assistantOps.forEach(op => ops.push(op));
         });
 
         return ops;
@@ -1340,8 +1342,7 @@ class CEPngExporter {
     async _preloadImages(turns) {
         const srcs = new Set();
         turns.forEach(turn => {
-            (turn.user?.images || []).forEach(img => srcs.add(img.src));
-            (turn.assistant?.images || []).forEach(img => srcs.add(img.src));
+            CETextExporters._turnImages(turn).forEach(img => srcs.add(img.src));
         });
 
         const map = new Map();
@@ -1418,6 +1419,7 @@ class CEPngExporter {
         const seen = new Set();
         const items = [];
         turns.forEach(turn => {
+            if (!CETextExporters.roleSelected(turn, 'assistant')) return;
             this._collectFormulas(turn.assistant?.markdown || '').forEach(f => {
                 const key = (f.display ? 'D:' : 'I:') + f.latex;
                 if (!seen.has(key)) {
@@ -1635,13 +1637,15 @@ class CEPdfExporter {
      * @param {CEPngExporter} [markdownParser] - 复用其 _parseMarkdownBlocks
      * @returns {Promise<void>}
      */
-    async export(job, themeId, markdownParser) {
+    async export(job, themeId, markdownParser, { signal } = {}) {
+        signal?.throwIfAborted();
         this._parser = markdownParser || null;
         this._mjReady = this._containsFormula(job)
             ? await this._ensureMathJax()
             : false;
+        signal?.throwIfAborted();
         const html = this._buildHtml(job, themeId);
-        await this._printHtml(html);
+        await this._printHtml(html, signal);
     }
 
     // ==================== HTML 构建 ====================
@@ -1730,6 +1734,7 @@ a { color: #2563eb; text-decoration: none; }
 
         return `
 <div class="ce-turn">
+  ${CETextExporters.roleSelected(turn, 'user') ? `
   <div class="ce-row">
     <span class="ce-badge q">Q</span>
     <div class="ce-body">
@@ -1737,10 +1742,12 @@ a { color: #2563eb; text-decoration: none; }
       ${userImages}
     </div>
   </div>
+` : ''}
+  ${CETextExporters.roleSelected(turn, 'assistant') ? `
   <div class="ce-row">
     <span class="ce-badge a">A</span>
     <div class="ce-body"><div class="ce-content">${assistantBody}</div></div>
-  </div>
+  </div>` : ''}
 </div>`;
     }
 
@@ -1881,6 +1888,7 @@ a { color: #2563eb; text-decoration: none; }
 
     _containsFormula(job) {
         return (job?.turns || []).some((turn) => {
+            if (!CETextExporters.roleSelected(turn, 'assistant')) return false;
             const markdown = turn?.assistant?.markdown || '';
             if (!markdown) return false;
             return /\\\(|\\\[|\$\$/.test(markdown)
@@ -1934,8 +1942,9 @@ a { color: #2563eb; text-decoration: none; }
 
     // ==================== 打印 ====================
 
-    _printHtml(html) {
-        return new Promise((resolve) => {
+    _printHtml(html, signal) {
+        signal?.throwIfAborted();
+        return new Promise((resolve, reject) => {
             const iframe = document.createElement('iframe');
             iframe.setAttribute('aria-hidden', 'true');
             iframe.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;height:1123px;border:0;opacity:0;';
@@ -1948,6 +1957,14 @@ a { color: #2563eb; text-decoration: none; }
             doc.close();
 
             let printed = false;
+            let imageTimer, startTimer;
+            const cleanup = () => {
+                clearTimeout(imageTimer); clearTimeout(startTimer);
+                signal?.removeEventListener('abort', abort);
+                iframe.remove();
+            };
+            const abort = () => { if (printed) return; printed = true; cleanup(); reject(new DOMException('Cancelled', 'AbortError')); };
+            signal?.addEventListener('abort', abort, { once: true });
             const finish = () => {
                 if (printed) return;
                 printed = true;
@@ -1957,7 +1974,7 @@ a { color: #2563eb; text-decoration: none; }
                 } catch { /* ignore */ }
                 // 打印对话框关闭后再移除 iframe
                 setTimeout(() => {
-                    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                    cleanup();
                     resolve();
                 }, 500);
             };
@@ -1973,13 +1990,13 @@ a { color: #2563eb; text-decoration: none; }
                     im.addEventListener('error', onSettle, { once: true });
                 });
                 // 兜底：图片迟迟不返回也照常打印
-                setTimeout(finish, 4000);
+                imageTimer = setTimeout(finish, 4000);
             };
 
             let started = false;
             const start = () => { if (started) return; started = true; waitImagesThenPrint(); };
             win.addEventListener('load', start);
-            setTimeout(start, 800);
+            startTimer = setTimeout(start, 800);
         });
     }
 }

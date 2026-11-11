@@ -41,7 +41,8 @@ function generateFirefoxManifest(geckoId) {
 
     // Silent recovery uses Chromium's document-targeted scripting injection.
     manifest.permissions = manifest.permissions.filter(permission => permission !== 'scripting');
-    delete manifest.host_permissions;
+    // The background fetches public Gemini weather icons from this separate origin.
+    manifest.host_permissions = manifest.host_permissions.filter(pattern => pattern === 'https://www.gstatic.com/*');
     for (const entry of manifest.content_scripts || []) {
         entry.js = entry.js?.filter(file => file !== 'js/content/session.js');
     }

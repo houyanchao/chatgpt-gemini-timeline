@@ -19,8 +19,7 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
     }
 
     _fallbackButtonInsertTarget() {
-        const path = document.querySelector('path[d^="M15.7484 11.1004"]');
-        return path?.closest('.ds-icon-button') || null;
+        return DeepSeekAdapter.getHeaderActionTarget();
     }
 
     _fallbackScrollContainer() {
@@ -36,11 +35,8 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, [':scope > div']);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.ds-assistant-message-main-content',
-            '.ds-markdown',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -51,10 +47,20 @@ class CEDeepSeekExportAdapter extends CEExportAdapter {
         };
     }
 
+    _extractUser(element) { return this._extractUserFrom(element, [':scope > div']); }
+
+    getSelectedAskTimeKey(message) {
+        // Existing DeepSeek timestamps are stored by the timeline's question index.
+        const timeline = window.timelineManager;
+        if (timeline?.adapter?.platformId !== this.platformId) return null;
+        return timeline.markers?.find(marker => marker.element === message.element)?.id || null;
+    }
+
+    _extractAssistant(element) {
+        return this._extractAssistantFrom(element, ['.ds-assistant-message-main-content', '.ds-markdown']);
+    }
+
     isLoadingMore() {
-        const loading = document.querySelector('.ds-loading');
-        if (!loading) return false;
-        const rect = loading.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
+        return DeepSeekAdapter.isHistoryLoading();
     }
 }

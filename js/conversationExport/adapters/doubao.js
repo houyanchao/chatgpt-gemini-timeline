@@ -76,17 +76,8 @@ class CEDoubaoExportAdapter extends CEExportAdapter {
 
     extractTurn(pair) {
         if (!pair?.userEl) return null;
-        const user = this._extractUserFrom(pair.userEl, [
-            '[data-plugin-identifier="Symbol(infra:send-message-box:text)"]',
-            '[data-plugin-identifier="block_type:10000"] .md-box-root',
-            '[data-plugin-identifier]',
-        ]);
-        const assistant = this._extractAssistantFrom(pair.assistantEl, [
-            '.flow-markdown-body',
-            '[data-plugin-identifier="block_type:10000"] .md-box-root',
-            '.md-box-root',
-            '[data-container-type^="block"]',
-        ]);
+        const user = this._extractUser(pair.userEl);
+        const assistant = this._extractAssistant(pair.assistantEl);
         if (!user.text && !user.images.length && !assistant.text && !assistant.images.length) return null;
 
         const elementId = this._resolveElementId(pair.userEl);
@@ -95,5 +86,22 @@ class CEDoubaoExportAdapter extends CEExportAdapter {
             user,
             assistant,
         };
+    }
+
+    _extractUser(element) {
+        return this._extractUserFrom(element, [
+            '[data-plugin-identifier="Symbol(infra:send-message-box:text)"]',
+            '[data-plugin-identifier="block_type:10000"] .md-box-root',
+            '[data-plugin-identifier]',
+        ]);
+    }
+
+    _extractAssistant(element) {
+        return this._extractAssistantFrom(element, [
+            '.flow-markdown-body',
+            '[data-plugin-identifier="block_type:10000"] .md-box-root',
+            '.md-box-root',
+            '[data-container-type^="block"]',
+        ]);
     }
 }

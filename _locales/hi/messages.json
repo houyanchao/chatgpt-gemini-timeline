@@ -387,7 +387,7 @@
     "message": "निर्यात प्रारूप"
   },
   "conversationExportSectionHeader": {
-    "message": "अधिक विकल्प"
+    "message": "अधिक जानकारी"
   },
   "conversationExportSectionTheme": {
     "message": "थीम रंग"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "निर्यात करें"
+  },
+  "conversationExportDownload": {
+    "message": "फ़ाइल डाउनलोड करें"
   },
   "conversationExportLoading": {
     "message": "बातचीत लोड हो रही है..."
@@ -690,22 +693,10 @@
     "message": "स्थानांतरित"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "ज़रूरी बातचीत को फ़ोल्डर में सहेजें, विषय के अनुसार व्यवस्थित करें और जब चाहें फिर देखें।"
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "क्रम बदलने के लिए खींचें और संपादित करने के लिए डबल क्लिक करें।"
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "फिर से कोशिश करें"
+  },
+  "messageScreenshotButton": {
+    "message": "स्क्रीनशॉट"
+  },
+  "messageScreenshotDownload": {
+    "message": "स्क्रीनशॉट डाउनलोड करें"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "अल्ट्रा हाई"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "उच्च"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "स्पष्ट"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "मानक"
+  },
+  "messageScreenshotReply": {
+    "message": "उत्तर का स्क्रीनशॉट"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "प्रश्न और उत्तर का स्क्रीनशॉट"
+  },
+  "messageScreenshotDone": {
+    "message": "स्क्रीनशॉट सहेजा गया"
+  },
+  "messageScreenshotFailed": {
+    "message": "स्क्रीनशॉट विफल रहा। फिर प्रयास करें।"
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "संबंधित प्रश्न नहीं मिला। आप केवल उत्तर का स्क्रीनशॉट ले सकते हैं।"
+  },
+  "messageScreenshotChanged": {
+    "message": "संदेश बदल गया है। फिर प्रयास करें।"
+  },
+  "messageScreenshotGenerating": {
+    "message": "इस उत्तर के पूरा होने की प्रतीक्षा करें।"
+  },
+  "messageScreenshotImageFailed": {
+    "message": "चित्र लोड नहीं हो सका। लोड होने के बाद फिर प्रयास करें।"
+  },
+  "messageScreenshotUnsupported": {
+    "message": "इस संदेश में ऐसा एम्बेड किया गया कंटेंट है जिसका स्क्रीनशॉट नहीं लिया जा सकता।"
+  },
+  "messageScreenshotTooLarge": {
+    "message": "यह संदेश स्क्रीनशॉट के लिए बहुत बड़ा है।"
+  },
+  "messageScreenshotTimeout": {
+    "message": "स्क्रीनशॉट का समय समाप्त हो गया। फिर प्रयास करें।"
+  },
+  "conversationExportTabName": {
+    "message": "निर्यात और स्क्रीनशॉट"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "संदेश के स्क्रीनशॉट"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "जवाबों के नीचे स्क्रीनशॉट बटन दिखाएँ। कई प्रश्न या जवाब चुनें और 1×–4× रिज़ॉल्यूशन पर PNG में सहेजें।"
+  },
+  "messageActionsSelectAll": {
+    "message": "सभी चुनें"
+  },
+  "messageActionsStopLoading": {
+    "message": "लोड करना रोकें"
+  },
+  "messageActionsSettings": {
+    "message": "सेटिंग्स"
+  },
+  "messageActionsCancel": {
+    "message": "रद्द करें"
+  },
+  "messageActionsSelected": {
+    "message": "{total} में से {count} संदेश चुने गए"
+  },
+  "messageActionsCopyContent": {
+    "message": "सामग्री कॉपी करें"
+  },
+  "messageActionsCopyImage": {
+    "message": "छवि कॉपी करें"
+  },
+  "messageActionsCopying": {
+    "message": "कॉपी हो रहा है…"
+  },
+  "messageActionsCopied": {
+    "message": "कॉपी हो गया। अब पेस्ट कर सकते हैं।"
+  },
+  "messageActionsCopyFailed": {
+    "message": "कॉपी नहीं हो सका। दोबारा कोशिश करें या फ़ाइल डाउनलोड करें।"
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "यह ब्राउज़र कॉपी करने का समर्थन नहीं करता। कृपया फ़ाइल डाउनलोड करें।"
+  },
+  "messageActionsCopyTooLong": {
+    "message": "छवि कॉपी करने के लिए बहुत लंबी है। कृपया स्क्रीनशॉट डाउनलोड करें।"
+  },
+  "messageActionsWorking": {
+    "message": "प्रक्रिया जारी…"
+  },
+  "messageActionsLoading": {
+    "message": "इतिहास लोड हो रहा है…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "{count} संदेश लोड हुए"
+  },
+  "messageActionsQuestion": {
+    "message": "प्रश्न चुनें"
+  },
+  "messageActionsReply": {
+    "message": "उत्तर चुनें"
+  },
+  "messageActionsLoaded": {
+    "message": "सभी संदेश लोड हो गए"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "लोड अधूरा है; फिर प्रयास करने के लिए सभी चुनें"
+  },
+  "messageActionsLoadStopped": {
+    "message": "लोड करना रोक दिया गया"
+  },
+  "messageActionsDone": {
+    "message": "पूरा हुआ"
+  },
+  "messageActionsFailed": {
+    "message": "कार्य विफल रहा। फिर प्रयास करें।"
+  },
+  "messageActionsChanged": {
+    "message": "संदेश बदल गया है। उसे फिर से चुनें।"
+  },
+  "messageActionsResolution": {
+    "message": "रिज़ॉल्यूशन"
+  },
+  "messageActionsScale1": {
+    "message": "मानक"
+  },
+  "messageActionsScale2": {
+    "message": "उच्च"
+  },
+  "messageActionsScale3": {
+    "message": "अल्ट्रा"
+  },
+  "messageActionsScale4": {
+    "message": "अधिकतम"
+  },
+  "messageActionsClear": {
+    "message": "साफ़ करें"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "सभी चुनें और पूरी बातचीत लोड करें"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "सहेजने के लिए संदेश चुनें।"
   }
 }

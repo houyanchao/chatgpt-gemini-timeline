@@ -52,13 +52,7 @@ window.AITPlatformFeatures.register('usage-quota', async () => {
         return icon;
     }
     refreshButton.append(makeIcon('M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7'));
-    const gear = makeIcon('M9.67 4.14a2.34 2.34 0 0 1 4.66 0 2.34 2.34 0 0 0 3.32 1.91 2.34 2.34 0 0 1 2.33 4.04 2.34 2.34 0 0 0 0 3.82 2.34 2.34 0 0 1-2.33 4.04 2.34 2.34 0 0 0-3.32 1.91 2.34 2.34 0 0 1-4.66 0 2.34 2.34 0 0 0-3.32-1.91 2.34 2.34 0 0 1-2.33-4.04 2.34 2.34 0 0 0 0-3.82 2.34 2.34 0 0 1 2.33-4.04 2.34 2.34 0 0 0 3.32-1.91Z');
-    const center = document.createElementNS(svgNamespace, 'circle');
-    center.setAttribute('cx', '12');
-    center.setAttribute('cy', '12');
-    center.setAttribute('r', '3');
-    gear.append(center);
-    settingsLink.append(gear);
+    settingsLink.append(createAITSettingsIcon());
     const footer = document.createElement('div');
     footer.className = 'ait-usage-quota-footer';
     footer.append(settingsLink, status);

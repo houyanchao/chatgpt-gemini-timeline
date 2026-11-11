@@ -33,8 +33,16 @@ async function isConversationExportEnabled(platformId) {
     let manager = null;
     let initInFlight = false;
     let listenersAttached = false;
+    let actionRegistered = false;
 
     async function ensureManager() {
+        if (window.AITMessageActions?.supportsCurrentPlatform()) {
+            if (!actionRegistered) {
+                window.AITMessageActions.registerAction(new ConversationExportAction());
+                actionRegistered = true;
+            }
+            return;
+        }
         if (manager || initInFlight) return;
         initInFlight = true;
         try {
@@ -71,6 +79,7 @@ async function isConversationExportEnabled(platformId) {
      * 依据当前平台与用户开关，决定初始化还是销毁管理器（供开关实时切换调用）。
      */
     async function reevaluate() {
+        if (window.AITMessageActions?.supportsCurrentPlatform()) return;
         const adapter = getConversationExportAdapter();
         const platformId = adapter?.platformId || null;
         const enabled = platformId ? await isConversationExportEnabled(platformId) : false;

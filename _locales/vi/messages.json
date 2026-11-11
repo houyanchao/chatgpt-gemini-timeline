@@ -387,7 +387,7 @@
     "message": "Định dạng xuất"
   },
   "conversationExportSectionHeader": {
-    "message": "Tùy chọn khác"
+    "message": "Thông tin khác"
   },
   "conversationExportSectionTheme": {
     "message": "Màu chủ đề"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "Xuất"
+  },
+  "conversationExportDownload": {
+    "message": "Tải tệp xuống"
   },
   "conversationExportLoading": {
     "message": "Đang tải cuộc trò chuyện..."
@@ -690,22 +693,10 @@
     "message": "Đã di chuyển"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "Lưu các cuộc trò chuyện quan trọng vào thư mục để sắp xếp theo chủ đề và xem lại bất cứ lúc nào."
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "Kéo để đổi thứ tự, nhấp đúp để chỉnh sửa."
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "Thử lại"
+  },
+  "messageScreenshotButton": {
+    "message": "Ảnh chụp"
+  },
+  "messageScreenshotDownload": {
+    "message": "Tải ảnh chụp màn hình"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "Siêu nét"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "Độ nét cao"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "Rõ nét"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "Tiêu chuẩn"
+  },
+  "messageScreenshotReply": {
+    "message": "Chụp câu trả lời"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "Chụp câu hỏi và trả lời"
+  },
+  "messageScreenshotDone": {
+    "message": "Đã lưu ảnh chụp"
+  },
+  "messageScreenshotFailed": {
+    "message": "Chụp thất bại. Vui lòng thử lại."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "Không tìm thấy câu hỏi tương ứng. Bạn vẫn có thể chụp riêng câu trả lời."
+  },
+  "messageScreenshotChanged": {
+    "message": "Tin nhắn đã thay đổi. Vui lòng thử lại."
+  },
+  "messageScreenshotGenerating": {
+    "message": "Đợi câu trả lời này hoàn tất."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "Không tải được ảnh. Hãy thử lại sau khi ảnh tải xong."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "Tin nhắn chứa nội dung nhúng chưa hỗ trợ chụp."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "Tin nhắn quá lớn để chụp."
+  },
+  "messageScreenshotTimeout": {
+    "message": "Chụp quá thời gian. Vui lòng thử lại."
+  },
+  "conversationExportTabName": {
+    "message": "Xuất và chụp màn hình"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "Ảnh chụp tin nhắn"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "Hiển thị nút chụp bên dưới câu trả lời. Chọn nhiều câu hỏi hoặc câu trả lời và lưu PNG ở độ phân giải 1×–4×."
+  },
+  "messageActionsSelectAll": {
+    "message": "Chọn tất cả"
+  },
+  "messageActionsStopLoading": {
+    "message": "Dừng tải"
+  },
+  "messageActionsSettings": {
+    "message": "Cài đặt"
+  },
+  "messageActionsCancel": {
+    "message": "Hủy"
+  },
+  "messageActionsSelected": {
+    "message": "Đã chọn {count} / {total} tin nhắn"
+  },
+  "messageActionsCopyContent": {
+    "message": "Sao chép nội dung"
+  },
+  "messageActionsCopyImage": {
+    "message": "Sao chép hình ảnh"
+  },
+  "messageActionsCopying": {
+    "message": "Đang sao chép…"
+  },
+  "messageActionsCopied": {
+    "message": "Đã sao chép. Có thể dán."
+  },
+  "messageActionsCopyFailed": {
+    "message": "Sao chép thất bại. Hãy thử lại hoặc tải tệp xuống."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "Trình duyệt này không hỗ trợ sao chép. Hãy tải tệp xuống."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "Hình ảnh quá dài để sao chép. Hãy tải ảnh chụp xuống."
+  },
+  "messageActionsWorking": {
+    "message": "Đang xử lý…"
+  },
+  "messageActionsLoading": {
+    "message": "Đang tải lịch sử…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "Đã tải {count} tin nhắn"
+  },
+  "messageActionsQuestion": {
+    "message": "Chọn câu hỏi"
+  },
+  "messageActionsReply": {
+    "message": "Chọn câu trả lời"
+  },
+  "messageActionsLoaded": {
+    "message": "Đã tải tất cả tin nhắn"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "Tải chưa hoàn tất; chọn tất cả để thử lại"
+  },
+  "messageActionsLoadStopped": {
+    "message": "Đã dừng tải"
+  },
+  "messageActionsDone": {
+    "message": "Hoàn tất"
+  },
+  "messageActionsFailed": {
+    "message": "Thao tác thất bại. Hãy thử lại."
+  },
+  "messageActionsChanged": {
+    "message": "Tin nhắn đã thay đổi. Vui lòng chọn lại."
+  },
+  "messageActionsResolution": {
+    "message": "Độ phân giải"
+  },
+  "messageActionsScale1": {
+    "message": "Tiêu chuẩn"
+  },
+  "messageActionsScale2": {
+    "message": "Cao"
+  },
+  "messageActionsScale3": {
+    "message": "Siêu nét"
+  },
+  "messageActionsScale4": {
+    "message": "Tối đa"
+  },
+  "messageActionsClear": {
+    "message": "Bỏ chọn"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "Chọn tất cả và tải toàn bộ cuộc trò chuyện"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "Chọn tin nhắn bạn muốn lưu."
   }
 }

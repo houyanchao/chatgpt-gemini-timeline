@@ -411,7 +411,7 @@
     "message": "匯出格式"
   },
   "conversationExportSectionHeader": {
-    "message": "更多設定"
+    "message": "更多資訊"
   },
   "conversationExportSectionTheme": {
     "message": "主題色"
@@ -466,6 +466,9 @@
   },
   "conversationExportConfirm": {
     "message": "匯出"
+  },
+  "conversationExportDownload": {
+    "message": "下載檔案"
   },
   "conversationExportLoading": {
     "message": "載入對話中..."
@@ -747,22 +750,10 @@
     "message": "已移動"
   },
   "starredHelpDesc": {
-    "message": "資料夾，分類整理對話，告別雜亂無章。"
+    "message": "把重要對話收藏到資料夾，依主題整理，隨時回顧。"
   },
-  "starredHelpTipsTitle": {
-    "message": "使用小技巧："
-  },
-  "starredHelpTip1": {
-    "message": "拖動對話到資料夾。"
-  },
-  "starredHelpTip2": {
-    "message": "拖動資料夾中的對話調整位置。"
-  },
-  "starredHelpTip3": {
-    "message": "拖動二級資料夾調整位置。"
-  },
-  "starredHelpTip4": {
-    "message": "雙擊資料夾或對話，快速編輯。"
+  "starredHelpShortTip": {
+    "message": "拖曳可排序，雙擊可編輯。"
   },
   "folderMoveHasChildren": {
     "message": "含子資料夾，無法巢狀"
@@ -1168,5 +1159,158 @@
   },
   "timelineNodeRetry": {
     "message": "重試"
+  },
+  "messageScreenshotButton": {
+    "message": "截圖"
+  },
+  "messageScreenshotDownload": {
+    "message": "下載截圖"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "超高畫質"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "高畫質"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "清晰"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "標準"
+  },
+  "messageScreenshotReply": {
+    "message": "截圖回覆"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "截圖提問＋回覆"
+  },
+  "messageScreenshotDone": {
+    "message": "截圖已儲存"
+  },
+  "messageScreenshotFailed": {
+    "message": "截圖失敗，請重試。"
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "目前頁面找不到對應提問，仍可選擇「截圖回覆」。"
+  },
+  "messageScreenshotChanged": {
+    "message": "訊息已變更，請重新截圖。"
+  },
+  "messageScreenshotGenerating": {
+    "message": "請等待這則回覆生成完成。"
+  },
+  "messageScreenshotImageFailed": {
+    "message": "部分圖片無法讀取，請等待圖片載入後重試。"
+  },
+  "messageScreenshotUnsupported": {
+    "message": "這則訊息包含暫不支援截圖的嵌入內容。"
+  },
+  "messageScreenshotTooLarge": {
+    "message": "訊息內容過長，暫時無法截圖。"
+  },
+  "messageScreenshotTimeout": {
+    "message": "截圖逾時，請重試。"
+  },
+  "conversationExportTabName": {
+    "message": "匯出與截圖"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "訊息截圖"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "在回覆底部顯示截圖按鈕，選擇多則提問或回覆，以 1×～4× 解析度儲存為 PNG。"
+  },
+  "messageActionsSelectAll": {
+    "message": "全選"
+  },
+  "messageActionsStopLoading": {
+    "message": "停止載入"
+  },
+  "messageActionsSettings": {
+    "message": "設定"
+  },
+  "messageActionsCancel": {
+    "message": "取消"
+  },
+  "messageActionsSelected": {
+    "message": "已選 {count} / {total} 則"
+  },
+  "messageActionsCopyContent": {
+    "message": "複製內容"
+  },
+  "messageActionsCopyImage": {
+    "message": "複製圖片"
+  },
+  "messageActionsCopying": {
+    "message": "複製中…"
+  },
+  "messageActionsCopied": {
+    "message": "已複製，可直接貼上"
+  },
+  "messageActionsCopyFailed": {
+    "message": "複製失敗，請重試或下載檔案。"
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "目前瀏覽器暫不支援複製，請下載檔案。"
+  },
+  "messageActionsCopyTooLong": {
+    "message": "內容過長，請下載截圖。"
+  },
+  "messageActionsWorking": {
+    "message": "處理中…"
+  },
+  "messageActionsLoading": {
+    "message": "正在載入歷史訊息…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "已載入 {count} 則訊息"
+  },
+  "messageActionsQuestion": {
+    "message": "選擇提問"
+  },
+  "messageActionsReply": {
+    "message": "選擇回覆"
+  },
+  "messageActionsLoaded": {
+    "message": "全部訊息已載入"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "載入未完成，可重新全選重試"
+  },
+  "messageActionsLoadStopped": {
+    "message": "已停止載入"
+  },
+  "messageActionsDone": {
+    "message": "操作完成"
+  },
+  "messageActionsFailed": {
+    "message": "操作失敗，請重試。"
+  },
+  "messageActionsChanged": {
+    "message": "訊息已變更，請重新選擇。"
+  },
+  "messageActionsResolution": {
+    "message": "清晰度"
+  },
+  "messageActionsScale1": {
+    "message": "標準"
+  },
+  "messageActionsScale2": {
+    "message": "高清"
+  },
+  "messageActionsScale3": {
+    "message": "超清"
+  },
+  "messageActionsScale4": {
+    "message": "極清"
+  },
+  "messageActionsClear": {
+    "message": "清空"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "全選並載入完整對話"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "勾選要儲存的訊息"
   }
 }

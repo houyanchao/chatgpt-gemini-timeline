@@ -17,6 +17,55 @@ class CEExportManager {
             <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>`;
 
+    /** Reuse the native-header appearance and hover behavior in both export flows. */
+    static createHeaderButton(platformId) {
+        const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(platformId)
+            ?? (platformId !== 'chatgpt');
+        const button = document.createElement('button');
+        button.className = CEExportManager.BUTTON_CLASS;
+        button.type = 'button';
+        const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
+        button.setAttribute('aria-label', exportLabel);
+        button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}${showLabel ? `<span class="ait-ce-export-btn-label">${exportLabel}</span>` : ''}`;
+        button.style.cssText = `
+            min-width: 36px;
+            width: ${showLabel ? 'auto' : '36px'};
+            height: 36px;
+            padding: ${showLabel ? '0 10px' : '0'};
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: ${showLabel ? '6px' : '0'};
+            color: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+            position: relative;
+        `;
+
+        button.addEventListener('mouseenter', () => {
+            button.style.backgroundColor = 'rgba(127, 127, 127, 0.15)';
+            window.globalTooltipManager?.show(
+                'ce-export-btn',
+                'button',
+                button,
+                CE_TEXT.buttonTooltip,
+                { placement: 'bottom', theme: 'inverse' }
+            );
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.backgroundColor = 'transparent';
+            window.globalTooltipManager?.hide();
+        });
+        return button;
+    }
+
     constructor(adapter) {
         this.adapter = adapter;
         this.modal = null;
@@ -57,7 +106,7 @@ class CEExportManager {
                 this._removeButton();
                 return;
             }
-            // 仅图标/图标+文字由共享模块按平台约定统一决定（ChatGPT、Gemini 仅图标）
+            // 仅图标/图标+文字由共享模块按平台约定统一决定。
             const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
                 ?? (this.adapter.platformId !== 'chatgpt');
 
@@ -91,48 +140,7 @@ class CEExportManager {
             const target = this.adapter.getButtonInsertTarget();
             if (!target || !target.parentNode) return;
 
-            const button = document.createElement('button');
-            button.className = CEExportManager.BUTTON_CLASS;
-            button.type = 'button';
-            const exportLabel = TimelineI18n.getMessage('exportLabel') || CE_TEXT.confirm;
-            button.setAttribute('aria-label', exportLabel);
-            button.innerHTML = `${CEExportManager.DOWNLOAD_ICON}${showLabel ? `<span class="ait-ce-export-btn-label">${exportLabel}</span>` : ''}`;
-            button.style.cssText = `
-                min-width: 36px;
-                width: ${showLabel ? 'auto' : '36px'};
-                height: 36px;
-                padding: ${showLabel ? '0 10px' : '0'};
-                background: transparent;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: ${showLabel ? '6px' : '0'};
-                color: inherit;
-                font-size: 14px;
-                font-weight: 500;
-                line-height: 1;
-                white-space: nowrap;
-                transition: background-color 0.2s;
-                position: relative;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = 'rgba(127, 127, 127, 0.15)';
-                window.globalTooltipManager?.show(
-                    'ce-export-btn',
-                    'button',
-                    button,
-                    CE_TEXT.buttonTooltip,
-                    { placement: 'bottom' }
-                );
-            });
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = 'transparent';
-                window.globalTooltipManager?.hide();
-            });
+            const button = CEExportManager.createHeaderButton(this.adapter.platformId);
 
             const mountedInSharedActions = this.adapter.platformId === 'chatgpt'
                 && window.AITChatHeaderActions?.mount?.(button, 'export');

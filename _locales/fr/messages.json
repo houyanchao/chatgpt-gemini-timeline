@@ -387,7 +387,7 @@
     "message": "Format d'exportation"
   },
   "conversationExportSectionHeader": {
-    "message": "Plus d'options"
+    "message": "Plus d’informations"
   },
   "conversationExportSectionTheme": {
     "message": "Couleur du thème"
@@ -442,6 +442,9 @@
   },
   "conversationExportConfirm": {
     "message": "Exporter"
+  },
+  "conversationExportDownload": {
+    "message": "Télécharger le fichier"
   },
   "conversationExportLoading": {
     "message": "Chargement de la conversation..."
@@ -690,22 +693,10 @@
     "message": "Déplacé"
   },
   "starredHelpDesc": {
-    "message": "Folders help you organize conversations and stay clutter-free."
+    "message": "Enregistrez vos conversations importantes dans des dossiers pour les classer par thème et les retrouver à tout moment."
   },
-  "starredHelpTipsTitle": {
-    "message": "Quick tips:"
-  },
-  "starredHelpTip1": {
-    "message": "Drag conversations into a folder."
-  },
-  "starredHelpTip2": {
-    "message": "Drag items within a folder to reorder."
-  },
-  "starredHelpTip3": {
-    "message": "Drag subfolders to reorder."
-  },
-  "starredHelpTip4": {
-    "message": "Double-click a folder or item to edit."
+  "starredHelpShortTip": {
+    "message": "Faites glisser pour réorganiser et double-cliquez pour modifier."
   },
   "folderMoveHasChildren": {
     "message": "Has subfolders, cannot nest further"
@@ -1111,5 +1102,158 @@
   },
   "timelineNodeRetry": {
     "message": "Réessayer"
+  },
+  "messageScreenshotButton": {
+    "message": "Capture d’écran"
+  },
+  "messageScreenshotDownload": {
+    "message": "Télécharger la capture"
+  },
+  "messageScreenshotQualityUltra": {
+    "message": "Ultra haute"
+  },
+  "messageScreenshotQualityHigh": {
+    "message": "Haute"
+  },
+  "messageScreenshotQualityMedium": {
+    "message": "Nette"
+  },
+  "messageScreenshotQualityLow": {
+    "message": "Standard"
+  },
+  "messageScreenshotReply": {
+    "message": "Capturer la réponse"
+  },
+  "messageScreenshotQuestionReply": {
+    "message": "Capturer question et réponse"
+  },
+  "messageScreenshotDone": {
+    "message": "Capture enregistrée"
+  },
+  "messageScreenshotFailed": {
+    "message": "Échec de la capture. Réessayez."
+  },
+  "messageScreenshotQuestionMissing": {
+    "message": "La question correspondante est introuvable. Vous pouvez capturer la réponse seule."
+  },
+  "messageScreenshotChanged": {
+    "message": "Le message a changé. Réessayez."
+  },
+  "messageScreenshotGenerating": {
+    "message": "Attendez la fin de cette réponse."
+  },
+  "messageScreenshotImageFailed": {
+    "message": "Une image ne peut pas être chargée. Réessayez après son chargement."
+  },
+  "messageScreenshotUnsupported": {
+    "message": "Ce message contient du contenu intégré qui ne peut pas être capturé."
+  },
+  "messageScreenshotTooLarge": {
+    "message": "Ce message est trop volumineux pour être capturé."
+  },
+  "messageScreenshotTimeout": {
+    "message": "La capture a expiré. Réessayez."
+  },
+  "conversationExportTabName": {
+    "message": "Export et captures"
+  },
+  "messageScreenshotSettingsTitle": {
+    "message": "Captures de messages"
+  },
+  "messageScreenshotSettingsHint": {
+    "message": "Affiche un bouton de capture sous les réponses. Sélectionnez plusieurs questions ou réponses et enregistrez-les en PNG à une résolution de 1× à 4×."
+  },
+  "messageActionsSelectAll": {
+    "message": "Tout sélectionner"
+  },
+  "messageActionsStopLoading": {
+    "message": "Arrêter le chargement"
+  },
+  "messageActionsSettings": {
+    "message": "Paramètres"
+  },
+  "messageActionsCancel": {
+    "message": "Annuler"
+  },
+  "messageActionsSelected": {
+    "message": "{count} / {total} messages sélectionnés"
+  },
+  "messageActionsCopyContent": {
+    "message": "Copier le contenu"
+  },
+  "messageActionsCopyImage": {
+    "message": "Copier l’image"
+  },
+  "messageActionsCopying": {
+    "message": "Copie en cours…"
+  },
+  "messageActionsCopied": {
+    "message": "Copié. Prêt à coller."
+  },
+  "messageActionsCopyFailed": {
+    "message": "Échec de la copie. Réessayez ou téléchargez le fichier."
+  },
+  "messageActionsCopyUnsupported": {
+    "message": "La copie n’est pas prise en charge par ce navigateur. Téléchargez le fichier."
+  },
+  "messageActionsCopyTooLong": {
+    "message": "L’image est trop longue pour être copiée. Téléchargez la capture."
+  },
+  "messageActionsWorking": {
+    "message": "Traitement…"
+  },
+  "messageActionsLoading": {
+    "message": "Chargement de l’historique…"
+  },
+  "messageActionsLoadingProgress": {
+    "message": "{count} messages chargés"
+  },
+  "messageActionsQuestion": {
+    "message": "Sélectionner la question"
+  },
+  "messageActionsReply": {
+    "message": "Sélectionner la réponse"
+  },
+  "messageActionsLoaded": {
+    "message": "Tous les messages sont chargés"
+  },
+  "messageActionsLoadIncomplete": {
+    "message": "Chargement incomplet ; sélectionnez tout pour réessayer"
+  },
+  "messageActionsLoadStopped": {
+    "message": "Chargement arrêté"
+  },
+  "messageActionsDone": {
+    "message": "Terminé"
+  },
+  "messageActionsFailed": {
+    "message": "Échec de l’opération. Réessayez."
+  },
+  "messageActionsChanged": {
+    "message": "Le message a changé. Sélectionnez-le à nouveau."
+  },
+  "messageActionsResolution": {
+    "message": "Résolution"
+  },
+  "messageActionsScale1": {
+    "message": "Standard"
+  },
+  "messageActionsScale2": {
+    "message": "Haute"
+  },
+  "messageActionsScale3": {
+    "message": "Ultra"
+  },
+  "messageActionsScale4": {
+    "message": "Maximale"
+  },
+  "messageActionsClear": {
+    "message": "Effacer"
+  },
+  "messageActionsSelectAllHint": {
+    "message": "Tout sélectionner et charger la conversation complète"
+  },
+  "messageActionsSelectionHelp": {
+    "message": "Sélectionnez les messages à enregistrer."
   }
 }

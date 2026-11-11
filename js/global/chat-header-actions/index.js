@@ -1,5 +1,5 @@
 /**
- * ChatGPT 顶部操作区共享容器。
+ * ChatGPT 和 DeepSeek 顶部操作区共享容器。
  * 收藏和对话导出分别管理自己的按钮，这里只统一原生锚点、排列和位置校正。
  * 另提供顶栏按钮「仅图标 / 图标+文字」的平台级约定，供两个模块共用。
  */
@@ -18,7 +18,7 @@
      * 顶栏收藏/导出按钮只显示图标、不显示文字的平台。
      * 这些平台原生顶栏本身就是纯图标按钮，加文字会显得突兀。
      */
-    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini']);
+    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek']);
 
     /**
      * 顶栏按钮是否显示文字标签
@@ -54,8 +54,8 @@
         return shareButton;
     }
 
-    function ensureContainer() {
-        const target = getInsertTarget();
+    function ensureContainer(nativeTarget) {
+        const target = nativeTarget || getInsertTarget();
         if (!target?.parentNode) return null;
 
         let container = document.querySelector(`.${CONTAINER_CLASS}`);
@@ -69,6 +69,10 @@
                 gap: 0;
             `;
         }
+        if (nativeTarget) {
+            container.style.alignSelf = 'center';
+            container.style.gap = '4px';
+        }
 
         if (container.parentNode !== target.parentNode || container.nextSibling !== target) {
             target.parentNode.insertBefore(container, target);
@@ -77,10 +81,10 @@
         return container;
     }
 
-    function mount(button, actionId) {
+    function mount(button, actionId, nativeTarget) {
         if (!button) return false;
 
-        const container = ensureContainer();
+        const container = ensureContainer(nativeTarget);
         if (!container) return false;
 
         button.dataset.aitHeaderAction = actionId;
@@ -88,8 +92,10 @@
         const nextButton = Array.from(container.children).find(child => {
             const childOrder = ACTION_ORDER[child.dataset.aitHeaderAction] ?? Number.MAX_SAFE_INTEGER;
             return childOrder > order;
-        });
-        container.insertBefore(button, nextButton || null);
+        }) || null;
+        if (button.parentNode !== container || button.nextElementSibling !== nextButton) {
+            container.insertBefore(button, nextButton);
+        }
         return true;
     }
 
