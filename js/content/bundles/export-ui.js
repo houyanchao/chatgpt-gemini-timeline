@@ -1507,7 +1507,7 @@ class CEPngExporter {
         } catch {
             return null;
         }
-        if (!svg) return null;
+        if (!svg || svg.querySelector('[data-mml-node="merror"]')) return null;
 
         // 在真实 DOM 中按目标字号测量像素尺寸（MathJax SVG 默认使用 ex 单位）
         const probe = document.createElement('div');
@@ -1624,7 +1624,7 @@ class CEPngExporter {
  * 浏览器打印（用户在弹出的对话框里选择“另存为 PDF”）。这样得到的是：
  * - 文字可选中 / 可搜索（中文用系统字体，无需内嵌字体）
  * - 浏览器自动分页
- * - 公式用页面已加载的 MathJax 渲染成 SVG（矢量、清晰）
+ * - 公式用扩展内置的 MathJax 渲染成 SVG（矢量、清晰）
  * - 图片内联（同源 blob 与签名 URL 均可加载）
  *
  * markdown 解析复用 CEPngExporter._parseMarkdownBlocks（保持与 PNG 一致，不重复造轮子）。
@@ -1912,7 +1912,7 @@ a { color: #2563eb; text-decoration: none; }
         try {
             const node = MathJax.tex2svg(latex, { display: !!display });
             const svg = node.querySelector('svg');
-            if (!svg) return null;
+            if (!svg || svg.querySelector('[data-mml-node="merror"]')) return null;
             svg.style.color = '#1f2937';
             return svg.outerHTML;
         } catch {

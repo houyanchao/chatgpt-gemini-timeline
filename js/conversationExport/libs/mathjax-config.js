@@ -9,6 +9,14 @@
  * 说明：内容脚本处于隔离世界，此处的 window.MathJax 与页面自身的 MathJax 互不影响。
  */
 window.MathJax = {
+    loader: {
+        // The combined build registers its bundled components before startup.
+        // Refuse all other loads so MathJax cannot insert a script into the host page.
+        require() {
+            throw new Error('MathJax component is not bundled');
+        },
+    },
     startup: { typeset: false },
+    tex: { packages: { '[-]': ['autoload', 'require', 'noundefined'] } },
     svg: { fontCache: 'none' },
 };

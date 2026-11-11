@@ -89,7 +89,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "5617610a835d"
+      "revision": "8691990d3f61"
     },
     "message-screenshot-renderer": {
       "script": "js/content/bundles/message-screenshot-renderer.js",

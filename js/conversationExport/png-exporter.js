@@ -1116,7 +1116,7 @@ class CEPngExporter {
         } catch {
             return null;
         }
-        if (!svg) return null;
+        if (!svg || svg.querySelector('[data-mml-node="merror"]')) return null;
 
         // 在真实 DOM 中按目标字号测量像素尺寸（MathJax SVG 默认使用 ex 单位）
         const probe = document.createElement('div');
