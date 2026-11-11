@@ -21,6 +21,24 @@ class MessageScreenshotAction {
         const known = ['ImageFailed', 'Unsupported', 'TooLarge', 'Timeout', 'Changed'];
         return TimelineI18n.getMessage(`messageScreenshot${known.includes(error.message) ? error.message : 'Failed'}`);
     }
+    startTiming(destination, { scale }) {
+        const startedAt = performance.now();
+        const stages = [];
+        let lastStage = '';
+        console.log('[Timeline screenshot timing] start', { destination, scale });
+        return {
+            start(stage) {
+                lastStage = stage;
+                const start = performance.now();
+                return details => stages.push({ stage, ms: Math.round(performance.now() - start), ...details });
+            },
+            report(outcome) {
+                console.log('[Timeline screenshot timing] finish', {
+                    destination, scale, outcome, totalMs: Math.round(performance.now() - startedAt), lastStage, stages
+                });
+            }
+        };
+    }
     async createCollector({ signal, adapter }) {
         await window.AITContentLoader.load('message-screenshot-renderer');
         signal.throwIfAborted();
@@ -28,7 +46,7 @@ class MessageScreenshotAction {
         const rules = adapter.getSnapshotRules();
         let nodeCount = 0;
         return {
-            async capture(message) {
+            async capture(message, timing) {
                 // Give cancellation and selection events a turn between DOM snapshots.
                 await new Promise(resolve => setTimeout(resolve, 0));
                 signal.throwIfAborted();
@@ -44,7 +62,9 @@ class MessageScreenshotAction {
                 if (!hasCanvas && previous?.source === element && previous.html === html && previous.signature === signature) return;
                 const count = element.querySelectorAll('*').length;
                 if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
+                const snapshotReady = timing?.start('clone DOM and styles');
                 const snapshot = MessageScreenshotSnapshot.capture(element, rules.selector, rules.attributes);
+                snapshotReady?.({ elements: count });
                 nodeCount += count - (previous?.nodeCount || 0);
                 cache.set(message.key, { ...snapshot, source: element, html, signature, nodeCount: count });
             },
@@ -53,14 +73,14 @@ class MessageScreenshotAction {
             destroy() { cache.clear(); nodeCount = 0; }
         };
     }
-    async render({ messages, collector, options, signal }, singleImage = false) {
+    async render({ messages, collector, options, signal, timing }, singleImage = false) {
         signal.throwIfAborted();
         const snapshots = messages.map(message => {
             const snapshot = collector.get(message.key);
             if (!snapshot) throw new Error('Changed');
             return snapshot;
         });
-        return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage });
+        return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage, timing });
     }
     async copy(context) {
         const blobs = await this.render(context, true);
@@ -69,13 +89,15 @@ class MessageScreenshotAction {
         return blobs[0];
     }
     async execute(context) {
-        const { signal } = context;
+        const { signal, timing } = context;
         const blobs = await this.render(context);
         signal.throwIfAborted();
+        const dispatchDownloads = timing?.start('dispatch downloads');
         const filename = `${AITDownload.filename(document.title.replace(/\s*[-–]\s*ChatGPT$/, ''))}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
         for (let index = 0; index < blobs.length; index++) {
             signal.throwIfAborted();
             AITDownload.saveBlob(blobs[index], `${filename}${blobs.length > 1 ? `-${index + 1}` : ''}.png`);
         }
+        dispatchDownloads?.({ files: blobs.length, bytes: blobs.reduce((total, blob) => total + blob.size, 0) });
     }
 }

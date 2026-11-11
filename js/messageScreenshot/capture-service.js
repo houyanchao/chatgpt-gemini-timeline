@@ -1,11 +1,12 @@
 /** Renderer loaded on demand; platform-independent HTML -> PNG pipeline. */
 class MessageScreenshotCaptureService {
-    async capture({ elements = [], snapshots: prepared, pixelRatio = 2, excludeSelector, excludeAttributes, signal, singleImage = false }) {
+    async capture({ elements = [], snapshots: prepared, pixelRatio = 2, excludeSelector, excludeAttributes, signal, singleImage = false, timing }) {
         const utils = MessageScreenshotSnapshot;
         utils.check(signal);
         // Capture computed styles synchronously, before resource loading can outlive the page.
         const snapshots = prepared || elements.map(element => utils.capture(element, excludeSelector, excludeAttributes));
         if (!snapshots.length || ![1, 2, 3, 4].includes(pixelRatio)) throw new Error('TooLarge');
+        const mountReady = timing?.start('mount snapshots');
         const width = Math.ceil(Math.max(...snapshots.map(snapshot => snapshot.width))) + 48;
         const mount = document.createElement('div');
         mount.setAttribute('data-ait-owned-ui', '');
@@ -23,34 +24,52 @@ class MessageScreenshotCaptureService {
         mount.appendChild(host);
         document.body.appendChild(mount);
         try {
+            mountReady?.({ messages: snapshots.length });
+            const imagesReady = timing?.start('inline images');
             await utils.inlineImages(host, signal);
+            imagesReady?.();
+            const fontsReady = timing?.start('wait for document fonts');
             await utils.wait(document.fonts.ready, signal);
+            fontsReady?.();
             const htmlToImage = globalThis.htmlToImage;
             if (!htmlToImage) throw new Error('Failed');
-            const options = { preferredFontFormat: 'woff2', fetchRequestInit: { signal }, backgroundColor: 'transparent' };
+            const options = {
+                preferredFontFormat: 'woff2', fetchRequestInit: { signal }, backgroundColor: 'transparent',
+                // The snapshot's inline variable declarations survive the library's DOM clone.
+                includeStyleProperties: [...getComputedStyle(host)].filter(name => !name.startsWith('--'))
+            };
+            const layoutReady = timing?.start('layout and plan slices');
             const height = Math.ceil(host.getBoundingClientRect().height);
             const hostTop = host.getBoundingClientRect().top;
             const boundaries = [...host.querySelectorAll('p, pre, h1, h2, h3, li, tr, svg, img')]
                 .map(node => Math.ceil(node.getBoundingClientRect().bottom - hostTop));
             const slices = utils.planSlices(height, width, pixelRatio, boundaries);
+            layoutReady?.({ width, height, slices: slices.length });
             if (singleImage && slices.length > 1) throw new Error('CopyTooLong');
+            const fontCssReady = timing?.start('embed web fonts');
             const fontEmbedCSS = await utils.wait(htmlToImage.getFontEmbedCSS(host, options), signal);
+            fontCssReady?.({ characters: fontEmbedCSS?.length ?? 0 });
             const blobs = [];
             for (const part of slices) {
                 utils.check(signal);
+                const sliceReady = timing?.start('clone and mount slice');
                 const viewport = utils.slice(host, part.start, part.end, width);
                 // Position the fragment on a connected node so computed style remains available.
                 // Keep the captured node at local (0, 0). Only its parent is offscreen;
                 // copied logical inset properties otherwise move the SVG content out of view.
                 mount.appendChild(viewport);
                 try {
+                    const sliceHeight = part.end - part.start;
+                    sliceReady?.({ slice: blobs.length + 1 });
+                    const pngReady = timing?.start('html-to-image PNG');
                     const blob = await utils.wait(htmlToImage.toBlob(viewport, {
                         ...options, fontEmbedCSS, skipFonts: !fontEmbedCSS, pixelRatio,
-                        width, height: part.end - part.start
+                        width, height: sliceHeight
                     }), signal, 30000);
                     utils.check(signal);
                     if (!blob?.size) throw new Error('Failed');
                     blobs.push(blob);
+                    pngReady?.({ slice: blobs.length, width: width * pixelRatio, height: sliceHeight * pixelRatio, bytes: blob.size });
                 } finally { viewport.remove(); }
             }
             return blobs;

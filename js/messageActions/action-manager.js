@@ -234,21 +234,26 @@ class MessageActionManager {
         session.load?.abort(); session.load = null; session.loading = false; session.store.allIntent = false;
         session.notice = 'LoadStopped'; session.ui?.update(session);
     }
-    async prepareOutput(session, options, signal) {
+    async prepareOutput(session, options, signal, timing) {
         const check = () => { if (signal.aborted || !this.current(session)) throw new DOMException('Cancelled', 'AbortError'); };
+        const rendererReady = timing?.start('renderer ready');
         const collector = await this.collector(session);
+        rendererReady?.();
         check();
+        const refreshSelection = timing?.start('refresh selection');
         this.scan();
+        refreshSelection?.();
         check();
         let messages = session.store.selection;
         if (!messages.length) throw new Error('Changed');
         const missing = new Set(messages.filter(message => !message.element?.isConnected && !collector?.has?.(message.key)).map(message => message.key));
         if (this.adapter.virtualHistory && missing.size) {
+            const loadHistory = timing?.start('load selected history');
             await MessageActionLoader.load(this.adapter, { signal, stopWhen: () => !missing.size, onMessages: async records => {
                 for (const message of records) {
                     check();
                     if (!missing.has(message.key) || message.generating) continue;
-                    await collector?.capture(message);
+                    await collector?.capture(message, timing);
                     if (collector?.has?.(message.key)) missing.delete(message.key);
                 }
             } });
@@ -256,16 +261,17 @@ class MessageActionManager {
             this.scan();
             check();
             messages = session.store.selection;
+            loadHistory?.({ messages: messages.length });
         }
         for (const message of messages) {
             check();
-            if (message.element?.isConnected && !message.generating) await collector?.capture(message);
+            if (message.element?.isConnected && !message.generating) await collector?.capture(message, timing);
             else if (!collector?.has?.(message.key)) throw new Error('Changed');
         }
         check();
         if (session.action.optionsKey) await chrome.storage.local.set({ [session.action.optionsKey]: options }).catch(() => {});
         check();
-        return { messages, collector, options, adapter: this.adapter, signal };
+        return { messages, collector, options, adapter: this.adapter, signal, timing };
     }
     async execute(session, destination = 'download') {
         if (!this.current(session) || session.busy || session.loading || !session.store.selection.length) return;
@@ -273,6 +279,8 @@ class MessageActionManager {
         const options = session.options.getValue();
         const type = copying ? session.action.copyType?.(options) : null;
         if (copying && (!type || !session.action.copy)) return;
+        const timing = session.action.startTiming?.(destination, options);
+        let outcome = 'complete';
         const operation = new AbortController();
         const abort = () => operation.abort();
         session.controller.signal.addEventListener('abort', abort, { once: true });
@@ -280,17 +288,19 @@ class MessageActionManager {
         try {
             if (copying) {
                 // Invoke write before any await; data collection/rendering runs through its deferred payload.
-                await AITClipboard.write(type, async () => session.action.copy(await this.prepareOutput(session, options, operation.signal)), { signal: operation.signal });
+                await AITClipboard.write(type, async () => session.action.copy(await this.prepareOutput(session, options, operation.signal, timing)), { signal: operation.signal });
             } else {
-                await session.action.execute(await this.prepareOutput(session, options, operation.signal));
+                await session.action.execute(await this.prepareOutput(session, options, operation.signal, timing));
             }
             if (this.current(session)) {
                 window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
                 if (!copying) this.close();
             }
         } catch (error) {
+            outcome = operation.signal.aborted || error?.name === 'AbortError' ? 'cancelled' : 'failed';
             if (this.current(session)) this.showError(error, session.action, copying);
         } finally {
+            timing?.report(outcome);
             operation.abort();
             session.controller.signal.removeEventListener('abort', abort);
             if (this.current(session)) { session.busy = false; session.busyKind = null; session.ui.update(session); }
