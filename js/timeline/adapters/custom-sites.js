@@ -70,6 +70,20 @@ globalThis.CUSTOM_SITE_INFO = [
         },
     },
     {
+        name: 'Poe',
+        sites: ['poe.com'],
+        conversationUrlPattern: '^poe\\.com/chat/[A-Za-z0-9_-]+/?(?:[?#].*)?$',
+        userMessageSelector: '[class*="ChatMessagesView_infiniteScroll__"] [id^="message-"][class*="ChatMessage_chatMessage__"]:has([class*="ChatMessage_rightSideMessageWrapper__"])',
+        textSelector: '[class*="Message_selectableText__"]',
+        conversationContainerSelector: '[class*="ChatMessagesView_infiniteScroll__"]',
+        turnIdAttribute: 'id',
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
         // Consensus（学术搜索）：/search/{query-slug}/{threadId}/
         // 每轮对话是 #main-content 下 <ul> 的一个 <li id="{turnId}">，用户提问在 h2 > button[aria-expanded] > span
         // 页面整体滚动（无内部滚动容器），时间轴自动回退到 document 滚动
