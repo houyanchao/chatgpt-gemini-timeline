@@ -15916,12 +15916,15 @@ class ChatGPTAdapter extends SiteAdapter {
         this._usesVirtualizedTurnSelector = false;
         this._capturedTimeline = null;
         this._capturedTimelineConvId = null;
+        this._capturedTimelineIds = new Set();
         this._historyLoading = null;
         this._liveTimelineEntries = new Map();
         this._supplementalTimelineOrder = { before: [], after: [] };
         this._liveTimelineRevision = null;
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
+        this._timelineTranscript = null;
+        this._timelineTranscriptsByScope = new WeakMap();
     }
 
 
@@ -15960,8 +15963,13 @@ class ChatGPTAdapter extends SiteAdapter {
 
         const texts = received ? received.texts : null;
         const previousTimeline = JSON.stringify(this._capturedTimeline);
-        this._capturedTimeline = received?.timeline || null;
+        const timeline = received?.timeline;
+        this._capturedTimeline = Array.isArray(timeline?.entries) ? timeline : null;
         this._capturedTimelineConvId = conversationId;
+        this._capturedTimelineIds = new Set(this._capturedTimeline?.entries.map(entry => entry.id));
+        if (this._timelineTranscript?.conversationId === conversationId && this._capturedTimeline) {
+            for (const id of this._capturedTimelineIds) this._timelineTranscript.snapshotIds.add(id);
+        }
         this._historyLoading = { conversationId, loading: received?.historyLoading === true };
         const timelineChanged = JSON.stringify(this._capturedTimeline) !== previousTimeline;
         if (!texts) return timelineChanged ? 1 : 0;
@@ -16037,18 +16045,14 @@ class ChatGPTAdapter extends SiteAdapter {
             this._supplementalTimelineOrder = { before: [], after: [] };
             this._liveTimelineScopes = new WeakSet();
         }
-        const scopeFor = element => element.closest('[data-thread-find-target="conversation"]')
-            || element.closest('main') || element.parentElement;
+        const scopeFor = element => this._getTimelineScope(element) || element.parentElement;
         const confirmScope = element => {
             const scope = scopeFor(element);
             if (scope) this._liveTimelineScopes.add(scope);
         };
         const elementsById = new Map();
         for (const element of userElements) {
-            const ids = [this._extractNodeIdFromDom(element),
-                ...(element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/)];
-            element.querySelectorAll('[data-message-id]').forEach(child => ids.push(child.getAttribute('data-message-id')));
-            ids.filter(Boolean).forEach(id => elementsById.set(id, element));
+            this._getTimelineElementIds(element).forEach(id => elementsById.set(id, element));
         }
         const capturedIdsByElement = new Map();
         const entries = this._capturedTimeline.entries.map(entry => {
@@ -16496,6 +16500,138 @@ class ChatGPTAdapter extends SiteAdapter {
             return '[data-turn-id-container][data-ait-turn="user"]';
         }
         return '[data-turn="user"][data-turn-id], [data-thread-find-target="conversation"] [data-chatgpt-search-unit-key$=":user"][data-chatgpt-search-message-ids]';
+    }
+
+    filterTimelineUserElements(elements) {
+        const previous = this._timelineTranscript;
+        const conversationId = this.extractConversationId(location.pathname);
+        if (!previous || !conversationId || !elements.length) return elements;
+
+        const groups = new Map();
+        for (const element of elements) {
+            const scope = this._getTimelineScope(element);
+            if (scope?.getClientRects?.().length === 0) continue;
+            if (!groups.has(scope)) groups.set(scope, []);
+            groups.get(scope).push(element);
+        }
+
+        const sameConversation = previous.conversationId === conversationId;
+        const previousRows = groups.get(previous.scope);
+        if (sameConversation && previousRows) return previousRows;
+        const previousScopeVisible = previous.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
+
+        this.syncCapturedChatsData();
+        const capturedIds = this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : null;
+        const matchesSnapshot = ids => ids.some(id => capturedIds?.has(id));
+        let replacement = null;
+        let reusedScope = null;
+
+        for (const [scope, rows] of groups) {
+            const known = scope === previous.scope ? previous : this._timelineTranscriptsByScope.get(scope);
+            const rowIds = rows.map(element => this._getTimelineElementIds(element));
+            const hasKnownRows = transcript => rowIds.some((ids, index) =>
+                this._matchesTimelineTranscript(transcript, rows[index], ids));
+            const hasSnapshotMatch = rowIds.some(matchesSnapshot);
+            if (known?.conversationId === conversationId) return rows;
+
+            if (sameConversation && previousScopeVisible && !hasSnapshotMatch && !hasKnownRows(previous)) {
+                continue;
+            }
+
+            if (known && hasKnownRows(known)) {
+                // Shared history can match the incoming snapshot while the old
+                // pane is still visible. Require proof that its rows changed.
+                const hasNewSnapshotId = rowIds.some(ids => ids.some(id =>
+                    capturedIds?.has(id) && !known.turnIds.has(id) && !known.snapshotIds.has(id)));
+                if (!rowIds.every(matchesSnapshot) || (!hasNewSnapshotId && rows.some(element => known.elements.has(element)))) {
+                    continue;
+                }
+            }
+
+            if (!known) {
+                // A second copy of outgoing history does not prove that a
+                // different conversation is ready while the original pane is present.
+                if (!sameConversation && previousRows && !hasSnapshotMatch && hasKnownRows(previous)) continue;
+                if (hasSnapshotMatch) return rows;
+                replacement ||= rows;
+            } else if (hasSnapshotMatch || rows.some(element => element.childElementCount > 0)) {
+                // An empty virtualized turn can lack all of its known aliases.
+                reusedScope ||= rows;
+            }
+        }
+
+        return replacement || reusedScope || [];
+    }
+
+    rememberTimelineTranscript(elements) {
+        const conversationId = this.extractConversationId(location.pathname);
+        if (!conversationId || !elements.length) return;
+        const scope = this._getTimelineScope(elements[0]);
+        const known = scope ? this._timelineTranscriptsByScope.get(scope) : this._timelineTranscript;
+        if (known?.conversationId === conversationId && known.scope === scope) {
+            if (this._capturedTimelineConvId === conversationId) {
+                for (const id of this._capturedTimelineIds) known.snapshotIds.add(id);
+            }
+            this._timelineTranscript = known;
+            return;
+        }
+
+        // Commit only on manager initialization. Rebuilds can see the next
+        // transcript before the host commits its URL.
+        const transcript = {
+            conversationId,
+            scope,
+            turnIds: new Set(elements.flatMap(element => this._getTimelineElementIds(element))),
+            elements: new WeakSet(elements),
+            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : [])
+        };
+        this._timelineTranscript = transcript;
+        if (scope) this._timelineTranscriptsByScope.set(scope, transcript);
+    }
+
+    updateTimelineTranscript(elements) {
+        const transcript = this._timelineTranscript;
+        if (!transcript || !elements.length || transcript.conversationId !== this.extractConversationId(location.pathname)) return;
+
+        const scope = this._getTimelineScope(elements[0]);
+        const rows = elements.filter(element => this._getTimelineScope(element) === scope);
+        const knownRow = element => this._matchesTimelineTranscript(transcript, element, this._getTimelineElementIds(element));
+        if (scope !== transcript.scope) {
+            // A same-URL remount is owned only when its visible rows confirm
+            // continuity. A disjoint remount may render without claiming it.
+            if (rows.every(knownRow)) {
+                const rebound = { ...transcript, scope, elements: new WeakSet(rows) };
+                this._timelineTranscript = rebound;
+                if (scope) this._timelineTranscriptsByScope.set(scope, rebound);
+            }
+            return;
+        }
+        if (!rows.some(element => transcript.elements.has(element) && knownRow(element))) return;
+
+        // Learn appended turns only while a previously accepted DOM row is
+        // still present. An unanchored rebuild cannot claim a new transcript.
+        for (const element of rows) {
+            transcript.elements.add(element);
+            for (const id of this._getTimelineElementIds(element)) transcript.turnIds.add(id);
+        }
+    }
+
+    _matchesTimelineTranscript(transcript, element, ids) {
+        return ids.length
+            ? ids.some(id => transcript.turnIds.has(id) || transcript.snapshotIds.has(id))
+            : transcript.elements.has(element);
+    }
+
+    _getTimelineScope(element) {
+        return element.closest('[data-thread-find-target="conversation"]') || element.closest('main');
+    }
+
+    _getTimelineElementIds(element) {
+        const ids = [this._extractNodeIdFromDom(element),
+            ...(element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/),
+            element.getAttribute('data-message-id')];
+        element.querySelectorAll('[data-message-id]').forEach(child => ids.push(child.getAttribute('data-message-id')));
+        return ids.filter(Boolean);
     }
 
     getAssistantMessageSelector() {
@@ -18727,7 +18863,7 @@ class NotebookLMAdapter extends SiteAdapter {
 /**
  * Config-driven adapter for user-added AI sites.
  *
- * The adapter intentionally accepts only selectors and simple URL includes.
+ * The adapter accepts selectors and declarative URL rules.
  * It never executes user-provided JavaScript.
  */
 class CustomSiteAdapter extends SiteAdapter {
@@ -18750,7 +18886,7 @@ class CustomSiteAdapter extends SiteAdapter {
     }
 
     getUserMessageSelector() {
-        return this.config.userMessageSelector || '';
+        return this._scopeConversationSelector(this.config.userMessageSelector);
     }
 
     getFeatures() {
@@ -18771,17 +18907,24 @@ class CustomSiteAdapter extends SiteAdapter {
     }
 
     isConversationRoute(pathname) {
+        const urls = this.config.conversationUrls;
+        const hasExactUrls = Array.isArray(urls) && urls.length > 0;
+        if (hasExactUrls && urls.includes(location.href)) return true;
+
         if (this.config.conversationUrlPattern) {
-            return this._matchesConversationUrl(location.href);
+            return this._matchConversationUrl(location.href) !== null;
         }
 
         const includes = this.config.conversationPathIncludes || [];
-        if (!includes.length) return true;
+        if (!includes.length) return !hasExactUrls;
         return includes.some(part => part && pathname.includes(part));
     }
 
     findConversationContainer(firstMessage) {
-        const selector = this.config.conversationContainerSelector || '';
+        const selector = this._scopeConversationSelector(this.config.conversationContainerSelector);
+        if (this.config.conversationScopeSelectors) {
+            return selector ? firstMessage?.closest(selector) || null : null;
+        }
         if (selector) {
             const container = document.querySelector(selector);
             if (container) return container;
@@ -18843,16 +18986,31 @@ class CustomSiteAdapter extends SiteAdapter {
         }
     }
 
-    _matchesConversationUrl(url) {
+    _scopeConversationSelector(selector) {
+        if (!selector) return '';
+        const scopes = this.config.conversationScopeSelectors;
+        if (!scopes) return selector;
+
+        const url = location.href;
+        const urls = this.config.conversationUrls;
+        let scope = scopes.exactUrl;
+        if (!Array.isArray(urls) || !urls.includes(url)) {
+            const conversationId = this._matchConversationUrl(url)?.groups?.conversationId;
+            scope = conversationId && scopes.urlPattern?.replace('{conversationId}', () => CSS.escape(conversationId));
+        }
+        return scope ? `:is(${scope}) :is(${selector})` : '';
+    }
+
+    _matchConversationUrl(url) {
         const pattern = this.config.conversationUrlPattern;
-        if (!pattern) return true;
+        if (!pattern) return null;
 
         try {
             const regex = new RegExp(pattern);
             const urlWithoutProtocol = String(url || '').replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
-            return regex.test(url) || regex.test(urlWithoutProtocol);
+            return regex.exec(url) || regex.exec(urlWithoutProtocol);
         } catch {
-            return false;
+            return null;
         }
     }
 
@@ -23380,6 +23538,14 @@ class QuestionListPopup {
         this._timelineBar = timelineBar;
     }
 
+    _getCurrentTimeline() {
+        const tm = window.timelineManager;
+        if (!tm?.isCurrentPage() || !this._wrapper?.isConnected || tm.ui.timelineBar !== this._timelineBar) {
+            return null;
+        }
+        return tm;
+    }
+
     toggle() {
         if (this._visible) {
             this.hide();
@@ -23389,9 +23555,8 @@ class QuestionListPopup {
     }
 
     show() {
-        const tm = window.timelineManager;
-        if (!tm || !tm.markers || tm.markers.length === 0) return;
-        if (!this._wrapper || !this._timelineBar) return;
+        const tm = this._getCurrentTimeline();
+        if (!tm?.markers.length) return;
 
         this.hide();
 
@@ -23461,8 +23626,11 @@ class QuestionListPopup {
         window.addEventListener('timeline:activeChange', this._boundOnActiveChange);
 
         // 点击外部区域关闭
+        const popup = this._el;
         setTimeout(() => {
-            document.addEventListener('click', this._boundOnClickOutside, true);
+            if (this._el === popup) {
+                document.addEventListener('click', this._boundOnClickOutside, true);
+            }
         }, 0);
 
         // 按钮高亮
@@ -23662,8 +23830,8 @@ class QuestionListPopup {
 
     onMarkersRebuilt() {
         if (!this._visible || !this._listEl) return;
-        const tm = window.timelineManager;
-        if (!tm || !tm.markers || tm.markers.length === 0) {
+        const tm = this._getCurrentTimeline();
+        if (!tm?.markers.length) {
             this.hide();
             return;
         }
@@ -23703,6 +23871,7 @@ class TimelineManager {
             throw new Error('TimelineManager requires a SiteAdapter');
         }
         this.adapter = adapter;
+        this._pageUrl = location.href;
         this.scrollContainer = null;
         this.isScrollContainerFallback = false;
         this.hostScrollbarElement = null;
@@ -23866,6 +24035,10 @@ class TimelineManager {
         return this.adapter.getFeatures?.() || this._currentPlatform?.features || {};
     }
 
+    isCurrentPage() {
+        return !this._destroyed && this._pageUrl === location.href;
+    }
+
     _collectUserTurnElements({ scope = document, forcePrepare = false, reason = '' } = {}) {
         this.adapter.prepareTimelineNodes?.({
             force: forcePrepare,
@@ -23881,6 +24054,9 @@ class TimelineManager {
         try {
             userTurnElements = Array.from(scope.querySelectorAll(selector));
         } catch {}
+        if (this.adapter.filterTimelineUserElements) {
+            userTurnElements = this.adapter.filterTimelineUserElements(userTurnElements);
+        }
         return { selector, userTurnElements };
     }
 
@@ -23893,7 +24069,7 @@ class TimelineManager {
         if (this._destroyed) return false;
 
         const elementsFound = await this.findCriticalElements();
-        if (this._destroyed || !elementsFound) return false;
+        if (!this.isCurrentPage() || !elementsFound) return false;
         this.applyHostScrollContainerClass();
         
         // ✅ 同步深色模式状态到 html 元素
@@ -23975,14 +24151,13 @@ class TimelineManager {
         });
         let firstTurn = prepared.userTurnElements[0] || null;
         if (!firstTurn) {
-            firstTurn = await this.waitForElement(prepared.selector);
-            if (firstTurn) {
+            if (await this.waitForElement(prepared.selector)) {
                 prepared = this._collectUserTurnElements({
                     scope: document,
                     forcePrepare: true,
                     reason: 'initialization-ready'
                 });
-                firstTurn = prepared.userTurnElements[0] || firstTurn;
+                firstTurn = prepared.userTurnElements[0] || null;
             }
         }
         if (!firstTurn) return false;
@@ -23996,6 +24171,11 @@ class TimelineManager {
         const scrollInfo = this.resolveScrollContainer(this.conversationContainer);
         this.scrollContainer = scrollInfo.container;
         this.isScrollContainerFallback = scrollInfo.isFallback;
+        if (this.isCurrentPage() && this.scrollContainer) {
+            this.adapter.rememberTimelineTranscript?.(prepared.userTurnElements.filter(element =>
+                this.conversationContainer.contains(element)
+            ));
+        }
 
         return this.scrollContainer !== null;
     }
@@ -24881,9 +25061,7 @@ class TimelineManager {
     }
 
     recalculateAndRenderMarkers(preparedContext = null) {
-        if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
-
-        if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
+        if (!this.isCurrentPage() || !this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
         this.adapter.syncCapturedChatsData();
         this.updateHistoryLoadingIndicator();
@@ -24899,9 +25077,11 @@ class TimelineManager {
             });
             userTurnElements = prepared.userTurnElements;
         }
+        this.adapter.updateTimelineTranscript?.(userTurnElements);
         const capturedEntries = this.adapter.getCapturedTimelineEntries?.(Array.from(userTurnElements));
         if (capturedEntries?.length) {
             this._renderCapturedTimeline(capturedEntries);
+            window.questionListPopup?.onMarkersRebuilt();
             return;
         }
         this._apiTimelineMode = false;
@@ -24954,6 +25134,7 @@ class TimelineManager {
             if (window.chatTimeRecorder) {
                 window.chatTimeRecorder._renderTimeLabels();
             }
+            window.questionListPopup?.onMarkersRebuilt();
             return;
         }
 
@@ -25203,7 +25384,7 @@ class TimelineManager {
         if (window.chatTimeRecorder) {
             window.chatTimeRecorder._renderTimeLabels();
         }
-        
+        window.questionListPopup?.onMarkersRebuilt();
     }
     
     _configureTimelineStructureObserver() {
@@ -27765,8 +27946,9 @@ class TimelineManager {
     }
 
     destroy() {
-        this._markerNavigationController?.abort();
+        if (this._destroyed) return;
         this._destroyed = true;
+        this._markerNavigationController?.abort();
         this._folderManagerInitTimer = TimelineUtils.clearTimerSafe(this._folderManagerInitTimer);
         this._initialRenderTimer = TimelineUtils.clearTimerSafe(this._initialRenderTimer);
         this._initialSecondRenderTimer = TimelineUtils.clearTimerSafe(this._initialSecondRenderTimer);
@@ -28811,13 +28993,56 @@ async function canInitialize() {
     });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
+    if (adapter.filterTimelineUserElements) {
+        return adapter.filterTimelineUserElements(Array.from(document.querySelectorAll(selector))).length > 0;
+    }
     return document.querySelector(selector) !== null;
 }
 
-// Initialize timeline with retry mechanism (exponential backoff)
+function isCurrentInitialization(version) {
+    return version === initVersion && currentUrl === location.href && window.AITContentSession?.active !== false;
+}
+
+function waitForFirstMessage(version) {
+    if (!isCurrentInitialization(version) || unsubscribePageObserver) return;
+    const observerManager = window.DOMObserverManager?.getInstance();
+    if (!observerManager) return;
+
+    let checking = false;
+    const check = async () => {
+        if (checking || !isCurrentInitialization(version)) return;
+        checking = true;
+        try {
+            if (await canInitialize() && await isPlatformEnabled() && isCurrentInitialization(version)) {
+                await initializeTimeline(version);
+            }
+        } finally {
+            checking = false;
+        }
+    };
+    const onChange = () => void check().catch(() => {});
+    const unsubscribeBody = observerManager.subscribeBody('timeline-first-message', {
+        callback: onChange,
+        debounce: 150,
+        throttle: 150
+    });
+    const unsubscribeCapturedData = currentAdapter?.subscribeCapturedChatsDataUpdated?.(onChange);
+    const attributes = currentAdapter?.getTimelineStructureAttributeFilter?.();
+    const attributeObserver = attributes?.length ? new MutationObserver(onChange) : null;
+    attributeObserver?.observe(document.body, { subtree: true, attributes: true, attributeFilter: attributes });
+    unsubscribePageObserver = () => {
+        unsubscribeBody();
+        unsubscribeCapturedData?.();
+        attributeObserver?.disconnect();
+    };
+    onChange();
+}
+
+// Retry while the route settles, then wait for messages without polling.
 async function initWithRetry(version, delays, retryIndex = 0) {
-    // Check if we've exceeded max retries
+    if (!isCurrentInitialization(version)) return;
     if (retryIndex >= delays.length) {
+        waitForFirstMessage(version);
         return;
     }
     
@@ -28825,7 +29050,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     await sleep(delays[retryIndex]);
     
     // Check if version is still current (user may have navigated away)
-    if (version !== initVersion) {
+    if (!isCurrentInitialization(version)) {
         return; // Version mismatch, cancel this retry
     }
     
@@ -28841,11 +29066,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     }
     
     // Lightweight check: can we initialize?
-    if (await canInitialize()) {
-        // Yes! Initialize the timeline
-        await initializeTimeline(version);
-        return;
-    }
+    if (await canInitialize() && await initializeTimeline(version)) return;
     
     // No, retry with next delay
     await initWithRetry(version, delays, retryIndex + 1);
@@ -28853,10 +29074,12 @@ async function initWithRetry(version, delays, retryIndex = 0) {
 
 function attachRouteListenersOnce() {
     if (routeListenersAttached) return;
+    currentUrl = location.href;
     routeListenersAttached = true;
 
     TimelineUtils.removeEventListenerSafe(window, 'url:change', handleUrlChange);
     try { window.addEventListener('url:change', handleUrlChange); } catch {}
+    window.navigation?.addEventListener('currententrychange', handleUrlChange);
 }
 
 function detachRouteListeners() {
@@ -28864,6 +29087,7 @@ function detachRouteListeners() {
     routeListenersAttached = false;
 
     TimelineUtils.removeEventListenerSafe(window, 'url:change', handleUrlChange);
+    window.navigation?.removeEventListener('currententrychange', handleUrlChange);
 }
 
 function cleanupGlobalObservers() {
@@ -28874,7 +29098,9 @@ function cleanupGlobalObservers() {
     }
 }
 
-function destroyTimelineInstance() {
+function destroyTimelineInstance({ keepPageObserver = false } = {}) {
+    if (window.questionListPopup?.visible) window.questionListPopup.hide();
+
     if (timelineManagerInstance) {
         try { timelineManagerInstance.destroy(); } catch (e) { void 0; }
         timelineManagerInstance = null;
@@ -28886,7 +29112,7 @@ function destroyTimelineInstance() {
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
     window.AITChatHeaderActions?.removeEmptyContainer?.();
-    cleanupGlobalObservers();
+    if (!keepPageObserver) cleanupGlobalObservers();
 }
 
 async function initializeTimeline(version = initVersion) {
@@ -28900,18 +29126,18 @@ async function initializeTimeline(version = initVersion) {
     timelineInitInFlight = (async () => {
         // Detect current site adapter
         const adapter = await resolveCurrentAdapter();
-        if (!adapter || version !== initVersion) {
+        if (!adapter || !isCurrentInitialization(version)) {
             return false;
         }
 
-        destroyTimelineInstance();
+        destroyTimelineInstance({ keepPageObserver: true });
 
         const manager = new TimelineManager(adapter);
         timelineManagerInstance = manager;
 
         try {
             const initialized = await manager.init();
-            if (!initialized || version !== initVersion || timelineManagerInstance !== manager) {
+            if (!initialized || !isCurrentInitialization(version) || timelineManagerInstance !== manager) {
                 try { manager.destroy(); } catch {}
                 if (timelineManagerInstance === manager) {
                     timelineManagerInstance = null;
@@ -28925,6 +29151,8 @@ async function initializeTimeline(version = initVersion) {
             try { manager.destroy(); } catch {}
             return false;
         }
+
+        cleanupGlobalObservers();
 
         // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
         unwatchGeneration = window.AIStateMonitor?.getInstance().watch(adapter) ?? null;
@@ -28940,29 +29168,20 @@ async function initializeTimeline(version = initVersion) {
 }
 
 async function handleUrlChange() {
-    // 检测 URL 是否变化
-    if (location.href === currentUrl) return;
-
-    // URL 变化确认，立即隐藏提问列表
-    if (window.questionListPopup && window.questionListPopup.visible) {
-        window.questionListPopup.hide();
-    }
-
-    currentUrl = location.href;
-    initVersion++;
+    const url = location.href;
+    if (url === currentUrl) return;
+    currentUrl = url;
+    const version = ++initVersion;
     currentAdapter = null;
-    currentAdapter = await adapterRegistry.detectAdapter();
-
-    // URL 变化了，先清理旧时间轴实例（内部会销毁 ChatTimeRecorder）
     destroyTimelineInstance();
 
-    // 如果当前是对话 URL，重新初始化
-    if (await isConversationRoute()) {
-        const currentVersion = initVersion;
-        void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
+    const adapter = await adapterRegistry.detectAdapter();
+    if (version !== initVersion || url !== location.href) return;
+    currentAdapter = adapter;
+    if (adapter?.isConversationRoute(location.pathname)) {
+        void initWithRetry(version, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
             .catch(e => void 0);
     }
-    // 如果不是对话 URL，只清理（上面已经做了）
 }
 
 // ✅ 监听平台设置变化，动态启用/禁用时间轴
@@ -28995,6 +29214,7 @@ function setupPlatformSettingsListener() {
                     if (isEnabled) {
                         // 从禁用到启用：重新初始化时间轴
                         if (!timelineManagerInstance && await isConversationRoute()) {
+                            cleanupGlobalObservers();
                             initVersion++;
                             const currentVersion = initVersion;
                             void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
@@ -29002,6 +29222,7 @@ function setupPlatformSettingsListener() {
                         }
                     } else {
                         // 从启用到禁用：销毁时间轴
+                        initVersion++;
                         destroyTimelineInstance();
                     }
                 }
@@ -29019,67 +29240,23 @@ async function bootstrapTimeline() {
         return;
     }
 
-    setupPlatformSettingsListener();
     currentAdapter = await adapterRegistry.detectAdapter();
-    
-    // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
-    const checkAndInit = async () => {
-        const adapter = await resolveCurrentAdapter();
-        if (window.AITContentSession?.active === false) return false;
-        adapter?.prepareTimelineNodes?.({
-            force: true,
-            reason: 'bootstrap-check'
-        });
-        const selector = adapter ? adapter.getUserMessageSelector() : null;
-        if (selector && document.querySelector(selector)) {
-            if (await isConversationRoute()) {
-                // Use retry mechanism for initial load as well
-                initVersion++;
-                const currentVersion = initVersion;
-                void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                    .catch(e => void 0);
-            }
-            
-            attachRouteListenersOnce();
-            
-            return true; // 已初始化
-        }
-        return false; // 未初始化
-    };
-    
-    // ✅ 修复：立即检查一次（处理SPA路由切换到对话页的情况）
-    // ✅ 异步检查平台是否启用
-    const platformEnabled = await isPlatformEnabled();
-    if (!platformEnabled || window.AITContentSession?.active === false) {
-        return; // 当前平台未启用，不初始化
-    }
+    if (window.AITContentSession?.active === false) return;
+    attachRouteListenersOnce();
+    setupPlatformSettingsListener();
 
-    if (await checkAndInit()) {
-        // 已经初始化成功，不需要observer
+    const version = initVersion;
+    if (!await isPlatformEnabled() || !isCurrentInitialization(version) || !await isConversationRoute()) return;
+    if (await canInitialize()) {
+        void initWithRetry(version, TIMELINE_CONFIG.INIT_RETRY_DELAYS).catch(() => {});
     } else {
-        // 还没有用户消息，使用 DOMObserverManager 等待
-        let unsubscribeInitial = null;
-        if (window.DOMObserverManager) {
-            unsubscribeInitial = window.DOMObserverManager.getInstance().subscribeBody('timeline-initial', {
-                callback: () => {
-                    void (async () => {
-                        if (await checkAndInit()) {
-                            // 初始化成功，取消订阅
-                            if (unsubscribeInitial) {
-                                unsubscribeInitial();
-                                unsubscribeInitial = null;
-                            }
-                        }
-                    })().catch(e => void 0);
-                },
-                debounce: 150  // 150ms 防抖
-            });
-        }
+        waitForFirstMessage(version);
     }
 }
 
 window.AITContentSession?.onStop(() => {
     initVersion++;
+    detachRouteListeners();
     destroyTimelineInstance();
 });
 window.AITPlatformFeatures.register('timeline', bootstrapTimeline);

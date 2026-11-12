@@ -25,6 +25,14 @@ class QuestionListPopup {
         this._timelineBar = timelineBar;
     }
 
+    _getCurrentTimeline() {
+        const tm = window.timelineManager;
+        if (!tm?.isCurrentPage() || !this._wrapper?.isConnected || tm.ui.timelineBar !== this._timelineBar) {
+            return null;
+        }
+        return tm;
+    }
+
     toggle() {
         if (this._visible) {
             this.hide();
@@ -34,9 +42,8 @@ class QuestionListPopup {
     }
 
     show() {
-        const tm = window.timelineManager;
-        if (!tm || !tm.markers || tm.markers.length === 0) return;
-        if (!this._wrapper || !this._timelineBar) return;
+        const tm = this._getCurrentTimeline();
+        if (!tm?.markers.length) return;
 
         this.hide();
 
@@ -106,8 +113,11 @@ class QuestionListPopup {
         window.addEventListener('timeline:activeChange', this._boundOnActiveChange);
 
         // 点击外部区域关闭
+        const popup = this._el;
         setTimeout(() => {
-            document.addEventListener('click', this._boundOnClickOutside, true);
+            if (this._el === popup) {
+                document.addEventListener('click', this._boundOnClickOutside, true);
+            }
         }, 0);
 
         // 按钮高亮
@@ -307,8 +317,8 @@ class QuestionListPopup {
 
     onMarkersRebuilt() {
         if (!this._visible || !this._listEl) return;
-        const tm = window.timelineManager;
-        if (!tm || !tm.markers || tm.markers.length === 0) {
+        const tm = this._getCurrentTimeline();
+        if (!tm?.markers.length) {
             this.hide();
             return;
         }

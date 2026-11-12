@@ -73,13 +73,56 @@ async function canInitialize() {
     });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
+    if (adapter.filterTimelineUserElements) {
+        return adapter.filterTimelineUserElements(Array.from(document.querySelectorAll(selector))).length > 0;
+    }
     return document.querySelector(selector) !== null;
 }
 
-// Initialize timeline with retry mechanism (exponential backoff)
+function isCurrentInitialization(version) {
+    return version === initVersion && currentUrl === location.href && window.AITContentSession?.active !== false;
+}
+
+function waitForFirstMessage(version) {
+    if (!isCurrentInitialization(version) || unsubscribePageObserver) return;
+    const observerManager = window.DOMObserverManager?.getInstance();
+    if (!observerManager) return;
+
+    let checking = false;
+    const check = async () => {
+        if (checking || !isCurrentInitialization(version)) return;
+        checking = true;
+        try {
+            if (await canInitialize() && await isPlatformEnabled() && isCurrentInitialization(version)) {
+                await initializeTimeline(version);
+            }
+        } finally {
+            checking = false;
+        }
+    };
+    const onChange = () => void check().catch(() => {});
+    const unsubscribeBody = observerManager.subscribeBody('timeline-first-message', {
+        callback: onChange,
+        debounce: 150,
+        throttle: 150
+    });
+    const unsubscribeCapturedData = currentAdapter?.subscribeCapturedChatsDataUpdated?.(onChange);
+    const attributes = currentAdapter?.getTimelineStructureAttributeFilter?.();
+    const attributeObserver = attributes?.length ? new MutationObserver(onChange) : null;
+    attributeObserver?.observe(document.body, { subtree: true, attributes: true, attributeFilter: attributes });
+    unsubscribePageObserver = () => {
+        unsubscribeBody();
+        unsubscribeCapturedData?.();
+        attributeObserver?.disconnect();
+    };
+    onChange();
+}
+
+// Retry while the route settles, then wait for messages without polling.
 async function initWithRetry(version, delays, retryIndex = 0) {
-    // Check if we've exceeded max retries
+    if (!isCurrentInitialization(version)) return;
     if (retryIndex >= delays.length) {
+        waitForFirstMessage(version);
         return;
     }
     
@@ -87,7 +130,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     await sleep(delays[retryIndex]);
     
     // Check if version is still current (user may have navigated away)
-    if (version !== initVersion) {
+    if (!isCurrentInitialization(version)) {
         return; // Version mismatch, cancel this retry
     }
     
@@ -103,11 +146,7 @@ async function initWithRetry(version, delays, retryIndex = 0) {
     }
     
     // Lightweight check: can we initialize?
-    if (await canInitialize()) {
-        // Yes! Initialize the timeline
-        await initializeTimeline(version);
-        return;
-    }
+    if (await canInitialize() && await initializeTimeline(version)) return;
     
     // No, retry with next delay
     await initWithRetry(version, delays, retryIndex + 1);
@@ -115,10 +154,12 @@ async function initWithRetry(version, delays, retryIndex = 0) {
 
 function attachRouteListenersOnce() {
     if (routeListenersAttached) return;
+    currentUrl = location.href;
     routeListenersAttached = true;
 
     TimelineUtils.removeEventListenerSafe(window, 'url:change', handleUrlChange);
     try { window.addEventListener('url:change', handleUrlChange); } catch {}
+    window.navigation?.addEventListener('currententrychange', handleUrlChange);
 }
 
 function detachRouteListeners() {
@@ -126,6 +167,7 @@ function detachRouteListeners() {
     routeListenersAttached = false;
 
     TimelineUtils.removeEventListenerSafe(window, 'url:change', handleUrlChange);
+    window.navigation?.removeEventListener('currententrychange', handleUrlChange);
 }
 
 function cleanupGlobalObservers() {
@@ -136,7 +178,9 @@ function cleanupGlobalObservers() {
     }
 }
 
-function destroyTimelineInstance() {
+function destroyTimelineInstance({ keepPageObserver = false } = {}) {
+    if (window.questionListPopup?.visible) window.questionListPopup.hide();
+
     if (timelineManagerInstance) {
         try { timelineManagerInstance.destroy(); } catch (e) { void 0; }
         timelineManagerInstance = null;
@@ -148,7 +192,7 @@ function destroyTimelineInstance() {
     TimelineUtils.removeElementSafe(document.querySelector('.ait-chat-timeline-wrapper'));
     TimelineUtils.removeElementSafe(document.querySelector('.ait-timeline-star-chat-btn-native'));
     window.AITChatHeaderActions?.removeEmptyContainer?.();
-    cleanupGlobalObservers();
+    if (!keepPageObserver) cleanupGlobalObservers();
 }
 
 async function initializeTimeline(version = initVersion) {
@@ -162,18 +206,18 @@ async function initializeTimeline(version = initVersion) {
     timelineInitInFlight = (async () => {
         // Detect current site adapter
         const adapter = await resolveCurrentAdapter();
-        if (!adapter || version !== initVersion) {
+        if (!adapter || !isCurrentInitialization(version)) {
             return false;
         }
 
-        destroyTimelineInstance();
+        destroyTimelineInstance({ keepPageObserver: true });
 
         const manager = new TimelineManager(adapter);
         timelineManagerInstance = manager;
 
         try {
             const initialized = await manager.init();
-            if (!initialized || version !== initVersion || timelineManagerInstance !== manager) {
+            if (!initialized || !isCurrentInitialization(version) || timelineManagerInstance !== manager) {
                 try { manager.destroy(); } catch {}
                 if (timelineManagerInstance === manager) {
                     timelineManagerInstance = null;
@@ -187,6 +231,8 @@ async function initializeTimeline(version = initVersion) {
             try { manager.destroy(); } catch {}
             return false;
         }
+
+        cleanupGlobalObservers();
 
         // ✅ 启动 AI 状态监控（事件驱动，替代各模块的 setInterval 轮询）
         unwatchGeneration = window.AIStateMonitor?.getInstance().watch(adapter) ?? null;
@@ -202,29 +248,20 @@ async function initializeTimeline(version = initVersion) {
 }
 
 async function handleUrlChange() {
-    // 检测 URL 是否变化
-    if (location.href === currentUrl) return;
-
-    // URL 变化确认，立即隐藏提问列表
-    if (window.questionListPopup && window.questionListPopup.visible) {
-        window.questionListPopup.hide();
-    }
-
-    currentUrl = location.href;
-    initVersion++;
+    const url = location.href;
+    if (url === currentUrl) return;
+    currentUrl = url;
+    const version = ++initVersion;
     currentAdapter = null;
-    currentAdapter = await adapterRegistry.detectAdapter();
-
-    // URL 变化了，先清理旧时间轴实例（内部会销毁 ChatTimeRecorder）
     destroyTimelineInstance();
 
-    // 如果当前是对话 URL，重新初始化
-    if (await isConversationRoute()) {
-        const currentVersion = initVersion;
-        void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
+    const adapter = await adapterRegistry.detectAdapter();
+    if (version !== initVersion || url !== location.href) return;
+    currentAdapter = adapter;
+    if (adapter?.isConversationRoute(location.pathname)) {
+        void initWithRetry(version, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
             .catch(e => void 0);
     }
-    // 如果不是对话 URL，只清理（上面已经做了）
 }
 
 // ✅ 监听平台设置变化，动态启用/禁用时间轴
@@ -257,6 +294,7 @@ function setupPlatformSettingsListener() {
                     if (isEnabled) {
                         // 从禁用到启用：重新初始化时间轴
                         if (!timelineManagerInstance && await isConversationRoute()) {
+                            cleanupGlobalObservers();
                             initVersion++;
                             const currentVersion = initVersion;
                             void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
@@ -264,6 +302,7 @@ function setupPlatformSettingsListener() {
                         }
                     } else {
                         // 从启用到禁用：销毁时间轴
+                        initVersion++;
                         destroyTimelineInstance();
                     }
                 }
@@ -281,67 +320,23 @@ async function bootstrapTimeline() {
         return;
     }
 
-    setupPlatformSettingsListener();
     currentAdapter = await adapterRegistry.detectAdapter();
-    
-    // ✅ 修复：先检查DOM中是否已存在用户消息（SPA路由切换场景）
-    const checkAndInit = async () => {
-        const adapter = await resolveCurrentAdapter();
-        if (window.AITContentSession?.active === false) return false;
-        adapter?.prepareTimelineNodes?.({
-            force: true,
-            reason: 'bootstrap-check'
-        });
-        const selector = adapter ? adapter.getUserMessageSelector() : null;
-        if (selector && document.querySelector(selector)) {
-            if (await isConversationRoute()) {
-                // Use retry mechanism for initial load as well
-                initVersion++;
-                const currentVersion = initVersion;
-                void initWithRetry(currentVersion, TIMELINE_CONFIG.INIT_RETRY_DELAYS)
-                    .catch(e => void 0);
-            }
-            
-            attachRouteListenersOnce();
-            
-            return true; // 已初始化
-        }
-        return false; // 未初始化
-    };
-    
-    // ✅ 修复：立即检查一次（处理SPA路由切换到对话页的情况）
-    // ✅ 异步检查平台是否启用
-    const platformEnabled = await isPlatformEnabled();
-    if (!platformEnabled || window.AITContentSession?.active === false) {
-        return; // 当前平台未启用，不初始化
-    }
+    if (window.AITContentSession?.active === false) return;
+    attachRouteListenersOnce();
+    setupPlatformSettingsListener();
 
-    if (await checkAndInit()) {
-        // 已经初始化成功，不需要observer
+    const version = initVersion;
+    if (!await isPlatformEnabled() || !isCurrentInitialization(version) || !await isConversationRoute()) return;
+    if (await canInitialize()) {
+        void initWithRetry(version, TIMELINE_CONFIG.INIT_RETRY_DELAYS).catch(() => {});
     } else {
-        // 还没有用户消息，使用 DOMObserverManager 等待
-        let unsubscribeInitial = null;
-        if (window.DOMObserverManager) {
-            unsubscribeInitial = window.DOMObserverManager.getInstance().subscribeBody('timeline-initial', {
-                callback: () => {
-                    void (async () => {
-                        if (await checkAndInit()) {
-                            // 初始化成功，取消订阅
-                            if (unsubscribeInitial) {
-                                unsubscribeInitial();
-                                unsubscribeInitial = null;
-                            }
-                        }
-                    })().catch(e => void 0);
-                },
-                debounce: 150  // 150ms 防抖
-            });
-        }
+        waitForFirstMessage(version);
     }
 }
 
 window.AITContentSession?.onStop(() => {
     initVersion++;
+    detachRouteListeners();
     destroyTimelineInstance();
 });
 window.AITPlatformFeatures.register('timeline', bootstrapTimeline);

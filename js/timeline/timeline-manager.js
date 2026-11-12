@@ -20,6 +20,7 @@ class TimelineManager {
             throw new Error('TimelineManager requires a SiteAdapter');
         }
         this.adapter = adapter;
+        this._pageUrl = location.href;
         this.scrollContainer = null;
         this.isScrollContainerFallback = false;
         this.hostScrollbarElement = null;
@@ -183,6 +184,10 @@ class TimelineManager {
         return this.adapter.getFeatures?.() || this._currentPlatform?.features || {};
     }
 
+    isCurrentPage() {
+        return !this._destroyed && this._pageUrl === location.href;
+    }
+
     _collectUserTurnElements({ scope = document, forcePrepare = false, reason = '' } = {}) {
         this.adapter.prepareTimelineNodes?.({
             force: forcePrepare,
@@ -198,6 +203,9 @@ class TimelineManager {
         try {
             userTurnElements = Array.from(scope.querySelectorAll(selector));
         } catch {}
+        if (this.adapter.filterTimelineUserElements) {
+            userTurnElements = this.adapter.filterTimelineUserElements(userTurnElements);
+        }
         return { selector, userTurnElements };
     }
 
@@ -210,7 +218,7 @@ class TimelineManager {
         if (this._destroyed) return false;
 
         const elementsFound = await this.findCriticalElements();
-        if (this._destroyed || !elementsFound) return false;
+        if (!this.isCurrentPage() || !elementsFound) return false;
         this.applyHostScrollContainerClass();
         
         // ✅ 同步深色模式状态到 html 元素
@@ -292,14 +300,13 @@ class TimelineManager {
         });
         let firstTurn = prepared.userTurnElements[0] || null;
         if (!firstTurn) {
-            firstTurn = await this.waitForElement(prepared.selector);
-            if (firstTurn) {
+            if (await this.waitForElement(prepared.selector)) {
                 prepared = this._collectUserTurnElements({
                     scope: document,
                     forcePrepare: true,
                     reason: 'initialization-ready'
                 });
-                firstTurn = prepared.userTurnElements[0] || firstTurn;
+                firstTurn = prepared.userTurnElements[0] || null;
             }
         }
         if (!firstTurn) return false;
@@ -313,6 +320,11 @@ class TimelineManager {
         const scrollInfo = this.resolveScrollContainer(this.conversationContainer);
         this.scrollContainer = scrollInfo.container;
         this.isScrollContainerFallback = scrollInfo.isFallback;
+        if (this.isCurrentPage() && this.scrollContainer) {
+            this.adapter.rememberTimelineTranscript?.(prepared.userTurnElements.filter(element =>
+                this.conversationContainer.contains(element)
+            ));
+        }
 
         return this.scrollContainer !== null;
     }
@@ -1198,9 +1210,7 @@ class TimelineManager {
     }
 
     recalculateAndRenderMarkers(preparedContext = null) {
-        if (!this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
-
-        if (window.questionListPopup) window.questionListPopup.onMarkersRebuilt();
+        if (!this.isCurrentPage() || !this.conversationContainer || !this.ui.timelineBar || !this.scrollContainer) return;
 
         this.adapter.syncCapturedChatsData();
         this.updateHistoryLoadingIndicator();
@@ -1216,9 +1226,11 @@ class TimelineManager {
             });
             userTurnElements = prepared.userTurnElements;
         }
+        this.adapter.updateTimelineTranscript?.(userTurnElements);
         const capturedEntries = this.adapter.getCapturedTimelineEntries?.(Array.from(userTurnElements));
         if (capturedEntries?.length) {
             this._renderCapturedTimeline(capturedEntries);
+            window.questionListPopup?.onMarkersRebuilt();
             return;
         }
         this._apiTimelineMode = false;
@@ -1271,6 +1283,7 @@ class TimelineManager {
             if (window.chatTimeRecorder) {
                 window.chatTimeRecorder._renderTimeLabels();
             }
+            window.questionListPopup?.onMarkersRebuilt();
             return;
         }
 
@@ -1520,7 +1533,7 @@ class TimelineManager {
         if (window.chatTimeRecorder) {
             window.chatTimeRecorder._renderTimeLabels();
         }
-        
+        window.questionListPopup?.onMarkersRebuilt();
     }
     
     _configureTimelineStructureObserver() {
@@ -4082,8 +4095,9 @@ class TimelineManager {
     }
 
     destroy() {
-        this._markerNavigationController?.abort();
+        if (this._destroyed) return;
         this._destroyed = true;
+        this._markerNavigationController?.abort();
         this._folderManagerInitTimer = TimelineUtils.clearTimerSafe(this._folderManagerInitTimer);
         this._initialRenderTimer = TimelineUtils.clearTimerSafe(this._initialRenderTimer);
         this._initialSecondRenderTimer = TimelineUtils.clearTimerSafe(this._initialSecondRenderTimer);

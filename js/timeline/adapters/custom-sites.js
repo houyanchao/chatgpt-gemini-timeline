@@ -16,15 +16,23 @@
  *    after message edits/regeneration/history loading, and does not rely on
  *    text content itself.
  * 5. Pick the scroll/message-list parent as `conversationContainerSelector`.
- * 6. Add `conversationUrlPattern` so the timeline only runs on real chat pages.
+ * 6. Add `conversationUrlPattern` or `conversationUrls` to limit the timeline to
+ *    chat pages. Use exact URLs for pages such as a homepage with chat history.
  * 7. If the demo comes from a sidebar/history item, keep those selectors in
  *    sidebar* fields for future sidebar-starred support; the timeline adapter
  *    currently reads only timeline fields.
  *
  * Fields used by CustomSiteAdapter:
  * - sites: hostnames that enable this config.
+ * - conversationUrls: optional array of full URLs matched exactly, including
+ *   the protocol, trailing slash, query, and hash. A match also allows the route
+ *   when a URL pattern or path rule is configured.
  * - conversationUrlPattern: regex matched against the full URL and URL without
  *   protocol.
+ * - conversationScopeSelectors: optional ancestor selectors for the current
+ *   chat pane. Use `exactUrl` for an exact URL match, or `urlPattern` with
+ *   `{conversationId}` filled by the URL pattern's named `conversationId` group.
+ *   Both the user message and conversation container selectors use this scope.
  * - userMessageSelector: CSS selector for each user turn.
  * - textSelector: CSS selector inside a user turn. Use one CSS selector string;
  *   comma-separated selectors are OK.
@@ -77,6 +85,47 @@ globalThis.CUSTOM_SITE_INFO = [
         textSelector: '[class*="Message_selectableText__"]',
         conversationContainerSelector: '[class*="ChatMessagesView_infiniteScroll__"]',
         turnIdAttribute: 'id',
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
+        name: 'Manus',
+        sites: ['manus.im'],
+        features: {
+            timeline: false
+        },
+    },
+    {
+        name: 'Arena',
+        sites: ['arena.ai'],
+        conversationUrlPattern: '^arena\\.ai/agent/[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/?(?:[?#].*)?$',
+        userMessageSelector: '[data-perf-target="transcript"] [role="log"] [data-agent-transcript-message][data-chat-message-id]:has(> [data-user-message-layout])',
+        textSelector: '[data-user-message-body-row] .prose',
+        conversationContainerSelector: '[data-perf-target="transcript"] [role="log"]',
+        turnIdAttribute: 'data-chat-message-id',
+        scrollOffset: 72,
+        features: {
+            timeline: true,
+            questionList: true,
+            notepad: true
+        },
+    },
+    {
+        name: 'Muse',
+        sites: ['muse.ai'],
+        conversationUrls: ['https://muse.ai/'],
+        conversationUrlPattern: '^muse\\.ai/thread/(?<conversationId>[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})/?(?:[?#].*)?$',
+        conversationScopeSelectors: {
+            exactUrl: '[data-hatch-route-key="main"]',
+            urlPattern: '[data-hatch-route-key="thread:{conversationId}" i]',
+        },
+        userMessageSelector: '[data-hatch-chat-column="true"][role="log"] [data-message-item="true"][data-message-role="user"]',
+        textSelector: '.hatch-chat-groupable-bubble, [data-message-search-surrogate]',
+        conversationContainerSelector: '[data-hatch-chat-column="true"][role="log"]',
+        turnIdAttribute: 'data-message-id',
         features: {
             timeline: true,
             questionList: true,

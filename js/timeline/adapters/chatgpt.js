@@ -21,12 +21,15 @@ class ChatGPTAdapter extends SiteAdapter {
         this._usesVirtualizedTurnSelector = false;
         this._capturedTimeline = null;
         this._capturedTimelineConvId = null;
+        this._capturedTimelineIds = new Set();
         this._historyLoading = null;
         this._liveTimelineEntries = new Map();
         this._supplementalTimelineOrder = { before: [], after: [] };
         this._liveTimelineRevision = null;
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
+        this._timelineTranscript = null;
+        this._timelineTranscriptsByScope = new WeakMap();
     }
 
 
@@ -65,8 +68,13 @@ class ChatGPTAdapter extends SiteAdapter {
 
         const texts = received ? received.texts : null;
         const previousTimeline = JSON.stringify(this._capturedTimeline);
-        this._capturedTimeline = received?.timeline || null;
+        const timeline = received?.timeline;
+        this._capturedTimeline = Array.isArray(timeline?.entries) ? timeline : null;
         this._capturedTimelineConvId = conversationId;
+        this._capturedTimelineIds = new Set(this._capturedTimeline?.entries.map(entry => entry.id));
+        if (this._timelineTranscript?.conversationId === conversationId && this._capturedTimeline) {
+            for (const id of this._capturedTimelineIds) this._timelineTranscript.snapshotIds.add(id);
+        }
         this._historyLoading = { conversationId, loading: received?.historyLoading === true };
         const timelineChanged = JSON.stringify(this._capturedTimeline) !== previousTimeline;
         if (!texts) return timelineChanged ? 1 : 0;
@@ -142,18 +150,14 @@ class ChatGPTAdapter extends SiteAdapter {
             this._supplementalTimelineOrder = { before: [], after: [] };
             this._liveTimelineScopes = new WeakSet();
         }
-        const scopeFor = element => element.closest('[data-thread-find-target="conversation"]')
-            || element.closest('main') || element.parentElement;
+        const scopeFor = element => this._getTimelineScope(element) || element.parentElement;
         const confirmScope = element => {
             const scope = scopeFor(element);
             if (scope) this._liveTimelineScopes.add(scope);
         };
         const elementsById = new Map();
         for (const element of userElements) {
-            const ids = [this._extractNodeIdFromDom(element),
-                ...(element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/)];
-            element.querySelectorAll('[data-message-id]').forEach(child => ids.push(child.getAttribute('data-message-id')));
-            ids.filter(Boolean).forEach(id => elementsById.set(id, element));
+            this._getTimelineElementIds(element).forEach(id => elementsById.set(id, element));
         }
         const capturedIdsByElement = new Map();
         const entries = this._capturedTimeline.entries.map(entry => {
@@ -601,6 +605,138 @@ class ChatGPTAdapter extends SiteAdapter {
             return '[data-turn-id-container][data-ait-turn="user"]';
         }
         return '[data-turn="user"][data-turn-id], [data-thread-find-target="conversation"] [data-chatgpt-search-unit-key$=":user"][data-chatgpt-search-message-ids]';
+    }
+
+    filterTimelineUserElements(elements) {
+        const previous = this._timelineTranscript;
+        const conversationId = this.extractConversationId(location.pathname);
+        if (!previous || !conversationId || !elements.length) return elements;
+
+        const groups = new Map();
+        for (const element of elements) {
+            const scope = this._getTimelineScope(element);
+            if (scope?.getClientRects?.().length === 0) continue;
+            if (!groups.has(scope)) groups.set(scope, []);
+            groups.get(scope).push(element);
+        }
+
+        const sameConversation = previous.conversationId === conversationId;
+        const previousRows = groups.get(previous.scope);
+        if (sameConversation && previousRows) return previousRows;
+        const previousScopeVisible = previous.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
+
+        this.syncCapturedChatsData();
+        const capturedIds = this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : null;
+        const matchesSnapshot = ids => ids.some(id => capturedIds?.has(id));
+        let replacement = null;
+        let reusedScope = null;
+
+        for (const [scope, rows] of groups) {
+            const known = scope === previous.scope ? previous : this._timelineTranscriptsByScope.get(scope);
+            const rowIds = rows.map(element => this._getTimelineElementIds(element));
+            const hasKnownRows = transcript => rowIds.some((ids, index) =>
+                this._matchesTimelineTranscript(transcript, rows[index], ids));
+            const hasSnapshotMatch = rowIds.some(matchesSnapshot);
+            if (known?.conversationId === conversationId) return rows;
+
+            if (sameConversation && previousScopeVisible && !hasSnapshotMatch && !hasKnownRows(previous)) {
+                continue;
+            }
+
+            if (known && hasKnownRows(known)) {
+                // Shared history can match the incoming snapshot while the old
+                // pane is still visible. Require proof that its rows changed.
+                const hasNewSnapshotId = rowIds.some(ids => ids.some(id =>
+                    capturedIds?.has(id) && !known.turnIds.has(id) && !known.snapshotIds.has(id)));
+                if (!rowIds.every(matchesSnapshot) || (!hasNewSnapshotId && rows.some(element => known.elements.has(element)))) {
+                    continue;
+                }
+            }
+
+            if (!known) {
+                // A second copy of outgoing history does not prove that a
+                // different conversation is ready while the original pane is present.
+                if (!sameConversation && previousRows && !hasSnapshotMatch && hasKnownRows(previous)) continue;
+                if (hasSnapshotMatch) return rows;
+                replacement ||= rows;
+            } else if (hasSnapshotMatch || rows.some(element => element.childElementCount > 0)) {
+                // An empty virtualized turn can lack all of its known aliases.
+                reusedScope ||= rows;
+            }
+        }
+
+        return replacement || reusedScope || [];
+    }
+
+    rememberTimelineTranscript(elements) {
+        const conversationId = this.extractConversationId(location.pathname);
+        if (!conversationId || !elements.length) return;
+        const scope = this._getTimelineScope(elements[0]);
+        const known = scope ? this._timelineTranscriptsByScope.get(scope) : this._timelineTranscript;
+        if (known?.conversationId === conversationId && known.scope === scope) {
+            if (this._capturedTimelineConvId === conversationId) {
+                for (const id of this._capturedTimelineIds) known.snapshotIds.add(id);
+            }
+            this._timelineTranscript = known;
+            return;
+        }
+
+        // Commit only on manager initialization. Rebuilds can see the next
+        // transcript before the host commits its URL.
+        const transcript = {
+            conversationId,
+            scope,
+            turnIds: new Set(elements.flatMap(element => this._getTimelineElementIds(element))),
+            elements: new WeakSet(elements),
+            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : [])
+        };
+        this._timelineTranscript = transcript;
+        if (scope) this._timelineTranscriptsByScope.set(scope, transcript);
+    }
+
+    updateTimelineTranscript(elements) {
+        const transcript = this._timelineTranscript;
+        if (!transcript || !elements.length || transcript.conversationId !== this.extractConversationId(location.pathname)) return;
+
+        const scope = this._getTimelineScope(elements[0]);
+        const rows = elements.filter(element => this._getTimelineScope(element) === scope);
+        const knownRow = element => this._matchesTimelineTranscript(transcript, element, this._getTimelineElementIds(element));
+        if (scope !== transcript.scope) {
+            // A same-URL remount is owned only when its visible rows confirm
+            // continuity. A disjoint remount may render without claiming it.
+            if (rows.every(knownRow)) {
+                const rebound = { ...transcript, scope, elements: new WeakSet(rows) };
+                this._timelineTranscript = rebound;
+                if (scope) this._timelineTranscriptsByScope.set(scope, rebound);
+            }
+            return;
+        }
+        if (!rows.some(element => transcript.elements.has(element) && knownRow(element))) return;
+
+        // Learn appended turns only while a previously accepted DOM row is
+        // still present. An unanchored rebuild cannot claim a new transcript.
+        for (const element of rows) {
+            transcript.elements.add(element);
+            for (const id of this._getTimelineElementIds(element)) transcript.turnIds.add(id);
+        }
+    }
+
+    _matchesTimelineTranscript(transcript, element, ids) {
+        return ids.length
+            ? ids.some(id => transcript.turnIds.has(id) || transcript.snapshotIds.has(id))
+            : transcript.elements.has(element);
+    }
+
+    _getTimelineScope(element) {
+        return element.closest('[data-thread-find-target="conversation"]') || element.closest('main');
+    }
+
+    _getTimelineElementIds(element) {
+        const ids = [this._extractNodeIdFromDom(element),
+            ...(element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/),
+            element.getAttribute('data-message-id')];
+        element.querySelectorAll('[data-message-id]').forEach(child => ids.push(child.getAttribute('data-message-id')));
+        return ids.filter(Boolean);
     }
 
     getAssistantMessageSelector() {
