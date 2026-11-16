@@ -12,34 +12,42 @@
  */
 
 const CHANGELOG_DATA = {
-    id: '2026081902',
+    id: '2026111601',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
     features: [
         {
-            zh: '新增 ChatGPT、Gemini 对话导出：支持导出完整会话或选择部分对话，并提供 Markdown、TXT、JSON、CSV、PNG 和 PDF 格式',
-            en: 'ChatGPT and Gemini conversation export: export an entire conversation or selected turns in Markdown, TXT, JSON, CSV, PNG, or PDF format'
+            zh: '新增消息截图，在 ChatGPT、Gemini、Claude、DeepSeek、Kimi 和豆包中勾选提问或回复，即可复制图片或下载 PNG',
+            en: 'Message screenshots let you select questions or replies and copy the image or download it as a PNG on ChatGPT, Gemini, Claude, DeepSeek, Kimi, and Doubao'
+        },
+        {
+            zh: 'Poe、Arena Agent 和 Muse 新增时间轴、提问列表和闪记',
+            en: 'Poe, Arena Agent, and Muse now support the timeline, question list, and quick notes'
         }
     ],
 
     improvements: [
         {
-            zh: '性能优化：大型依赖改为按需加载，并减少时间轴渲染、页面监听和初始化开销，提升长对话场景的流畅度',
-            en: 'Performance improvements: large dependencies now load on demand, with lower timeline rendering, page observation, and initialization overhead for smoother long conversations'
+            zh: '修复 ChatGPT、Claude 等平台切换会话后的时间轴刷新和节点跳转问题。ChatGPT 重点标记在刷新后会正确恢复',
+            en: 'Fixed timeline updates and message jumps after switching conversations on ChatGPT, Claude, and other platforms. ChatGPT pins now persist after a refresh'
         },
         {
-            zh: '优化 ChatGPT 长对话支持，提升问题文本加载和完整对话导出的稳定性',
-            en: 'Improved ChatGPT long-conversation support for more reliable question loading and complete conversation exports'
+            zh: '适配新版 Grok，恢复时间轴和整段对话收藏，修复提示词按钮的定位和配色、宠物动画不动以及点击发送后自动跳底的问题',
+            en: 'Restored the timeline and conversation bookmarks on the updated Grok interface and fixed the prompt button styling and position, pet animation during replies, and unwanted jumps when clicking Send'
         },
         {
-            zh: '优化回复生成期间的滚动体验，减少页面自动跳转及长对话中手动滚动被误判的问题',
-            en: 'Improved scrolling while responses are generated, reducing automatic jumps and misinterpreted manual scrolling in long conversations'
+            zh: '优化对话导出，新增 Claude 支持，可逐条勾选提问和回复，并直接复制支持的格式。改善 PNG 和 PDF 的图片与公式呈现',
+            en: 'Conversation export now supports Claude, lets you select individual questions and replies, and can copy supported formats directly. Improved image and formula rendering in PNG and PDF exports'
         },
         {
-            zh: '提示词内容上限由 10,000 提升至 20,000 个字符',
-            en: 'Increased the prompt content limit from 10,000 to 20,000 characters'
+            zh: '加快截图速度并保留原页面样式，个别图片无法读取时仍可生成截图，并提示缺图数量',
+            en: 'Screenshots render faster and retain page styling. When individual images cannot be read, the screenshot can still be generated and reports how many images are missing'
+        },
+        {
+            zh: '修复带语言标签的短 JavaScript 代码块缺少运行按钮，以及运行器切换语言时误用上次设置的问题',
+            en: 'Fixed missing Run buttons on short JavaScript blocks with language labels and made the runner use the language of the selected code block'
         }
     ]
 };
