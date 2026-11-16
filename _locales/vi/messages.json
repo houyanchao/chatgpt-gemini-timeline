@@ -1143,7 +1143,13 @@
     "message": "Đợi câu trả lời này hoàn tất."
   },
   "messageScreenshotImageFailed": {
-    "message": "Không tải được ảnh. Hãy thử lại sau khi ảnh tải xong."
+    "message": "Không thể đọc các ảnh đã chọn. Ảnh chụp màn hình chưa được tạo."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Không thể đọc ảnh"
+  },
+  "messageScreenshotPartial": {
+    "message": "Đã tạo ảnh chụp màn hình. Có $1 ảnh không đọc được."
   },
   "messageScreenshotUnsupported": {
     "message": "Tin nhắn chứa nội dung nhúng chưa hỗ trợ chụp."

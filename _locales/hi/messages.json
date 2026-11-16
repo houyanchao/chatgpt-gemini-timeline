@@ -1143,7 +1143,13 @@
     "message": "इस उत्तर के पूरा होने की प्रतीक्षा करें।"
   },
   "messageScreenshotImageFailed": {
-    "message": "चित्र लोड नहीं हो सका। लोड होने के बाद फिर प्रयास करें।"
+    "message": "चुने गए चित्र पढ़े नहीं जा सके। स्क्रीनशॉट नहीं बना।"
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "चित्र उपलब्ध नहीं है"
+  },
+  "messageScreenshotPartial": {
+    "message": "स्क्रीनशॉट बन गया। कुछ चित्र पढ़े नहीं जा सके ($1)।"
   },
   "messageScreenshotUnsupported": {
     "message": "इस संदेश में ऐसा एम्बेड किया गया कंटेंट है जिसका स्क्रीनशॉट नहीं लिया जा सकता।"

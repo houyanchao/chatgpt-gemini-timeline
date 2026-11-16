@@ -1143,7 +1143,13 @@
     "message": "Attendez la fin de cette réponse."
   },
   "messageScreenshotImageFailed": {
-    "message": "Une image ne peut pas être chargée. Réessayez après son chargement."
+    "message": "Impossible de lire les images sélectionnées. Aucune capture n’a été créée."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Image indisponible"
+  },
+  "messageScreenshotPartial": {
+    "message": "Capture créée. Certaines images n’ont pas pu être lues ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Ce message contient du contenu intégré qui ne peut pas être capturé."

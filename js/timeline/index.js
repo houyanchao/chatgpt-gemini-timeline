@@ -22,6 +22,7 @@ let adapterRegistry = new SiteAdapterRegistry();
 let currentAdapter = null;
 let timelineInitInFlight = null;
 let timelineInitInFlightVersion = null;
+const timelineRouteRows = new TimelineRouteRows();
 
 // Check if current route is a conversation page (uses adapter)
 async function resolveCurrentAdapter() {
@@ -73,10 +74,9 @@ async function canInitialize() {
     });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
-    if (adapter.filterTimelineUserElements) {
-        return adapter.filterTimelineUserElements(Array.from(document.querySelectorAll(selector))).length > 0;
-    }
-    return document.querySelector(selector) !== null;
+    const rows = Array.from(document.querySelectorAll(selector));
+    const route = timelineRouteRows.key(adapter, location.href);
+    return timelineRouteRows.filter(adapter, rows, route).length > 0;
 }
 
 function isCurrentInitialization(version) {
@@ -89,8 +89,13 @@ function waitForFirstMessage(version) {
     if (!observerManager) return;
 
     let checking = false;
+    let checkPending = false;
     const check = async () => {
-        if (checking || !isCurrentInitialization(version)) return;
+        if (!isCurrentInitialization(version)) return;
+        if (checking) {
+            checkPending = true;
+            return;
+        }
         checking = true;
         try {
             if (await canInitialize() && await isPlatformEnabled() && isCurrentInitialization(version)) {
@@ -98,6 +103,10 @@ function waitForFirstMessage(version) {
             }
         } finally {
             checking = false;
+            if (checkPending && unsubscribePageObserver) {
+                checkPending = false;
+                onChange();
+            }
         }
     };
     const onChange = () => void check().catch(() => {});
@@ -107,13 +116,25 @@ function waitForFirstMessage(version) {
         throttle: 150
     });
     const unsubscribeCapturedData = currentAdapter?.subscribeCapturedChatsDataUpdated?.(onChange);
-    const attributes = currentAdapter?.getTimelineStructureAttributeFilter?.();
-    const attributeObserver = attributes?.length ? new MutationObserver(onChange) : null;
-    attributeObserver?.observe(document.body, { subtree: true, attributes: true, attributeFilter: attributes });
+    const adapter = currentAdapter;
+    const structureAttributes = new Set(adapter?.getTimelineStructureAttributeFilter?.() || []);
+    const attributes = [...new Set([...structureAttributes, 'hidden', 'aria-hidden', 'inert', 'style', 'class'])];
+    const mutationObserver = new MutationObserver(mutations => {
+        const selector = adapter?.getUserMessageSelector();
+        if (!selector) return;
+        if (mutations.some(({ type, target, attributeName }) => {
+            if (type === 'characterData') return target.parentElement?.closest(selector);
+            return structureAttributes.has(attributeName) || target.matches?.(selector) || target.querySelector?.(selector);
+        })) onChange();
+    });
+    mutationObserver.observe(document.body, {
+        subtree: true, attributes: true, attributeFilter: attributes,
+        characterData: !adapter?.filterTimelineUserElements
+    });
     unsubscribePageObserver = () => {
         unsubscribeBody();
         unsubscribeCapturedData?.();
-        attributeObserver?.disconnect();
+        mutationObserver.disconnect();
     };
     onChange();
 }
@@ -212,7 +233,7 @@ async function initializeTimeline(version = initVersion) {
 
         destroyTimelineInstance({ keepPageObserver: true });
 
-        const manager = new TimelineManager(adapter);
+        const manager = new TimelineManager(adapter, timelineRouteRows);
         timelineManagerInstance = manager;
 
         try {

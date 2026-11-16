@@ -4,10 +4,15 @@
  * Supports: 
  *   - grok.com/c/xxx (普通对话)
  *   - grok.com/share/xxx (分享页面)
- * Features: Uses element id attribute, KaTeX formula support
+ * Features: Supports current and legacy message markup, KaTeX formula support
  */
 
 class GrokAdapter extends SiteAdapter {
+    static STOP_TEST_ID = 'composer-stop';
+    static STOP_BUTTON_SELECTOR = `button[data-testid="${this.STOP_TEST_ID}"]`;
+    static LEGACY_STOP_PATH = 'M4 9.2v5.6c0 1.116 0 1.673.11 2.134a4 4 0 0 0 2.956 2.956c.46.11 1.018.11 2.134.11h5.6c1.116 0 1.673 0 2.134-.11a4 4 0 0 0 2.956-2.956c.11-.46.11-1.018.11-2.134V9.2c0-1.116 0-1.673-.11-2.134a4 4 0 0 0-2.956-2.955C16.474 4 15.916 4 14.8 4H9.2c-1.116 0-1.673 0-2.134.11a4 4 0 0 0-2.955 2.956C4 7.526 4 8.084 4 9.2Z';
+    static LEGACY_STOP_SELECTOR = `path[d="${this.LEGACY_STOP_PATH}"]`;
+
     constructor() {
         super();
     }
@@ -17,8 +22,7 @@ class GrokAdapter extends SiteAdapter {
     }
 
     getUserMessageSelector() {
-        // 用户消息：有 items-end class 且有 id 属性的元素
-        return '.items-end[id]';
+        return '[data-user-message-row], .items-end[id]:not([data-user-message-row] *)';
     }
 
     generateTurnId(element, index) {
@@ -26,15 +30,18 @@ class GrokAdapter extends SiteAdapter {
         return `grok-${index}`;
     }
 
+    getMessageTextElement(element) {
+        return element.querySelector('[data-bubble-text]') || element.querySelector('p.break-words');
+    }
+
     extractText(element) {
-        // 从 p.break-words 元素中提取文本内容
-        const textElement = element.querySelector('p.break-words');
+        const textElement = this.getMessageTextElement(element);
         const text = (textElement?.textContent || '').trim();
         return text || '[图片或文件]';
     }
     
     getTimeLabelTarget(element) {
-        return element.querySelector('p.break-words') || element;
+        return this.getMessageTextElement(element) || element;
     }
 
     isConversationRoute(pathname) {
@@ -54,24 +61,13 @@ class GrokAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
-        /**
-         * 查找对话容器
-         * 
-         * 使用 LCA（最近共同祖先）算法查找所有对话记录的最近父容器。
-         * 传递 messageSelector 参数，让 ContainerFinder 能够：
-         * 1. 查询所有用户消息元素
-         * 2. 找到它们的最近共同祖先
-         * 3. 确保容器是直接包裹所有对话的最小容器
-         * 
-         * 优势：比传统的向上遍历更精确，避免找到过于外层的容器
-         */
-        
-        // ✅ 隐藏 Grok 自带的时间轴元素，避免与本插件冲突
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         this.hideNativeTimeline();
-        
-        return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+
+        const transcriptScroller = firstMessage?.closest('[data-testid="chat-transcript-scroller"]');
+        return transcriptScroller || ContainerFinder.findConversationContainer(firstMessage, {
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
     
@@ -109,8 +105,8 @@ class GrokAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        // 返回"更多"按钮，收藏按钮将插入到它前面
-        return document.querySelector('button[aria-label="更多"]');
+        return document.querySelector('button[data-testid="conversation-actions-trigger"]')
+            || document.querySelector('button[aria-label="更多"]');
     }
     
     getDefaultChatTheme() {
@@ -121,12 +117,39 @@ class GrokAdapter extends SiteAdapter {
     
     /**
      * 检测 AI 是否正在生成回答
-     * Grok: 当存在停止按钮的 SVG path 时，表示正在生成
+     * 新版使用输入框停止按钮，旧版使用停止图标。
      * @returns {boolean}
      */
     isAIGenerating() {
-        const stopPath = document.querySelector('path[d="M4 9.2v5.6c0 1.116 0 1.673.11 2.134a4 4 0 0 0 2.956 2.956c.46.11 1.018.11 2.134.11h5.6c1.116 0 1.673 0 2.134-.11a4 4 0 0 0 2.956-2.956c.11-.46.11-1.018.11-2.134V9.2c0-1.116 0-1.673-.11-2.134a4 4 0 0 0-2.956-2.955C16.474 4 15.916 4 14.8 4H9.2c-1.116 0-1.673 0-2.134.11a4 4 0 0 0-2.955 2.956C4 7.526 4 8.084 4 9.2Z"]');
-        return !!stopPath;
+        return !!document.querySelector(
+            `form[data-composer] ${GrokAdapter.STOP_BUTTON_SELECTOR}, ${GrokAdapter.LEGACY_STOP_SELECTOR}`
+        );
+    }
+
+    // 同时处理停止按钮被替换、移除和原地更新的情况。
+    observeAIGeneration(onChange) {
+        const selector = `${GrokAdapter.STOP_BUTTON_SELECTOR}, ${GrokAdapter.LEGACY_STOP_SELECTOR}`;
+        const containsStopControl = node => node.nodeType === Node.ELEMENT_NODE
+            && (node.matches(selector) || node.querySelector(selector));
+        const observer = new MutationObserver(mutations => {
+            const changed = mutations.some(mutation => {
+                if (mutation.type === 'childList') {
+                    return [...mutation.addedNodes, ...mutation.removedNodes].some(containsStopControl);
+                }
+                if (mutation.attributeName === 'data-testid') {
+                    return mutation.oldValue === GrokAdapter.STOP_TEST_ID
+                        || mutation.target.matches(GrokAdapter.STOP_BUTTON_SELECTOR);
+                }
+                return mutation.oldValue === GrokAdapter.LEGACY_STOP_PATH
+                    || mutation.target.matches(GrokAdapter.LEGACY_STOP_SELECTOR);
+            });
+            if (changed) onChange();
+        });
+        observer.observe(document.body, {
+            childList: true, subtree: true, attributes: true,
+            attributeFilter: ['data-testid', 'd'], attributeOldValue: true
+        });
+        return () => observer.disconnect();
     }
     
 }

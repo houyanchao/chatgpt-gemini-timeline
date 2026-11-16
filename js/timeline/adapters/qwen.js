@@ -79,11 +79,12 @@ class QwenAdapter extends SiteAdapter {
         return null;
     }
 
-    findConversationContainer(firstMessage) {
-        const container = document.querySelector('#chat-message-container');
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
+        const container = firstMessage?.closest('#chat-message-container');
         if (container) return container;
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 

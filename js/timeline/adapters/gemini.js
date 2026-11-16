@@ -25,6 +25,14 @@ class GeminiAdapter extends SiteAdapter {
         return 'model-response';
     }
 
+    observesTimelineMarkerText() {
+        return true;
+    }
+
+    getTimelineStructureAttributeFilter() {
+        return ['id'];
+    }
+
     static findChatScroller(element) {
         for (let node = element; node && node !== document.body; node = node.parentElement) {
             const { overflowY } = getComputedStyle(node);
@@ -189,10 +197,11 @@ class GeminiAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 

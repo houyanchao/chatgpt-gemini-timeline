@@ -87,10 +87,11 @@ class TongyiAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 

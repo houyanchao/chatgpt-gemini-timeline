@@ -1323,7 +1323,13 @@
     "message": "请等待这条回复生成完成。"
   },
   "messageScreenshotImageFailed": {
-    "message": "部分图片无法读取，请等待图片加载后重试。"
+    "message": "无法读取所选图片，未生成截图。"
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "图片未能读取"
+  },
+  "messageScreenshotPartial": {
+    "message": "已生成截图，$1 张图片未能读取。"
   },
   "messageScreenshotUnsupported": {
     "message": "这条消息包含暂不支持截图的嵌入内容。"

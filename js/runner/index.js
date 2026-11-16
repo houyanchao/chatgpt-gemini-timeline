@@ -88,6 +88,12 @@
     const pendingScanRoots = new Set();
     const CODE_CONTAINER_SELECTOR = 'pre, code, code-block, .md-code-block, [class*="code-area-"], .cnblogs_code, .CodeMirror';
     const RUNNER_UI_SELECTOR = '.runner-code-run-btn, .runner-container, .runner-panel, .floating-runner-container, .runner-mermaid-preview';
+    const GENERIC_LANGUAGE_LABELS = new Set(['auto', 'none', 'plain', 'plaintext', 'text', 'txt', 'unknown']);
+    const LANGUAGE_ALIASES = new Map([
+        ['js', 'javascript'], ['mjs', 'javascript'], ['cjs', 'javascript'],
+        ['ts', 'typescript'], ['mts', 'typescript'], ['cts', 'typescript'],
+        ['htm', 'html'], ['md', 'markdown']
+    ]);
 
     // ===== 工具函数 =====
 
@@ -111,6 +117,34 @@
             return null;
         }
         return window.LanguageDetector.detect(code);
+    }
+
+    // 优先读取代码块的语法标签，避免短代码达不到自动识别阈值。
+    function getExplicitLanguageLabel(codeElement, layoutContainer) {
+        for (const element of new Set([codeElement, codeElement.parentElement, layoutContainer])) {
+            if (!element) continue;
+            for (const attribute of ['data-language', 'data-lang']) {
+                const label = element.getAttribute(attribute)?.trim().toLowerCase();
+                if (label && !GENERIC_LANGUAGE_LABELS.has(label)) return label;
+            }
+            for (const className of element.classList) {
+                const label = /^(?:language|lang|hljs)-([\w+#-]+)$/i.exec(className)?.[1].toLowerCase();
+                if (label && !GENERIC_LANGUAGE_LABELS.has(label)) return label;
+            }
+        }
+        return null;
+    }
+
+    function detectCodeBlockLanguage(codeElement, layoutContainer, code, enabledLanguages) {
+        const label = getExplicitLanguageLabel(codeElement, layoutContainer);
+        if (label) {
+            const language = LANGUAGE_ALIASES.get(label) ?? label;
+            return LANGUAGE_CONFIGS.some(config => config.id === language) ? language : null;
+        }
+        if (enabledLanguages.mermaid && window.MermaidRenderer?.detect(codeElement, layoutContainer)) {
+            return 'mermaid';
+        }
+        return detectLanguage(code);
     }
 
     /**
@@ -186,7 +220,7 @@
                 if (config.useFloatingPanel && window.FloatingRunnerPanel) {
                     const code = getCodeText(codeElement);
                     const floatingPanel = window.FloatingRunnerPanel.getInstance();
-                    floatingPanel.show({ code, language });
+                    await floatingPanel.show({ code, language });
                 } else {
                     handleRunClick(codeElement, layoutContainer, button, language);
                 }
@@ -572,21 +606,9 @@
             return;
         }
 
-        // 获取代码文本
         const code = getCodeText(codeElement);
-
-        // === Mermaid 优先检测（hljs 无法识别 Mermaid DSL） ===
-        let language = null;
-        if (enabledLanguages.mermaid && window.MermaidRenderer) {
-            if (window.MermaidRenderer.detect(codeElement, layoutContainer)) {
-                language = 'mermaid';
-            }
-        }
-
-        // Mermaid 未命中 → hljs 自动识别其他语言
-        if (!language) {
-            language = detectLanguage(code);
-        }
+        if (!code.trim()) return;
+        const language = detectCodeBlockLanguage(codeElement, layoutContainer, code, enabledLanguages);
         
         // 没检测到支持的语言，不标记，下次继续检测
         if (!language) return;

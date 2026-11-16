@@ -29,7 +29,9 @@ class ChatGPTAdapter extends SiteAdapter {
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
         this._timelineTranscript = null;
+        this._previousTimelineTranscript = null;
         this._timelineTranscriptsByScope = new WeakMap();
+        this._timelineRowOwners = new WeakMap();
     }
 
 
@@ -151,6 +153,10 @@ class ChatGPTAdapter extends SiteAdapter {
             this._liveTimelineScopes = new WeakSet();
         }
         const scopeFor = element => this._getTimelineScope(element) || element.parentElement;
+        userElements = userElements.filter(element => {
+            const owner = this._getTimelineScopeOwner(scopeFor(element));
+            return !owner || owner === conversationId;
+        });
         const confirmScope = element => {
             const scope = scopeFor(element);
             if (scope) this._liveTimelineScopes.add(scope);
@@ -211,7 +217,9 @@ class ChatGPTAdapter extends SiteAdapter {
                     if (beforePositions.length && index <= beforePositions[beforePositions.length - 1]) side = 'before';
                     else if (afterPositions.length && index >= afterPositions[0]) side = 'after';
                     else if (complete) side = 'after';
-                } else if (!side && complete) side = 'after';
+                } else if (!side && complete && this._getTimelineScopeOwner(scopeFor(element)) === conversationId) {
+                    side = 'after';
+                }
                 if (!side) return; // 部分历史缺少顺序锚点时不猜测位置。
                 this._timelineEntryRevisions.set(id, revision);
                 observed[side].push(id);
@@ -242,10 +250,17 @@ class ChatGPTAdapter extends SiteAdapter {
         return rect.height > 0 && rect.width > 0 && style.display !== 'none' && style.visibility !== 'hidden';
     }
 
-    _findTimelineTarget(targetId) {
+    isTimelineTargetInScope(element, scope) {
+        if (!scope?.contains(element)) return false;
+        const owner = this._getTimelineScopeOwner(this._getTimelineScope(element));
+        return !owner || owner === this.extractConversationId(location.pathname);
+    }
+
+    _findTimelineTarget(targetId, scope) {
         // 同一提问可能同时有外层空壳和已渲染的内层元素，优先采用可定位的内容。
         let shell = null;
-        for (const element of document.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
+        for (const element of scope.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
+            if (!this.isTimelineTargetInScope(element, scope)) continue;
             const matches = this._extractNodeIdFromDom(element) === targetId
                 || element.getAttribute('data-turn-key') === targetId
                 || (element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/).includes(targetId)
@@ -258,7 +273,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     // 与导出相同：先给虚拟内容启动渲染的时间，再等待 DOM 安静，设置硬超时。
-    _waitForTimelineRender(signal) {
+    _waitForTimelineRender(signal, scope) {
         if (signal.aborted) return Promise.resolve();
         return new Promise(resolve => {
             const startedAt = Date.now();
@@ -274,9 +289,9 @@ class ChatGPTAdapter extends SiteAdapter {
                 quietTimer = setTimeout(finish, Math.max(180, 580 - (Date.now() - startedAt)));
             };
             const observer = new MutationObserver(schedule);
-            observer.observe(document.querySelector('[data-thread-find-target="conversation"]') || document.body, {
+            observer.observe(scope, {
                 childList: true, subtree: true, attributes: true,
-                attributeFilter: ['data-is-intersecting', 'data-turn', 'data-turn-key']
+                attributeFilter: this.getTimelineStructureAttributeFilter()
             });
             signal.addEventListener('abort', finish, { once: true });
             maxTimer = setTimeout(finish, 2000);
@@ -287,6 +302,13 @@ class ChatGPTAdapter extends SiteAdapter {
 
     async resolveTimelineTarget(marker, scrollContainer, signal, onProgress, navigation = {}) {
         const conversationId = this.extractConversationId(location.pathname);
+        const scope = navigation.conversationContainer || this._timelineTranscript?.scope || scrollContainer;
+        const isCurrentScope = () => {
+            const owner = this._getTimelineScopeOwner(scope);
+            return scope.isConnected !== false && (!owner || owner === conversationId)
+                && navigation.isScopeCurrent?.() !== false
+                && this.extractConversationId(location.pathname) === conversationId;
+        };
         const targetId = marker.id.slice('chatgpt-'.length);
         const initialScrollTop = scrollContainer.scrollTop;
         // 多次重挂载仍属于同一次导航，共用总超时，避免不断重新计时。
@@ -296,14 +318,13 @@ class ChatGPTAdapter extends SiteAdapter {
         let foundTarget = null, lastSignature = '', lastProgressAt = Date.now();
         let lowerPosition = null, upperPosition = null, searchSnapshot = '';
         try {
-            while (!signal.aborted && Date.now() < deadline
-                && this.extractConversationId(location.pathname) === conversationId) {
-                const target = this._findTimelineTarget(targetId);
+            while (!signal.aborted && Date.now() < deadline && isCurrentScope()) {
+                const target = this._findTimelineTarget(targetId, scope);
                 if (this.isTimelineTargetReady(target)) {
                     foundTarget = target;
                     return target;
                 }
-                const userElements = [...document.querySelectorAll(this.getUserMessageSelector())];
+                const userElements = this.filterTimelineUserElements([...scope.querySelectorAll(this.getUserMessageSelector())]);
                 const entries = this.getCapturedTimelineEntries(userElements) || userElements.map((element, index) => ({
                     id: this.generateTurnId(element, index), element
                 }));
@@ -333,7 +354,7 @@ class ChatGPTAdapter extends SiteAdapter {
                 }
                 if (!target && (targetIndex < 0 || !loadedIndexes.length)) {
                     // 虚拟列表重排时可能暂时没有可用锚点，等待恢复，不盲目滚动。
-                    await this._waitForTimelineRender(signal);
+                    await this._waitForTimelineRender(signal, scope);
                     continue;
                 }
                 window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
@@ -352,13 +373,15 @@ class ChatGPTAdapter extends SiteAdapter {
                     const direction = targetIndex < currentIndex ? 'top' : 'bottom';
                     const maxScrollTop = Math.max(0, scrollContainer.scrollHeight
                         - (scrollContainer.clientHeight || window.innerHeight));
+                    // 反向滚动容器的底部是 0，顶部为负值。搜索区间统一按视觉方向计算。
+                    const scrollStart = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -maxScrollTop : 0;
                     const snapshot = `${entries.length}:${targetIndex}`;
                     if (snapshot !== searchSnapshot) {
                         lowerPosition = upperPosition = null;
                         searchSnapshot = snapshot;
                     }
                     // 保存比例，避免懒加载图片或历史插入改变总高度后沿用旧像素位置。
-                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, from / maxScrollTop)) : 0;
+                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, (from - scrollStart) / maxScrollTop)) : 0;
                     if (direction === 'top') {
                         if (lowerPosition !== null && position <= lowerPosition) lowerPosition = null;
                         upperPosition = position;
@@ -367,17 +390,17 @@ class ChatGPTAdapter extends SiteAdapter {
                         lowerPosition = position;
                     }
                     if (lowerPosition !== null && upperPosition !== null) {
-                        scrollContainer.scrollTop = (lowerPosition + upperPosition) / 2 * maxScrollTop;
+                        scrollContainer.scrollTop = scrollStart + (lowerPosition + upperPosition) / 2 * maxScrollTop;
                     } else {
-                        scrollContainer.scrollTop = direction === 'top' ? 0 : maxScrollTop;
+                        scrollContainer.scrollTop = scrollStart + (direction === 'top' ? 0 : maxScrollTop);
                     }
                 }
-                await this._waitForTimelineRender(signal);
+                await this._waitForTimelineRender(signal, scope);
             }
             return null;
         } finally {
             // 手动取消或加载失败时回到出发位置；切换目标或离开页面时不抢位置。
-            if (!foundTarget && this.extractConversationId(location.pathname) === conversationId
+            if (!foundTarget && isCurrentScope()
                 && (!signal.aborted || signal.reason === 'cancel-navigation')) scrollContainer.scrollTop = initialScrollTop;
         }
     }
@@ -584,6 +607,7 @@ class ChatGPTAdapter extends SiteAdapter {
             '[data-turn-id-container]',
             '[data-turn]',
             '[data-turn-key]',
+            '[data-chatgpt-conversation-selection-target]',
             '[data-chatgpt-search-unit-key]'
         ];
     }
@@ -591,9 +615,12 @@ class ChatGPTAdapter extends SiteAdapter {
     getTimelineStructureAttributeFilter() {
         return [
             'data-turn-id-container',
+            'data-turn-id',
             'data-is-intersecting',
             'data-turn',
             'data-turn-key',
+            'data-message-id',
+            'data-chatgpt-conversation-selection-target',
             'data-chatgpt-search-unit-key',
             'data-chatgpt-search-message-ids'
         ];
@@ -610,7 +637,7 @@ class ChatGPTAdapter extends SiteAdapter {
     filterTimelineUserElements(elements) {
         const previous = this._timelineTranscript;
         const conversationId = this.extractConversationId(location.pathname);
-        if (!previous || !conversationId || !elements.length) return elements;
+        if (!conversationId || !elements.length) return elements;
 
         const groups = new Map();
         for (const element of elements) {
@@ -620,52 +647,90 @@ class ChatGPTAdapter extends SiteAdapter {
             groups.get(scope).push(element);
         }
 
-        const sameConversation = previous.conversationId === conversationId;
-        const previousRows = groups.get(previous.scope);
-        if (sameConversation && previousRows) return previousRows;
-        const previousScopeVisible = previous.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
+        const sameConversation = previous?.conversationId === conversationId;
+        const outgoing = sameConversation ? this._previousTimelineTranscript : previous;
+        const previousScopeVisible = previous?.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
 
         this.syncCapturedChatsData();
         const capturedIds = this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : null;
         const matchesSnapshot = ids => ids.some(id => capturedIds?.has(id));
+        const declaredScopes = [...groups].filter(([scope]) => this._getTimelineScopeOwner(scope) === conversationId);
+        let bestSnapshot = null;
         let replacement = null;
         let reusedScope = null;
 
-        for (const [scope, rows] of groups) {
-            const known = scope === previous.scope ? previous : this._timelineTranscriptsByScope.get(scope);
+        for (const [scope, rows] of declaredScopes.length ? declaredScopes : groups) {
+            const owner = this._getTimelineScopeOwner(scope);
+            if (owner && owner !== conversationId) continue;
+            const known = scope === previous?.scope ? previous : this._timelineTranscriptsByScope.get(scope);
             const rowIds = rows.map(element => this._getTimelineElementIds(element));
             const hasKnownRows = transcript => rowIds.some((ids, index) =>
-                this._matchesTimelineTranscript(transcript, rows[index], ids));
-            const hasSnapshotMatch = rowIds.some(matchesSnapshot);
-            if (known?.conversationId === conversationId) return rows;
+                transcript && this._matchesTimelineTranscript(transcript, rows[index], ids));
+            const snapshotRows = rows.filter((_, index) => matchesSnapshot(rowIds[index]));
+            const hasSnapshotMatch = snapshotRows.length > 0;
+            const available = rows.filter((element, index) => {
+                const ids = rowIds[index];
+                if (matchesSnapshot(ids)) return true;
+                if (known?.conversationId === conversationId) {
+                    if (known.excludedRows.has(element) || ids.some(id => known.excludedIds.has(id))) return false;
+                    if (this._matchesTimelineTranscript(known, element, ids)) return true;
+                }
+                const rowOwner = this._timelineRowOwners.get(element);
+                if (rowOwner && rowOwner !== conversationId) return false;
+                // ChatGPT 明确标记的新面板可以显示共享历史和快照之外的提问。
+                if (owner === conversationId && scope !== outgoing?.scope) return true;
+                return !outgoing || !this._matchesTimelineTranscript(outgoing, element, ids);
+            });
+
+            if (owner === conversationId || known?.conversationId === conversationId) {
+                if (available.length) return available;
+                continue;
+            }
 
             if (sameConversation && previousScopeVisible && !hasSnapshotMatch && !hasKnownRows(previous)) {
                 continue;
             }
 
+            const old = known || outgoing;
+            // 在旧 URL 上观察到的 DOM 尾部节点可能已属于新会话，只有初次绑定和快照可以给旧会话作证。
+            const exclusiveMatches = rowIds.filter(ids => ids.some(id => capturedIds?.has(id)
+                && !old?.initialTurnIds.has(id) && !old?.snapshotIds.has(id))).length;
             if (known && hasKnownRows(known)) {
                 // Shared history can match the incoming snapshot while the old
                 // pane is still visible. Require proof that its rows changed.
-                const hasNewSnapshotId = rowIds.some(ids => ids.some(id =>
-                    capturedIds?.has(id) && !known.turnIds.has(id) && !known.snapshotIds.has(id)));
-                if (!rowIds.every(matchesSnapshot) || (!hasNewSnapshotId && rows.some(element => known.elements.has(element)))) {
+                if (!exclusiveMatches && (!rowIds.every(matchesSnapshot) || rows.some(element => known.elements.has(element)))) {
                     continue;
                 }
             }
 
+            if (hasSnapshotMatch) {
+                // 单条共享消息不足以让仍含旧会话内容的副本抢占目标容器。
+                if (!exclusiveMatches && outgoing && snapshotRows.length < rows.length && available.length < rows.length) continue;
+                if (!bestSnapshot || exclusiveMatches > bestSnapshot.exclusiveMatches
+                    || (exclusiveMatches === bestSnapshot.exclusiveMatches && snapshotRows.length > bestSnapshot.matchCount)) {
+                    bestSnapshot = {
+                        exclusiveMatches,
+                        matchCount: snapshotRows.length,
+                        rows: !previous && groups.size === 1 ? available : snapshotRows
+                    };
+                } else if (outgoing && !exclusiveMatches && !bestSnapshot.exclusiveMatches
+                    && snapshotRows.length === bestSnapshot.matchCount) {
+                    // 两个面板都只匹配到共享历史，继续等待能区分会话的证据。
+                    bestSnapshot.ambiguous = true;
+                }
+                continue;
+            }
             if (!known) {
-                // A second copy of outgoing history does not prove that a
-                // different conversation is ready while the original pane is present.
-                if (!sameConversation && previousRows && !hasSnapshotMatch && hasKnownRows(previous)) continue;
-                if (hasSnapshotMatch) return rows;
-                replacement ||= rows;
-            } else if (hasSnapshotMatch || rows.some(element => element.childElementCount > 0)) {
+                // 旧面板即使已卸载，其副本也不能在新会话确认前用于初始化。
+                if (!sameConversation && hasKnownRows(previous)) continue;
+                if (available.length) replacement ||= available;
+            } else if (rows.some(element => element.childElementCount > 0)) {
                 // An empty virtualized turn can lack all of its known aliases.
-                reusedScope ||= rows;
+                if (available.length) reusedScope ||= available;
             }
         }
 
-        return replacement || reusedScope || [];
+        return bestSnapshot?.ambiguous ? [] : (bestSnapshot?.rows || replacement || reusedScope || []);
     }
 
     rememberTimelineTranscript(elements) {
@@ -673,6 +738,9 @@ class ChatGPTAdapter extends SiteAdapter {
         if (!conversationId || !elements.length) return;
         const scope = this._getTimelineScope(elements[0]);
         const known = scope ? this._timelineTranscriptsByScope.get(scope) : this._timelineTranscript;
+        if (this._timelineTranscript && this._timelineTranscript.conversationId !== conversationId) {
+            this._previousTimelineTranscript = this._timelineTranscript;
+        }
         if (known?.conversationId === conversationId && known.scope === scope) {
             if (this._capturedTimelineConvId === conversationId) {
                 for (const id of this._capturedTimelineIds) known.snapshotIds.add(id);
@@ -683,12 +751,20 @@ class ChatGPTAdapter extends SiteAdapter {
 
         // Commit only on manager initialization. Rebuilds can see the next
         // transcript before the host commits its URL.
+        const initialTurnIds = new Set(elements.flatMap(element => this._getTimelineElementIds(element)));
+        const accepted = new Set(elements);
+        for (const element of accepted) this._timelineRowOwners.set(element, conversationId);
+        const excluded = Array.from(scope?.querySelectorAll?.(this.getUserMessageSelector()) || [])
+            .filter(element => !accepted.has(element));
         const transcript = {
             conversationId,
             scope,
-            turnIds: new Set(elements.flatMap(element => this._getTimelineElementIds(element))),
+            initialTurnIds,
+            turnIds: new Set(initialTurnIds),
             elements: new WeakSet(elements),
-            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : [])
+            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : []),
+            excludedRows: new WeakSet(excluded),
+            excludedIds: new Set(excluded.flatMap(element => this._getTimelineElementIds(element)).filter(id => !initialTurnIds.has(id)))
         };
         this._timelineTranscript = transcript;
         if (scope) this._timelineTranscriptsByScope.set(scope, transcript);
@@ -728,7 +804,15 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     _getTimelineScope(element) {
-        return element.closest('[data-thread-find-target="conversation"]') || element.closest('main');
+        return element.closest('[data-thread-find-target="conversation"], [data-chatgpt-conversation-selection-target]')
+            || element.closest('main');
+    }
+
+    _getTimelineScopeOwner(scope) {
+        // 分享地址使用独立的分享 ID，页面内部仍可能保留原会话 ID。
+        if (location.pathname.includes('/share/')) return null;
+        return scope?.closest?.('[data-chatgpt-conversation-selection-target]')
+            ?.getAttribute('data-chatgpt-conversation-selection-target') || null;
     }
 
     _getTimelineElementIds(element) {
@@ -943,7 +1027,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     findConversationContainer(firstMessage, context = {}) {
-        const transcript = firstMessage?.closest('[data-thread-find-target="conversation"]');
+        const transcript = firstMessage?.closest('[data-thread-find-target="conversation"], [data-chatgpt-conversation-selection-target]');
         if (transcript) return transcript;
         /**
          * 查找对话容器

@@ -1143,7 +1143,13 @@
     "message": "Tunggu hingga jawaban ini selesai."
   },
   "messageScreenshotImageFailed": {
-    "message": "Gambar tidak dapat dimuat. Coba lagi setelah dimuat."
+    "message": "Gambar yang dipilih tidak dapat dibaca. Tangkapan layar tidak dibuat."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Gambar tidak tersedia"
+  },
+  "messageScreenshotPartial": {
+    "message": "Tangkapan layar berhasil dibuat. Beberapa gambar tidak dapat dibaca ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Pesan ini berisi konten tersemat yang tidak dapat ditangkap."

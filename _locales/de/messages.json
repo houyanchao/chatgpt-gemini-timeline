@@ -1245,7 +1245,13 @@
     "message": "Bitte warten, bis diese Antwort fertig ist."
   },
   "messageScreenshotImageFailed": {
-    "message": "Ein Bild konnte nicht geladen werden. Nach dem Laden erneut versuchen."
+    "message": "Die ausgewählten Bilder konnten nicht gelesen werden. Es wurde kein Screenshot erstellt."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Bild nicht verfügbar"
+  },
+  "messageScreenshotPartial": {
+    "message": "Screenshot erstellt. Einige Bilder konnten nicht gelesen werden ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Diese Nachricht enthält eingebettete Inhalte, die nicht aufgenommen werden können."

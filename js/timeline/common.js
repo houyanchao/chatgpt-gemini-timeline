@@ -485,13 +485,26 @@ const StarStorageManager = {
  */
 const PinStorageManager = {
     STORAGE_KEY: 'chatTimelinePins',
+    pendingToggle: Promise.resolve(),
+
+    // 同一 ChatGPT 会话可从普通链接和 GPT 专属链接打开，链接参数不参与匹配。
+    getConversationKey(urlWithoutProtocol) {
+        const chat = /^(?:chatgpt\.com|chat\.openai\.com)(?:\/g\/[\w-]+)?\/c\/([\w-]+)\/?(?:[?#]|$)/i.exec(urlWithoutProtocol);
+        if (chat) return `chatgpt.com/c/${chat[1]}`;
+        const share = /^(?:chatgpt\.com|chat\.openai\.com)\/share\/(?:e\/)?([\w-]+)\/?(?:[?#]|$)/i.exec(urlWithoutProtocol);
+        return share ? `chatgpt.com/share/${share[1]}` : urlWithoutProtocol;
+    },
+
+    getNodeKey(item) {
+        return item.nodeId ?? item.index;
+    },
 
     /**
      * 获取所有 Pin
      * @returns {Promise<Array>}
      */
     async getAll() {
-        const data = await StorageAdapter.get(this.STORAGE_KEY);
+        const { [this.STORAGE_KEY]: data } = await chrome.storage.local.get(this.STORAGE_KEY);
         return Array.isArray(data) ? data : [];
     },
 
@@ -502,55 +515,22 @@ const PinStorageManager = {
      */
     async getByUrl(urlWithoutProtocol) {
         const items = await this.getAll();
-        return items.filter(item => item.urlWithoutProtocol === urlWithoutProtocol);
+        const conversationKey = this.getConversationKey(urlWithoutProtocol);
+        return items.filter(item => this.getConversationKey(item.urlWithoutProtocol) === conversationKey);
     },
 
-    /**
-     * 添加或更新 Pin
-     * @param {Object} item - Pin 项（必须包含 key 字段）
-     */
-    async add(item) {
-        if (!item || !item.key) return;
-        const items = await this.getAll();
-        const existingIndex = items.findIndex(i => i.key === item.key);
-        if (existingIndex >= 0) {
-            items[existingIndex] = item;
-        } else {
-            items.push(item);
-        }
-        await StorageAdapter.set(this.STORAGE_KEY, items);
-    },
-
-    /**
-     * 移除 Pin
-     * @param {string} key - Pin 项的 key
-     */
-    async remove(key) {
-        if (!key) return;
-        const items = await this.getAll();
-        const filtered = items.filter(item => item.key !== key);
-        await StorageAdapter.set(this.STORAGE_KEY, filtered);
-    },
-
-    /**
-     * 根据 key 查找 Pin 项
-     * @param {string} key - Pin 项的 key
-     * @returns {Promise<Object|undefined>}
-     */
-    async findByKey(key) {
-        if (!key) return undefined;
-        const items = await this.getAll();
-        return items.find(item => item.key === key);
-    },
-
-    /**
-     * 检查是否存在
-     * @param {string} key - Pin 项的 key
-     * @returns {Promise<boolean>}
-     */
-    async exists(key) {
-        const item = await this.findByKey(key);
-        return !!item;
+    toggle(item, matchesRecord) {
+        const update = this.pendingToggle.then(async () => {
+            const items = await this.getAll();
+            const conversationKey = this.getConversationKey(item.urlWithoutProtocol);
+            const isCurrentConversation = entry => this.getConversationKey(entry.urlWithoutProtocol) === conversationKey;
+            const remaining = items.filter(entry => !isCurrentConversation(entry) || !matchesRecord(entry));
+            if (remaining.length === items.length) remaining.push(item);
+            await chrome.storage.local.set({ [this.STORAGE_KEY]: remaining });
+            return remaining.filter(isCurrentConversation);
+        });
+        this.pendingToggle = update.catch(() => {});
+        return update;
     }
 };
 

@@ -1143,7 +1143,13 @@
     "message": "Poczekaj na zakończenie tej odpowiedzi."
   },
   "messageScreenshotImageFailed": {
-    "message": "Nie można wczytać obrazu. Spróbuj po jego wczytaniu."
+    "message": "Nie udało się odczytać wybranych obrazów. Zrzut ekranu nie powstał."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Obraz niedostępny"
+  },
+  "messageScreenshotPartial": {
+    "message": "Zrzut ekranu utworzony. Nie udało się odczytać niektórych obrazów ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Wiadomość zawiera osadzoną treść, której nie można przechwycić."

@@ -1194,7 +1194,13 @@
     "message": "この回答の生成完了をお待ちください。"
   },
   "messageScreenshotImageFailed": {
-    "message": "画像を読み込めません。読み込み後に再試行してください。"
+    "message": "選択した画像を読み取れなかったため、スクリーンショットを作成できませんでした。"
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "画像を読み取れません"
+  },
+  "messageScreenshotPartial": {
+    "message": "スクリーンショットを作成しました。$1 枚の画像を読み取れませんでした。"
   },
   "messageScreenshotUnsupported": {
     "message": "撮影に対応していない埋め込みコンテンツが含まれています。"

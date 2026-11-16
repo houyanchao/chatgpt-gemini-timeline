@@ -20,14 +20,19 @@ class MessageScreenshotCaptureService {
             // Message clones already retain their own backgrounds; do not paint a shared backdrop.
             backgroundColor: 'transparent', colorScheme: snapshots.at(-1).colorScheme || 'normal'
         });
-        for (const snapshot of snapshots) host.appendChild(snapshot.content);
+        // Embedding changes image sources and can add placeholders. Keep cached
+        // snapshots available with their original sources for the next attempt.
+        for (const snapshot of snapshots) host.appendChild(snapshot.content.cloneNode(true));
         mount.appendChild(host);
         document.body.appendChild(mount);
         try {
             mountReady?.({ messages: snapshots.length });
             const imagesReady = timing?.start('inline images');
-            await utils.inlineImages(host, signal);
-            imagesReady?.();
+            const { unavailableImageCount, usableImageCount } = await utils.inlineImages(host, signal);
+            imagesReady?.({ unavailableImageCount });
+            if (unavailableImageCount && !usableImageCount && !this.hasOtherContent(snapshots)) {
+                throw new Error('ImageFailed');
+            }
             const fontsReady = timing?.start('wait for document fonts');
             await utils.wait(document.fonts.ready, signal);
             fontsReady?.();
@@ -72,7 +77,21 @@ class MessageScreenshotCaptureService {
                     pngReady?.({ slice: blobs.length, width: width * pixelRatio, height: sliceHeight * pixelRatio, bytes: blob.size });
                 } finally { viewport.remove(); }
             }
-            return blobs;
+            return { blobs, unavailableImageCount };
         } finally { mount.remove(); }
+    }
+
+    hasOtherContent(snapshots) {
+        // Inspect the original snapshots so placeholder text does not count as content.
+        const svgDefinitions = 'svg :is(defs, title, desc, clipPath, mask, marker, pattern, symbol)';
+        const svgGraphics = `svg :is(path, line, polyline, polygon, rect, circle, ellipse, use):not(${svgDefinitions} *)`;
+        return snapshots.some(({ content }) => {
+            if (content.querySelector(svgGraphics)) return true;
+            const textNodes = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+            for (let node = textNodes.nextNode(); node; node = textNodes.nextNode()) {
+                if (node.data.trim() && !node.parentElement?.closest(svgDefinitions)) return true;
+            }
+            return false;
+        });
     }
 }

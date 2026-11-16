@@ -2611,6 +2611,7 @@ if (typeof window !== 'undefined') {
             this.container = null;
             this.panel = null;  // RunnerPanel 实例
             this.isVisible = false;
+            this._autoRunTimer = null;
 
             // 位置和大小
             this.position = { x: null, y: null };
@@ -2626,7 +2627,7 @@ if (typeof window !== 'undefined') {
             this.language = 'javascript';
 
             // 加载保存的状态
-            this.loadState();
+            this._stateReady = this.loadState();
         }
 
         /**
@@ -2821,7 +2822,11 @@ if (typeof window !== 'undefined') {
         }
 
         // ===== 显示/隐藏 =====
-        show(options = {}) {
+        async show(options = {}) {
+            // 先恢复上次状态，再应用当前代码块的语言。
+            await this._stateReady;
+            if (window.AITContentSession?.active === false) return;
+
             if (!this.container) {
                 this.createContainer();
             }
@@ -2845,15 +2850,19 @@ if (typeof window !== 'undefined') {
             this.applyState();
 
             if (this.panel) {
-                setTimeout(() => {
+                clearTimeout(this._autoRunTimer);
+                this._autoRunTimer = setTimeout(() => {
+                    this._autoRunTimer = null;
+                    if (!this.isVisible || window.AITContentSession?.active === false) return;
                     this.panel.refresh();
-                    // 自动执行代码
                     this.panel.run();
                 }, 50);
             }
         }
 
         hide() {
+            clearTimeout(this._autoRunTimer);
+            this._autoRunTimer = null;
             if (this.container) {
                 this.container.classList.remove('visible');
             }
@@ -2893,11 +2902,7 @@ if (typeof window !== 'undefined') {
                     if (state.size) this.size = state.size;
                     if (state.language) {
                         this.language = state.language;
-                        if (this.panel) {
-                            this.panel.setLanguage(this.language);
-                        }
                     }
-                    this.applyState();
                 }
             } catch (e) {
                 // ignore

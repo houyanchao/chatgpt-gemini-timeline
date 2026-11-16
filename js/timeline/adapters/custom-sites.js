@@ -28,7 +28,8 @@
  *   the protocol, trailing slash, query, and hash. A match also allows the route
  *   when a URL pattern or path rule is configured.
  * - conversationUrlPattern: regex matched against the full URL and URL without
- *   protocol.
+ *   protocol. The optional named conversationId group identifies the chat
+ *   across changes to unrelated query parameters or fragments.
  * - conversationScopeSelectors: optional ancestor selectors for the current
  *   chat pane. Use `exactUrl` for an exact URL match, or `urlPattern` with
  *   `{conversationId}` filled by the URL pattern's named `conversationId` group.
@@ -52,7 +53,7 @@
 globalThis.CUSTOM_SITE_INFO = [
     {
         sites: ['copilot.microsoft.com'],
-        conversationUrlPattern: '^copilot\\.microsoft\\.com/chats/[A-Za-z0-9_-]+(?:[/?#].*)?$',
+        conversationUrlPattern: '^copilot\\.microsoft\\.com/chats/(?<conversationId>[A-Za-z0-9_-]+)(?:[/?#].*)?$',
         userMessageSelector: '[role="article"][id$="-user-message"]:has([data-content="user-message"])',
         textSelector: '[data-content="user-message"]',
         timelineBarBackground: {
@@ -67,7 +68,7 @@ globalThis.CUSTOM_SITE_INFO = [
     },
     {
         sites: ['aistudio.xiaomimimo.com'],
-        conversationUrlPattern: '^aistudio\\.xiaomimimo\\.com/(?:[^#]*)?#/chat/[A-Za-z0-9_-]+(?:[/?].*)?$',
+        conversationUrlPattern: '^aistudio\\.xiaomimimo\\.com/(?:[^#]*)?#/chat/(?<conversationId>[A-Za-z0-9_-]+)(?:[/?].*)?$',
         userMessageSelector: '#message-list .relative.flex.w-full.mx-auto:has(> .group.flex-row-reverse)',
         textSelector: '.bg-mimo-bg-message',
         conversationContainerSelector: '#message-list',
@@ -80,7 +81,7 @@ globalThis.CUSTOM_SITE_INFO = [
     {
         name: 'Poe',
         sites: ['poe.com'],
-        conversationUrlPattern: '^poe\\.com/chat/[A-Za-z0-9_-]+/?(?:[?#].*)?$',
+        conversationUrlPattern: '^poe\\.com/chat/(?<conversationId>[A-Za-z0-9_-]+)/?(?:[?#].*)?$',
         userMessageSelector: '[class*="ChatMessagesView_infiniteScroll__"] [id^="message-"][class*="ChatMessage_chatMessage__"]:has([class*="ChatMessage_rightSideMessageWrapper__"])',
         textSelector: '[class*="Message_selectableText__"]',
         conversationContainerSelector: '[class*="ChatMessagesView_infiniteScroll__"]',
@@ -101,7 +102,7 @@ globalThis.CUSTOM_SITE_INFO = [
     {
         name: 'Arena',
         sites: ['arena.ai'],
-        conversationUrlPattern: '^arena\\.ai/agent/[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/?(?:[?#].*)?$',
+        conversationUrlPattern: '^arena\\.ai/agent/(?<conversationId>[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})/?(?:[?#].*)?$',
         userMessageSelector: '[data-perf-target="transcript"] [role="log"] [data-agent-transcript-message][data-chat-message-id]:has(> [data-user-message-layout])',
         textSelector: '[data-user-message-body-row] .prose',
         conversationContainerSelector: '[data-perf-target="transcript"] [role="log"]',
@@ -137,7 +138,7 @@ globalThis.CUSTOM_SITE_INFO = [
         // 每轮对话是 #main-content 下 <ul> 的一个 <li id="{turnId}">，用户提问在 h2 > button[aria-expanded] > span
         // 页面整体滚动（无内部滚动容器），时间轴自动回退到 document 滚动
         sites: ['consensus.app'],
-        conversationUrlPattern: '^(?:www\\.)?consensus\\.app/search/[^/?#]+/[A-Za-z0-9_-]+/?(?:[?#].*)?$',
+        conversationUrlPattern: '^(?:www\\.)?consensus\\.app/search/[^/?#]+/(?<conversationId>[A-Za-z0-9_-]+)/?(?:[?#].*)?$',
         userMessageSelector: '#main-content ul > li[id]:has(h2 button[aria-expanded])',
         textSelector: 'h2 button[aria-expanded] span',
         conversationContainerSelector: '#main-content ul',
@@ -154,7 +155,7 @@ globalThis.CUSTOM_SITE_INFO = [
         // 提问在其内 .conversation-flow-question-container > .cs-question-bubble > .cs-question-pure-text；
         // 追问建议用的是 cs-question-closely-* 类名，不会与提问选择器撞车
         sites: ['wenxin.baidu.com'],
-        conversationUrlPattern: '^wenxin\\.baidu\\.com/search/\\d+(?:[/?#].*)?$',
+        conversationUrlPattern: '^wenxin\\.baidu\\.com/search/(?<conversationId>\\d+)(?:[/?#].*)?$',
         userMessageSelector: '#conversation-flow-content .chat-qa-container:has(.conversation-flow-question-container .cs-question-pure-text)',
         textSelector: '.cs-question-pure-text',
         conversationContainerSelector: '#conversation-flow-content',
@@ -167,7 +168,7 @@ globalThis.CUSTOM_SITE_INFO = [
     },
     {
         sites: ['chatglm.cn'],
-        conversationUrlPattern: '^chatglm\\.cn/main/.*[?&]cid=[A-Za-z0-9]+',
+        conversationUrlPattern: '^chatglm\\.cn/main/.*[?&]cid=(?<conversationId>[A-Za-z0-9]+)',
         userMessageSelector: '.conversation.question',
         textSelector: '.question-txt span',
         conversationContainerSelector: '.conversation-list',
@@ -179,7 +180,7 @@ globalThis.CUSTOM_SITE_INFO = [
     },
     {
         sites: ['www.meta.ai'],
-        conversationUrlPattern: '^www\\.meta\\.ai/prompt/[0-9a-f-]+(?:[/?#].*)?$',
+        conversationUrlPattern: '^www\\.meta\\.ai/prompt/(?<conversationId>[0-9a-f-]+)(?:[/?#].*)?$',
         userMessageSelector: '[data-message-type="user"]',
         textSelector: '[data-slot="text"]',
         conversationContainerSelector: 'div.box-border[style*="--composer-overlap"]',
@@ -191,7 +192,7 @@ globalThis.CUSTOM_SITE_INFO = [
     },
     {
         sites: ['venice.ai'],
-        conversationUrlPattern: '^venice\\.ai/chat/classic/[A-Za-z0-9_-]+(?:[/?#].*)?$',
+        conversationUrlPattern: '^venice\\.ai/chat/classic/(?<conversationId>[A-Za-z0-9_-]+)(?:[/?#].*)?$',
         userMessageSelector: '[data-message-id]:has([data-testid="user-message"])',
         textSelector: '[data-testid="user-message"]',
         turnIdAttribute: 'data-message-id',
@@ -223,7 +224,7 @@ globalThis.CUSTOM_SITE_INFO = [
     },
     {
         sites: ['chat.z.ai'],
-        conversationUrlPattern: '^chat\\.z\\.ai/c/[0-9a-f-]+(?:[/?#].*)?$',
+        conversationUrlPattern: '^chat\\.z\\.ai/c/(?<conversationId>[0-9a-f-]+)(?:[/?#].*)?$',
         userMessageSelector: '.user-message',
         textSelector: '.flex.justify-end .overflow-hidden.rounded-xl, .whitespace-pre-wrap .rounded-xl, .rounded-xl.p-3',
         conversationContainerSelector: '#messages-container',

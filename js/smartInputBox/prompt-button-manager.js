@@ -217,7 +217,11 @@ class PromptButtonManager {
 
         const platform = this._currentPlatform;
         if (window.inputBoxAnimationManager && platform?.features?.inputAnimation === true) {
-            window.inputBoxAnimationManager.init();
+            // Grok 首条回复可能早于时间轴初始化，宠物需要提前观察输出状态。
+            const generationAdapter = platform.id === 'grok'
+                ? window.siteAdapterRegistry?.getAllAdapters().find(adapter => adapter.platformId === platform.id)
+                : null;
+            window.inputBoxAnimationManager.init(generationAdapter);
         }
     }
     

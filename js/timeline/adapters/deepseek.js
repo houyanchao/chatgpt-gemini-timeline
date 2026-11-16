@@ -55,6 +55,19 @@ class DeepSeekAdapter extends SiteAdapter {
         return '.ds-message:has(.ds-assistant-message-main-content)';
     }
 
+    observesTimelineMarkerText() {
+        return true;
+    }
+
+    getTimelineStructureAttributeFilter() {
+        return ['data-message-id', 'data-virtual-list-item-key'];
+    }
+
+    getTimelineDomRowId(element) {
+        return element.closest('[data-message-id]')?.getAttribute('data-message-id')
+            || element.closest('[data-virtual-list-item-key]')?.getAttribute('data-virtual-list-item-key');
+    }
+
     getConflictingTimelineSelectors() {
         return ['[style*="--scroll-nav-page-padding"]'];
     }
@@ -66,7 +79,10 @@ class DeepSeekAdapter extends SiteAdapter {
     extractText(element) {
         // 从第一个子 div 提取文本
         const firstDiv = element.querySelector('div');
-        const text = (firstDiv?.textContent || '').trim();
+        const label = firstDiv?.querySelector?.('.ait-chat-time-label');
+        const text = (label?.matches?.('.ait-chat-time-label')
+            ? Array.from(firstDiv.childNodes).filter(node => node !== label).map(node => node.textContent).join('')
+            : firstDiv?.textContent || '').trim();
         return text || '[图片或文件]';
     }
     
@@ -94,13 +110,14 @@ class DeepSeekAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         /**
          * 查找对话容器
          * 使用 LCA（最近共同祖先）算法查找所有对话记录的最近父容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 

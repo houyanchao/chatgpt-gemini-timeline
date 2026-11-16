@@ -3700,7 +3700,7 @@ if (!window.changelogModal) {
      * 顶栏收藏/导出按钮只显示图标、不显示文字的平台。
      * 这些平台原生顶栏本身就是纯图标按钮，加文字会显得突兀。
      */
-    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek']);
+    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek', 'grok']);
 
     /**
      * 顶栏按钮是否显示文字标签
@@ -8564,6 +8564,12 @@ className:"link",begin:/:\s*/,end:/$/,excludeBegin:!0}]}]}}})()
     const pendingScanRoots = new Set();
     const CODE_CONTAINER_SELECTOR = 'pre, code, code-block, .md-code-block, [class*="code-area-"], .cnblogs_code, .CodeMirror';
     const RUNNER_UI_SELECTOR = '.runner-code-run-btn, .runner-container, .runner-panel, .floating-runner-container, .runner-mermaid-preview';
+    const GENERIC_LANGUAGE_LABELS = new Set(['auto', 'none', 'plain', 'plaintext', 'text', 'txt', 'unknown']);
+    const LANGUAGE_ALIASES = new Map([
+        ['js', 'javascript'], ['mjs', 'javascript'], ['cjs', 'javascript'],
+        ['ts', 'typescript'], ['mts', 'typescript'], ['cts', 'typescript'],
+        ['htm', 'html'], ['md', 'markdown']
+    ]);
 
     // ===== 工具函数 =====
 
@@ -8587,6 +8593,34 @@ className:"link",begin:/:\s*/,end:/$/,excludeBegin:!0}]}]}}})()
             return null;
         }
         return window.LanguageDetector.detect(code);
+    }
+
+    // 优先读取代码块的语法标签，避免短代码达不到自动识别阈值。
+    function getExplicitLanguageLabel(codeElement, layoutContainer) {
+        for (const element of new Set([codeElement, codeElement.parentElement, layoutContainer])) {
+            if (!element) continue;
+            for (const attribute of ['data-language', 'data-lang']) {
+                const label = element.getAttribute(attribute)?.trim().toLowerCase();
+                if (label && !GENERIC_LANGUAGE_LABELS.has(label)) return label;
+            }
+            for (const className of element.classList) {
+                const label = /^(?:language|lang|hljs)-([\w+#-]+)$/i.exec(className)?.[1].toLowerCase();
+                if (label && !GENERIC_LANGUAGE_LABELS.has(label)) return label;
+            }
+        }
+        return null;
+    }
+
+    function detectCodeBlockLanguage(codeElement, layoutContainer, code, enabledLanguages) {
+        const label = getExplicitLanguageLabel(codeElement, layoutContainer);
+        if (label) {
+            const language = LANGUAGE_ALIASES.get(label) ?? label;
+            return LANGUAGE_CONFIGS.some(config => config.id === language) ? language : null;
+        }
+        if (enabledLanguages.mermaid && window.MermaidRenderer?.detect(codeElement, layoutContainer)) {
+            return 'mermaid';
+        }
+        return detectLanguage(code);
     }
 
     /**
@@ -8662,7 +8696,7 @@ className:"link",begin:/:\s*/,end:/$/,excludeBegin:!0}]}]}}})()
                 if (config.useFloatingPanel && window.FloatingRunnerPanel) {
                     const code = getCodeText(codeElement);
                     const floatingPanel = window.FloatingRunnerPanel.getInstance();
-                    floatingPanel.show({ code, language });
+                    await floatingPanel.show({ code, language });
                 } else {
                     handleRunClick(codeElement, layoutContainer, button, language);
                 }
@@ -9048,21 +9082,9 @@ className:"link",begin:/:\s*/,end:/$/,excludeBegin:!0}]}]}}})()
             return;
         }
 
-        // 获取代码文本
         const code = getCodeText(codeElement);
-
-        // === Mermaid 优先检测（hljs 无法识别 Mermaid DSL） ===
-        let language = null;
-        if (enabledLanguages.mermaid && window.MermaidRenderer) {
-            if (window.MermaidRenderer.detect(codeElement, layoutContainer)) {
-                language = 'mermaid';
-            }
-        }
-
-        // Mermaid 未命中 → hljs 自动识别其他语言
-        if (!language) {
-            language = detectLanguage(code);
-        }
+        if (!code.trim()) return;
+        const language = detectCodeBlockLanguage(codeElement, layoutContainer, code, enabledLanguages);
         
         // 没检测到支持的语言，不标记，下次继续检测
         if (!language) return;
@@ -9796,7 +9818,7 @@ class InputBoxAnimationManager {
         return this._petData[id] || { count: 1, messages: 0 };
     }
 
-    async init() {
+    async init(generationAdapter) {
         await TimelineI18n.ready();
 
         this._petData = await StorageAdapter.get(this._petDataKey) || {};
@@ -9808,7 +9830,9 @@ class InputBoxAnimationManager {
         }
         this._startStorageListener();
         this._startAIStateListener();
-        this.pauseActive();
+        if (generationAdapter) {
+            this._unwatchGeneration = window.AIStateMonitor?.getInstance().watch(generationAdapter);
+        }
     }
 
     async toggle(id) {
@@ -9954,6 +9978,8 @@ class InputBoxAnimationManager {
             window.removeEventListener('ai:stateChange', this._aiStateHandler);
             this._aiStateHandler = null;
         }
+        this._unwatchGeneration?.();
+        this._unwatchGeneration = null;
     }
 
     _activate(id) {
@@ -10602,28 +10628,33 @@ class GrokSmartEnterAdapter extends BaseSmartEnterAdapter {
         return matchesSmartInputPlatform('grok');
     }
     
-    /**
-     * 获取输入框选择器
-     * Grok 使用 class="ProseMirror" 且 contenteditable="true" 的 div
-     */
+    /** Grok 的对话编辑器使用 ProseMirror，首页也可能使用 textarea。 */
     getInputSelector() {
-        return '.ProseMirror[contenteditable="true"]';
+        return '.ProseMirror[contenteditable="true"], form[data-composer] [data-composer-field] textarea';
+    }
+
+    getSendButtonSelector() {
+        return 'form[data-composer] button[data-composer-action="send"]';
     }
  
-    /**
-     * 获取定位参考元素
-     * 使用 .query-bar 祖先元素作为定位参考
-     * @param {HTMLElement} inputElement - 输入框元素
-     */
+    /** 使用输入框的外框定位提示词按钮和动画。 */
     getPositionReferenceElement(inputElement) {
-        return inputElement?.closest('.query-bar') || inputElement;
+        return inputElement?.closest('form[data-composer]')
+            || inputElement?.closest('.query-bar')
+            || inputElement;
     }
     
-    /**
-     * 获取提示词按钮位置偏移量
-     */
-    getPromptButtonOffset() {
-        return { top: 12, left: -2 };
+    getPromptButtonOffset(inputElement) {
+        const composer = inputElement?.closest('form[data-composer]');
+        if (!composer) return { top: 12, left: -2 };
+
+        const composerRect = composer.getBoundingClientRect();
+        const attachRect = composer.querySelector('[data-testid="attach-button"]')?.getBoundingClientRect();
+        const center = attachRect?.height
+            ? attachRect.top - composerRect.top + attachRect.height / 2
+            : composerRect.height / 2;
+        const buttonHeight = 32; // 与 .smart-input-prompt-btn 的高度一致
+        return { top: Math.max(0, center - buttonHeight / 2), left: 0 };
     }
 }
 
@@ -11740,7 +11771,11 @@ class PromptButtonManager {
 
         const platform = this._currentPlatform;
         if (window.inputBoxAnimationManager && platform?.features?.inputAnimation === true) {
-            window.inputBoxAnimationManager.init();
+            // Grok 首条回复可能早于时间轴初始化，宠物需要提前观察输出状态。
+            const generationAdapter = platform.id === 'grok'
+                ? window.siteAdapterRegistry?.getAllAdapters().find(adapter => adapter.platformId === platform.id)
+                : null;
+            window.inputBoxAnimationManager.init(generationAdapter);
         }
     }
     
@@ -15924,7 +15959,9 @@ class ChatGPTAdapter extends SiteAdapter {
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
         this._timelineTranscript = null;
+        this._previousTimelineTranscript = null;
         this._timelineTranscriptsByScope = new WeakMap();
+        this._timelineRowOwners = new WeakMap();
     }
 
 
@@ -16046,6 +16083,10 @@ class ChatGPTAdapter extends SiteAdapter {
             this._liveTimelineScopes = new WeakSet();
         }
         const scopeFor = element => this._getTimelineScope(element) || element.parentElement;
+        userElements = userElements.filter(element => {
+            const owner = this._getTimelineScopeOwner(scopeFor(element));
+            return !owner || owner === conversationId;
+        });
         const confirmScope = element => {
             const scope = scopeFor(element);
             if (scope) this._liveTimelineScopes.add(scope);
@@ -16106,7 +16147,9 @@ class ChatGPTAdapter extends SiteAdapter {
                     if (beforePositions.length && index <= beforePositions[beforePositions.length - 1]) side = 'before';
                     else if (afterPositions.length && index >= afterPositions[0]) side = 'after';
                     else if (complete) side = 'after';
-                } else if (!side && complete) side = 'after';
+                } else if (!side && complete && this._getTimelineScopeOwner(scopeFor(element)) === conversationId) {
+                    side = 'after';
+                }
                 if (!side) return; // 部分历史缺少顺序锚点时不猜测位置。
                 this._timelineEntryRevisions.set(id, revision);
                 observed[side].push(id);
@@ -16137,10 +16180,17 @@ class ChatGPTAdapter extends SiteAdapter {
         return rect.height > 0 && rect.width > 0 && style.display !== 'none' && style.visibility !== 'hidden';
     }
 
-    _findTimelineTarget(targetId) {
+    isTimelineTargetInScope(element, scope) {
+        if (!scope?.contains(element)) return false;
+        const owner = this._getTimelineScopeOwner(this._getTimelineScope(element));
+        return !owner || owner === this.extractConversationId(location.pathname);
+    }
+
+    _findTimelineTarget(targetId, scope) {
         // 同一提问可能同时有外层空壳和已渲染的内层元素，优先采用可定位的内容。
         let shell = null;
-        for (const element of document.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
+        for (const element of scope.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
+            if (!this.isTimelineTargetInScope(element, scope)) continue;
             const matches = this._extractNodeIdFromDom(element) === targetId
                 || element.getAttribute('data-turn-key') === targetId
                 || (element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/).includes(targetId)
@@ -16153,7 +16203,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     // 与导出相同：先给虚拟内容启动渲染的时间，再等待 DOM 安静，设置硬超时。
-    _waitForTimelineRender(signal) {
+    _waitForTimelineRender(signal, scope) {
         if (signal.aborted) return Promise.resolve();
         return new Promise(resolve => {
             const startedAt = Date.now();
@@ -16169,9 +16219,9 @@ class ChatGPTAdapter extends SiteAdapter {
                 quietTimer = setTimeout(finish, Math.max(180, 580 - (Date.now() - startedAt)));
             };
             const observer = new MutationObserver(schedule);
-            observer.observe(document.querySelector('[data-thread-find-target="conversation"]') || document.body, {
+            observer.observe(scope, {
                 childList: true, subtree: true, attributes: true,
-                attributeFilter: ['data-is-intersecting', 'data-turn', 'data-turn-key']
+                attributeFilter: this.getTimelineStructureAttributeFilter()
             });
             signal.addEventListener('abort', finish, { once: true });
             maxTimer = setTimeout(finish, 2000);
@@ -16182,6 +16232,13 @@ class ChatGPTAdapter extends SiteAdapter {
 
     async resolveTimelineTarget(marker, scrollContainer, signal, onProgress, navigation = {}) {
         const conversationId = this.extractConversationId(location.pathname);
+        const scope = navigation.conversationContainer || this._timelineTranscript?.scope || scrollContainer;
+        const isCurrentScope = () => {
+            const owner = this._getTimelineScopeOwner(scope);
+            return scope.isConnected !== false && (!owner || owner === conversationId)
+                && navigation.isScopeCurrent?.() !== false
+                && this.extractConversationId(location.pathname) === conversationId;
+        };
         const targetId = marker.id.slice('chatgpt-'.length);
         const initialScrollTop = scrollContainer.scrollTop;
         // 多次重挂载仍属于同一次导航，共用总超时，避免不断重新计时。
@@ -16191,14 +16248,13 @@ class ChatGPTAdapter extends SiteAdapter {
         let foundTarget = null, lastSignature = '', lastProgressAt = Date.now();
         let lowerPosition = null, upperPosition = null, searchSnapshot = '';
         try {
-            while (!signal.aborted && Date.now() < deadline
-                && this.extractConversationId(location.pathname) === conversationId) {
-                const target = this._findTimelineTarget(targetId);
+            while (!signal.aborted && Date.now() < deadline && isCurrentScope()) {
+                const target = this._findTimelineTarget(targetId, scope);
                 if (this.isTimelineTargetReady(target)) {
                     foundTarget = target;
                     return target;
                 }
-                const userElements = [...document.querySelectorAll(this.getUserMessageSelector())];
+                const userElements = this.filterTimelineUserElements([...scope.querySelectorAll(this.getUserMessageSelector())]);
                 const entries = this.getCapturedTimelineEntries(userElements) || userElements.map((element, index) => ({
                     id: this.generateTurnId(element, index), element
                 }));
@@ -16228,7 +16284,7 @@ class ChatGPTAdapter extends SiteAdapter {
                 }
                 if (!target && (targetIndex < 0 || !loadedIndexes.length)) {
                     // 虚拟列表重排时可能暂时没有可用锚点，等待恢复，不盲目滚动。
-                    await this._waitForTimelineRender(signal);
+                    await this._waitForTimelineRender(signal, scope);
                     continue;
                 }
                 window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
@@ -16247,13 +16303,15 @@ class ChatGPTAdapter extends SiteAdapter {
                     const direction = targetIndex < currentIndex ? 'top' : 'bottom';
                     const maxScrollTop = Math.max(0, scrollContainer.scrollHeight
                         - (scrollContainer.clientHeight || window.innerHeight));
+                    // 反向滚动容器的底部是 0，顶部为负值。搜索区间统一按视觉方向计算。
+                    const scrollStart = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -maxScrollTop : 0;
                     const snapshot = `${entries.length}:${targetIndex}`;
                     if (snapshot !== searchSnapshot) {
                         lowerPosition = upperPosition = null;
                         searchSnapshot = snapshot;
                     }
                     // 保存比例，避免懒加载图片或历史插入改变总高度后沿用旧像素位置。
-                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, from / maxScrollTop)) : 0;
+                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, (from - scrollStart) / maxScrollTop)) : 0;
                     if (direction === 'top') {
                         if (lowerPosition !== null && position <= lowerPosition) lowerPosition = null;
                         upperPosition = position;
@@ -16262,17 +16320,17 @@ class ChatGPTAdapter extends SiteAdapter {
                         lowerPosition = position;
                     }
                     if (lowerPosition !== null && upperPosition !== null) {
-                        scrollContainer.scrollTop = (lowerPosition + upperPosition) / 2 * maxScrollTop;
+                        scrollContainer.scrollTop = scrollStart + (lowerPosition + upperPosition) / 2 * maxScrollTop;
                     } else {
-                        scrollContainer.scrollTop = direction === 'top' ? 0 : maxScrollTop;
+                        scrollContainer.scrollTop = scrollStart + (direction === 'top' ? 0 : maxScrollTop);
                     }
                 }
-                await this._waitForTimelineRender(signal);
+                await this._waitForTimelineRender(signal, scope);
             }
             return null;
         } finally {
             // 手动取消或加载失败时回到出发位置；切换目标或离开页面时不抢位置。
-            if (!foundTarget && this.extractConversationId(location.pathname) === conversationId
+            if (!foundTarget && isCurrentScope()
                 && (!signal.aborted || signal.reason === 'cancel-navigation')) scrollContainer.scrollTop = initialScrollTop;
         }
     }
@@ -16479,6 +16537,7 @@ class ChatGPTAdapter extends SiteAdapter {
             '[data-turn-id-container]',
             '[data-turn]',
             '[data-turn-key]',
+            '[data-chatgpt-conversation-selection-target]',
             '[data-chatgpt-search-unit-key]'
         ];
     }
@@ -16486,9 +16545,12 @@ class ChatGPTAdapter extends SiteAdapter {
     getTimelineStructureAttributeFilter() {
         return [
             'data-turn-id-container',
+            'data-turn-id',
             'data-is-intersecting',
             'data-turn',
             'data-turn-key',
+            'data-message-id',
+            'data-chatgpt-conversation-selection-target',
             'data-chatgpt-search-unit-key',
             'data-chatgpt-search-message-ids'
         ];
@@ -16505,7 +16567,7 @@ class ChatGPTAdapter extends SiteAdapter {
     filterTimelineUserElements(elements) {
         const previous = this._timelineTranscript;
         const conversationId = this.extractConversationId(location.pathname);
-        if (!previous || !conversationId || !elements.length) return elements;
+        if (!conversationId || !elements.length) return elements;
 
         const groups = new Map();
         for (const element of elements) {
@@ -16515,52 +16577,90 @@ class ChatGPTAdapter extends SiteAdapter {
             groups.get(scope).push(element);
         }
 
-        const sameConversation = previous.conversationId === conversationId;
-        const previousRows = groups.get(previous.scope);
-        if (sameConversation && previousRows) return previousRows;
-        const previousScopeVisible = previous.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
+        const sameConversation = previous?.conversationId === conversationId;
+        const outgoing = sameConversation ? this._previousTimelineTranscript : previous;
+        const previousScopeVisible = previous?.scope?.isConnected && previous.scope.getClientRects?.().length !== 0;
 
         this.syncCapturedChatsData();
         const capturedIds = this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : null;
         const matchesSnapshot = ids => ids.some(id => capturedIds?.has(id));
+        const declaredScopes = [...groups].filter(([scope]) => this._getTimelineScopeOwner(scope) === conversationId);
+        let bestSnapshot = null;
         let replacement = null;
         let reusedScope = null;
 
-        for (const [scope, rows] of groups) {
-            const known = scope === previous.scope ? previous : this._timelineTranscriptsByScope.get(scope);
+        for (const [scope, rows] of declaredScopes.length ? declaredScopes : groups) {
+            const owner = this._getTimelineScopeOwner(scope);
+            if (owner && owner !== conversationId) continue;
+            const known = scope === previous?.scope ? previous : this._timelineTranscriptsByScope.get(scope);
             const rowIds = rows.map(element => this._getTimelineElementIds(element));
             const hasKnownRows = transcript => rowIds.some((ids, index) =>
-                this._matchesTimelineTranscript(transcript, rows[index], ids));
-            const hasSnapshotMatch = rowIds.some(matchesSnapshot);
-            if (known?.conversationId === conversationId) return rows;
+                transcript && this._matchesTimelineTranscript(transcript, rows[index], ids));
+            const snapshotRows = rows.filter((_, index) => matchesSnapshot(rowIds[index]));
+            const hasSnapshotMatch = snapshotRows.length > 0;
+            const available = rows.filter((element, index) => {
+                const ids = rowIds[index];
+                if (matchesSnapshot(ids)) return true;
+                if (known?.conversationId === conversationId) {
+                    if (known.excludedRows.has(element) || ids.some(id => known.excludedIds.has(id))) return false;
+                    if (this._matchesTimelineTranscript(known, element, ids)) return true;
+                }
+                const rowOwner = this._timelineRowOwners.get(element);
+                if (rowOwner && rowOwner !== conversationId) return false;
+                // ChatGPT 明确标记的新面板可以显示共享历史和快照之外的提问。
+                if (owner === conversationId && scope !== outgoing?.scope) return true;
+                return !outgoing || !this._matchesTimelineTranscript(outgoing, element, ids);
+            });
+
+            if (owner === conversationId || known?.conversationId === conversationId) {
+                if (available.length) return available;
+                continue;
+            }
 
             if (sameConversation && previousScopeVisible && !hasSnapshotMatch && !hasKnownRows(previous)) {
                 continue;
             }
 
+            const old = known || outgoing;
+            // 在旧 URL 上观察到的 DOM 尾部节点可能已属于新会话，只有初次绑定和快照可以给旧会话作证。
+            const exclusiveMatches = rowIds.filter(ids => ids.some(id => capturedIds?.has(id)
+                && !old?.initialTurnIds.has(id) && !old?.snapshotIds.has(id))).length;
             if (known && hasKnownRows(known)) {
                 // Shared history can match the incoming snapshot while the old
                 // pane is still visible. Require proof that its rows changed.
-                const hasNewSnapshotId = rowIds.some(ids => ids.some(id =>
-                    capturedIds?.has(id) && !known.turnIds.has(id) && !known.snapshotIds.has(id)));
-                if (!rowIds.every(matchesSnapshot) || (!hasNewSnapshotId && rows.some(element => known.elements.has(element)))) {
+                if (!exclusiveMatches && (!rowIds.every(matchesSnapshot) || rows.some(element => known.elements.has(element)))) {
                     continue;
                 }
             }
 
+            if (hasSnapshotMatch) {
+                // 单条共享消息不足以让仍含旧会话内容的副本抢占目标容器。
+                if (!exclusiveMatches && outgoing && snapshotRows.length < rows.length && available.length < rows.length) continue;
+                if (!bestSnapshot || exclusiveMatches > bestSnapshot.exclusiveMatches
+                    || (exclusiveMatches === bestSnapshot.exclusiveMatches && snapshotRows.length > bestSnapshot.matchCount)) {
+                    bestSnapshot = {
+                        exclusiveMatches,
+                        matchCount: snapshotRows.length,
+                        rows: !previous && groups.size === 1 ? available : snapshotRows
+                    };
+                } else if (outgoing && !exclusiveMatches && !bestSnapshot.exclusiveMatches
+                    && snapshotRows.length === bestSnapshot.matchCount) {
+                    // 两个面板都只匹配到共享历史，继续等待能区分会话的证据。
+                    bestSnapshot.ambiguous = true;
+                }
+                continue;
+            }
             if (!known) {
-                // A second copy of outgoing history does not prove that a
-                // different conversation is ready while the original pane is present.
-                if (!sameConversation && previousRows && !hasSnapshotMatch && hasKnownRows(previous)) continue;
-                if (hasSnapshotMatch) return rows;
-                replacement ||= rows;
-            } else if (hasSnapshotMatch || rows.some(element => element.childElementCount > 0)) {
+                // 旧面板即使已卸载，其副本也不能在新会话确认前用于初始化。
+                if (!sameConversation && hasKnownRows(previous)) continue;
+                if (available.length) replacement ||= available;
+            } else if (rows.some(element => element.childElementCount > 0)) {
                 // An empty virtualized turn can lack all of its known aliases.
-                reusedScope ||= rows;
+                if (available.length) reusedScope ||= available;
             }
         }
 
-        return replacement || reusedScope || [];
+        return bestSnapshot?.ambiguous ? [] : (bestSnapshot?.rows || replacement || reusedScope || []);
     }
 
     rememberTimelineTranscript(elements) {
@@ -16568,6 +16668,9 @@ class ChatGPTAdapter extends SiteAdapter {
         if (!conversationId || !elements.length) return;
         const scope = this._getTimelineScope(elements[0]);
         const known = scope ? this._timelineTranscriptsByScope.get(scope) : this._timelineTranscript;
+        if (this._timelineTranscript && this._timelineTranscript.conversationId !== conversationId) {
+            this._previousTimelineTranscript = this._timelineTranscript;
+        }
         if (known?.conversationId === conversationId && known.scope === scope) {
             if (this._capturedTimelineConvId === conversationId) {
                 for (const id of this._capturedTimelineIds) known.snapshotIds.add(id);
@@ -16578,12 +16681,20 @@ class ChatGPTAdapter extends SiteAdapter {
 
         // Commit only on manager initialization. Rebuilds can see the next
         // transcript before the host commits its URL.
+        const initialTurnIds = new Set(elements.flatMap(element => this._getTimelineElementIds(element)));
+        const accepted = new Set(elements);
+        for (const element of accepted) this._timelineRowOwners.set(element, conversationId);
+        const excluded = Array.from(scope?.querySelectorAll?.(this.getUserMessageSelector()) || [])
+            .filter(element => !accepted.has(element));
         const transcript = {
             conversationId,
             scope,
-            turnIds: new Set(elements.flatMap(element => this._getTimelineElementIds(element))),
+            initialTurnIds,
+            turnIds: new Set(initialTurnIds),
             elements: new WeakSet(elements),
-            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : [])
+            snapshotIds: new Set(this._capturedTimelineConvId === conversationId ? this._capturedTimelineIds : []),
+            excludedRows: new WeakSet(excluded),
+            excludedIds: new Set(excluded.flatMap(element => this._getTimelineElementIds(element)).filter(id => !initialTurnIds.has(id)))
         };
         this._timelineTranscript = transcript;
         if (scope) this._timelineTranscriptsByScope.set(scope, transcript);
@@ -16623,7 +16734,15 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     _getTimelineScope(element) {
-        return element.closest('[data-thread-find-target="conversation"]') || element.closest('main');
+        return element.closest('[data-thread-find-target="conversation"], [data-chatgpt-conversation-selection-target]')
+            || element.closest('main');
+    }
+
+    _getTimelineScopeOwner(scope) {
+        // 分享地址使用独立的分享 ID，页面内部仍可能保留原会话 ID。
+        if (location.pathname.includes('/share/')) return null;
+        return scope?.closest?.('[data-chatgpt-conversation-selection-target]')
+            ?.getAttribute('data-chatgpt-conversation-selection-target') || null;
     }
 
     _getTimelineElementIds(element) {
@@ -16838,7 +16957,7 @@ class ChatGPTAdapter extends SiteAdapter {
     }
 
     findConversationContainer(firstMessage, context = {}) {
-        const transcript = firstMessage?.closest('[data-thread-find-target="conversation"]');
+        const transcript = firstMessage?.closest('[data-thread-find-target="conversation"], [data-chatgpt-conversation-selection-target]');
         if (transcript) return transcript;
         /**
          * 查找对话容器
@@ -17013,6 +17132,14 @@ class GeminiAdapter extends SiteAdapter {
         return 'model-response';
     }
 
+    observesTimelineMarkerText() {
+        return true;
+    }
+
+    getTimelineStructureAttributeFilter() {
+        return ['id'];
+    }
+
     static findChatScroller(element) {
         for (let node = element; node && node !== document.body; node = node.parentElement) {
             const { overflowY } = getComputedStyle(node);
@@ -17177,10 +17304,11 @@ class GeminiAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -17423,14 +17551,14 @@ class DoubaoAdapter extends SiteAdapter {
         return pathname.includes('/chat/') || pathname === '/share' || pathname.startsWith('/share/');
     }
 
-    extractConversationId(pathname) {
+    extractConversationId(pathname, url = location) {
         try {
             // Extract conversation ID from /chat/数字 pattern
             const match = pathname.match(/\/chat\/(\d+)/);
             if (match) return match[1];
 
             if (pathname === '/share' || pathname.startsWith('/share/')) {
-                const params = new URLSearchParams(location.search);
+                const params = new URLSearchParams(url.search);
                 return params.get('conversationId')
                     || params.get('shareId')
                     || params.get('threadId')
@@ -17444,7 +17572,7 @@ class DoubaoAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         /**
          * 查找对话容器
          * 
@@ -17457,7 +17585,8 @@ class DoubaoAdapter extends SiteAdapter {
          * 优势：比传统的向上遍历更精确，避免找到过于外层的容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
     
@@ -17572,6 +17701,19 @@ class DeepSeekAdapter extends SiteAdapter {
         return '.ds-message:has(.ds-assistant-message-main-content)';
     }
 
+    observesTimelineMarkerText() {
+        return true;
+    }
+
+    getTimelineStructureAttributeFilter() {
+        return ['data-message-id', 'data-virtual-list-item-key'];
+    }
+
+    getTimelineDomRowId(element) {
+        return element.closest('[data-message-id]')?.getAttribute('data-message-id')
+            || element.closest('[data-virtual-list-item-key]')?.getAttribute('data-virtual-list-item-key');
+    }
+
     getConflictingTimelineSelectors() {
         return ['[style*="--scroll-nav-page-padding"]'];
     }
@@ -17583,7 +17725,10 @@ class DeepSeekAdapter extends SiteAdapter {
     extractText(element) {
         // 从第一个子 div 提取文本
         const firstDiv = element.querySelector('div');
-        const text = (firstDiv?.textContent || '').trim();
+        const label = firstDiv?.querySelector?.('.ait-chat-time-label');
+        const text = (label?.matches?.('.ait-chat-time-label')
+            ? Array.from(firstDiv.childNodes).filter(node => node !== label).map(node => node.textContent).join('')
+            : firstDiv?.textContent || '').trim();
         return text || '[图片或文件]';
     }
     
@@ -17611,13 +17756,14 @@ class DeepSeekAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         /**
          * 查找对话容器
          * 使用 LCA（最近共同祖先）算法查找所有对话记录的最近父容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -17722,10 +17868,11 @@ class YiyanAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -17865,10 +18012,11 @@ class TongyiAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -18005,11 +18153,12 @@ class QwenAdapter extends SiteAdapter {
         return null;
     }
 
-    findConversationContainer(firstMessage) {
-        const container = document.querySelector('#chat-message-container');
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
+        const container = firstMessage?.closest('#chat-message-container');
         if (container) return container;
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -18111,10 +18260,11 @@ class KimiAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 选择器现在匹配的是消息项 .chat-content-item，使用标准 LCA 算法即可
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -18217,10 +18367,11 @@ class YuanbaoAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         // 查找对话容器 - 使用 LCA（最近共同祖先）算法
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -18264,10 +18415,15 @@ class YuanbaoAdapter extends SiteAdapter {
  * Supports: 
  *   - grok.com/c/xxx (普通对话)
  *   - grok.com/share/xxx (分享页面)
- * Features: Uses element id attribute, KaTeX formula support
+ * Features: Supports current and legacy message markup, KaTeX formula support
  */
 
 class GrokAdapter extends SiteAdapter {
+    static STOP_TEST_ID = 'composer-stop';
+    static STOP_BUTTON_SELECTOR = `button[data-testid="${this.STOP_TEST_ID}"]`;
+    static LEGACY_STOP_PATH = 'M4 9.2v5.6c0 1.116 0 1.673.11 2.134a4 4 0 0 0 2.956 2.956c.46.11 1.018.11 2.134.11h5.6c1.116 0 1.673 0 2.134-.11a4 4 0 0 0 2.956-2.956c.11-.46.11-1.018.11-2.134V9.2c0-1.116 0-1.673-.11-2.134a4 4 0 0 0-2.956-2.955C16.474 4 15.916 4 14.8 4H9.2c-1.116 0-1.673 0-2.134.11a4 4 0 0 0-2.955 2.956C4 7.526 4 8.084 4 9.2Z';
+    static LEGACY_STOP_SELECTOR = `path[d="${this.LEGACY_STOP_PATH}"]`;
+
     constructor() {
         super();
     }
@@ -18277,8 +18433,7 @@ class GrokAdapter extends SiteAdapter {
     }
 
     getUserMessageSelector() {
-        // 用户消息：有 items-end class 且有 id 属性的元素
-        return '.items-end[id]';
+        return '[data-user-message-row], .items-end[id]:not([data-user-message-row] *)';
     }
 
     generateTurnId(element, index) {
@@ -18286,15 +18441,18 @@ class GrokAdapter extends SiteAdapter {
         return `grok-${index}`;
     }
 
+    getMessageTextElement(element) {
+        return element.querySelector('[data-bubble-text]') || element.querySelector('p.break-words');
+    }
+
     extractText(element) {
-        // 从 p.break-words 元素中提取文本内容
-        const textElement = element.querySelector('p.break-words');
+        const textElement = this.getMessageTextElement(element);
         const text = (textElement?.textContent || '').trim();
         return text || '[图片或文件]';
     }
     
     getTimeLabelTarget(element) {
-        return element.querySelector('p.break-words') || element;
+        return this.getMessageTextElement(element) || element;
     }
 
     isConversationRoute(pathname) {
@@ -18314,24 +18472,13 @@ class GrokAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
-        /**
-         * 查找对话容器
-         * 
-         * 使用 LCA（最近共同祖先）算法查找所有对话记录的最近父容器。
-         * 传递 messageSelector 参数，让 ContainerFinder 能够：
-         * 1. 查询所有用户消息元素
-         * 2. 找到它们的最近共同祖先
-         * 3. 确保容器是直接包裹所有对话的最小容器
-         * 
-         * 优势：比传统的向上遍历更精确，避免找到过于外层的容器
-         */
-        
-        // ✅ 隐藏 Grok 自带的时间轴元素，避免与本插件冲突
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         this.hideNativeTimeline();
-        
-        return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+
+        const transcriptScroller = firstMessage?.closest('[data-testid="chat-transcript-scroller"]');
+        return transcriptScroller || ContainerFinder.findConversationContainer(firstMessage, {
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
     
@@ -18369,8 +18516,8 @@ class GrokAdapter extends SiteAdapter {
     }
     
     getStarChatButtonTarget() {
-        // 返回"更多"按钮，收藏按钮将插入到它前面
-        return document.querySelector('button[aria-label="更多"]');
+        return document.querySelector('button[data-testid="conversation-actions-trigger"]')
+            || document.querySelector('button[aria-label="更多"]');
     }
     
     getDefaultChatTheme() {
@@ -18381,12 +18528,39 @@ class GrokAdapter extends SiteAdapter {
     
     /**
      * 检测 AI 是否正在生成回答
-     * Grok: 当存在停止按钮的 SVG path 时，表示正在生成
+     * 新版使用输入框停止按钮，旧版使用停止图标。
      * @returns {boolean}
      */
     isAIGenerating() {
-        const stopPath = document.querySelector('path[d="M4 9.2v5.6c0 1.116 0 1.673.11 2.134a4 4 0 0 0 2.956 2.956c.46.11 1.018.11 2.134.11h5.6c1.116 0 1.673 0 2.134-.11a4 4 0 0 0 2.956-2.956c.11-.46.11-1.018.11-2.134V9.2c0-1.116 0-1.673-.11-2.134a4 4 0 0 0-2.956-2.955C16.474 4 15.916 4 14.8 4H9.2c-1.116 0-1.673 0-2.134.11a4 4 0 0 0-2.955 2.956C4 7.526 4 8.084 4 9.2Z"]');
-        return !!stopPath;
+        return !!document.querySelector(
+            `form[data-composer] ${GrokAdapter.STOP_BUTTON_SELECTOR}, ${GrokAdapter.LEGACY_STOP_SELECTOR}`
+        );
+    }
+
+    // 同时处理停止按钮被替换、移除和原地更新的情况。
+    observeAIGeneration(onChange) {
+        const selector = `${GrokAdapter.STOP_BUTTON_SELECTOR}, ${GrokAdapter.LEGACY_STOP_SELECTOR}`;
+        const containsStopControl = node => node.nodeType === Node.ELEMENT_NODE
+            && (node.matches(selector) || node.querySelector(selector));
+        const observer = new MutationObserver(mutations => {
+            const changed = mutations.some(mutation => {
+                if (mutation.type === 'childList') {
+                    return [...mutation.addedNodes, ...mutation.removedNodes].some(containsStopControl);
+                }
+                if (mutation.attributeName === 'data-testid') {
+                    return mutation.oldValue === GrokAdapter.STOP_TEST_ID
+                        || mutation.target.matches(GrokAdapter.STOP_BUTTON_SELECTOR);
+                }
+                return mutation.oldValue === GrokAdapter.LEGACY_STOP_PATH
+                    || mutation.target.matches(GrokAdapter.LEGACY_STOP_SELECTOR);
+            });
+            if (changed) onChange();
+        });
+        observer.observe(document.body, {
+            childList: true, subtree: true, attributes: true,
+            attributeFilter: ['data-testid', 'd'], attributeOldValue: true
+        });
+        return () => observer.disconnect();
     }
     
 }
@@ -18445,13 +18619,14 @@ class PerplexityAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         /**
          * 查找对话容器
          * 使用 LCA（最近共同祖先）算法查找所有对话记录的最近父容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
 
@@ -18534,6 +18709,7 @@ class ClaudeAdapter extends SiteAdapter {
         this._conversationId = null;
         this._snapshot = null;
         this._liveEntries = new Map();
+        this._liveScope = null;
         this._staleIds = new Set();
         this._confirmedScope = null;
     }
@@ -18546,6 +18722,23 @@ class ClaudeAdapter extends SiteAdapter {
         return document.querySelector('[data-testid="transcript-sizer"]')
             ? '[data-testid="transcript-row"]:has([data-testid="user-message"])'
             : '[data-test-render-count]:has([data-testid="user-message"])';
+    }
+
+    prepareTimelineNodes({ reason } = {}) {
+        if (reason === 'initialization-check' || reason === 'initialization' || reason === 'initialization-ready') {
+            this.syncCapturedChatsData();
+        }
+    }
+
+    getTimelineDomRowId(element) {
+        const id = this.extractIndexFromTurnId(this.generateTurnId(element, -1));
+        return typeof id === 'string' && id !== '-1' ? id : null;
+    }
+
+    getTimelineConfirmedRows(elements) {
+        if (this._snapshot?.conversationId !== this.extractConversationId(location.pathname)) return null;
+        const capturedIds = new Set(this._snapshot.entries.map(entry => entry.id));
+        return new Set(elements.filter(element => capturedIds.has(this.getTimelineDomRowId(element))));
     }
 
     generateTurnId(element, index) {
@@ -18576,6 +18769,7 @@ class ClaudeAdapter extends SiteAdapter {
             this._conversationId = conversationId;
             this._snapshot = null;
             this._liveEntries.clear();
+            this._liveScope = null;
             this._staleIds.clear();
             this._confirmedScope = null;
         }
@@ -18616,18 +18810,28 @@ class ClaudeAdapter extends SiteAdapter {
         return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
     }
 
-    getCapturedTimelineEntries(userElements) {
+    getCapturedTimelineEntries(userElements, conversationContainer = null) {
         if (!document.querySelector('[data-testid="transcript-sizer"]')) return null;
-        const elements = new Map(userElements.map((element, index) => [this.generateTurnId(element, index), element]));
-        const scope = document.querySelector('[data-testid="transcript-list"]');
         const captured = (this._snapshot?.entries || []).map(entry => ({
             id: `claude-${entry.id}`, summary: entry.text, rowIndex: entry.rowIndex
         }));
         const capturedIds = new Set(captured.map(entry => entry.id));
-        if (captured.some(entry => elements.has(entry.id))) this._confirmedScope = scope;
+        const candidates = conversationContainer
+            ? userElements.filter(element => this.isTimelineTargetInScope(element, conversationContainer))
+            : userElements;
+        const anchor = candidates.find(element => capturedIds.has(this.generateTurnId(element, -1)));
+        const scope = (anchor || candidates[0])?.closest('[data-testid="transcript-list"]')
+            || conversationContainer || this._liveScope;
+        const scopedElements = scope ? candidates.filter(element => scope.contains(element)) : candidates;
+        const elements = new Map(scopedElements.map((element, index) => [this.generateTurnId(element, index), element]));
+        if (scope !== this._liveScope) {
+            this._liveEntries.clear();
+            this._liveScope = scope;
+        }
+        if (scope && anchor) this._confirmedScope = scope;
         for (const [id, element] of elements) {
             if (capturedIds.has(id) || this._staleIds.has(id)) continue;
-            if (this._snapshot && this._confirmedScope !== scope) continue;
+            if (this._snapshot && (!scope || this._confirmedScope !== scope)) continue;
             const value = element.getAttribute('data-index');
             const rowIndex = value === null ? NaN : Number(value);
             if (!Number.isFinite(rowIndex)) continue;
@@ -18697,6 +18901,10 @@ class ClaudeAdapter extends SiteAdapter {
         return !!element?.isConnected && element.getBoundingClientRect().height > 0;
     }
 
+    isTimelineTargetInScope(element, scope) {
+        return scope?.contains(element) === true;
+    }
+
     _waitForTimelineRender(signal) {
         return new Promise(resolve => {
             const finish = () => {
@@ -18712,17 +18920,21 @@ class ClaudeAdapter extends SiteAdapter {
 
     async resolveTimelineTarget(marker, scrollContainer, signal, onProgress, navigation = {}) {
         const conversationId = this.extractConversationId(location.pathname);
+        const scope = navigation.conversationContainer || scrollContainer;
+        const isScopeCurrent = () => scope.isConnected !== false && scrollContainer.isConnected !== false
+            && this.extractConversationId(location.pathname) === conversationId
+            && (navigation.isScopeCurrent?.() ?? true);
         const deadline = Math.min(navigation.deadline ?? Infinity, Date.now() + 10000);
         let low = 0, high = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
-        while (!signal.aborted && Date.now() < deadline
-            && this.extractConversationId(location.pathname) === conversationId) {
-            const elements = Array.from(document.querySelectorAll(this.getUserMessageSelector()));
+        while (!signal.aborted && Date.now() < deadline && isScopeCurrent()) {
+            const rowsInScope = Array.from(scope.querySelectorAll(this.getUserMessageSelector()));
+            const elements = navigation.filterRows?.(rowsInScope) ?? rowsInScope;
             const target = elements.find((element, index) => this.generateTurnId(element, index) === marker.id);
             if (this.isTimelineTargetReady(target)) return target;
-            const entries = this.getCapturedTimelineEntries(elements) || [];
+            const entries = this.getCapturedTimelineEntries(elements, scope) || [];
             const entry = entries.find(item => item.id === marker.id);
             if (!entry) return null;
-            const rows = Array.from(document.querySelectorAll('[data-testid="transcript-row"]'));
+            const rows = Array.from(scope.querySelectorAll('[data-testid="transcript-row"][data-index]'));
             const indexes = rows.map(row => Number(row.getAttribute('data-index'))).filter(Number.isFinite);
             if (!indexes.length) { await this._waitForTimelineRender(signal); continue; }
             const from = scrollContainer.scrollTop;
@@ -18920,17 +19132,22 @@ class CustomSiteAdapter extends SiteAdapter {
         return includes.some(part => part && pathname.includes(part));
     }
 
-    findConversationContainer(firstMessage) {
+    getTimelineRouteId(url) {
+        return this._matchConversationUrl(url.href)?.groups?.conversationId;
+    }
+
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         const selector = this._scopeConversationSelector(this.config.conversationContainerSelector);
         if (this.config.conversationScopeSelectors) {
             return selector ? firstMessage?.closest(selector) || null : null;
         }
         if (selector) {
-            const container = document.querySelector(selector);
+            const container = firstMessage?.closest(selector);
             if (container) return container;
         }
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         }) || super.findConversationContainer(firstMessage);
     }
 
@@ -20933,13 +21150,26 @@ const StarStorageManager = {
  */
 const PinStorageManager = {
     STORAGE_KEY: 'chatTimelinePins',
+    pendingToggle: Promise.resolve(),
+
+    // 同一 ChatGPT 会话可从普通链接和 GPT 专属链接打开，链接参数不参与匹配。
+    getConversationKey(urlWithoutProtocol) {
+        const chat = /^(?:chatgpt\.com|chat\.openai\.com)(?:\/g\/[\w-]+)?\/c\/([\w-]+)\/?(?:[?#]|$)/i.exec(urlWithoutProtocol);
+        if (chat) return `chatgpt.com/c/${chat[1]}`;
+        const share = /^(?:chatgpt\.com|chat\.openai\.com)\/share\/(?:e\/)?([\w-]+)\/?(?:[?#]|$)/i.exec(urlWithoutProtocol);
+        return share ? `chatgpt.com/share/${share[1]}` : urlWithoutProtocol;
+    },
+
+    getNodeKey(item) {
+        return item.nodeId ?? item.index;
+    },
 
     /**
      * 获取所有 Pin
      * @returns {Promise<Array>}
      */
     async getAll() {
-        const data = await StorageAdapter.get(this.STORAGE_KEY);
+        const { [this.STORAGE_KEY]: data } = await chrome.storage.local.get(this.STORAGE_KEY);
         return Array.isArray(data) ? data : [];
     },
 
@@ -20950,55 +21180,22 @@ const PinStorageManager = {
      */
     async getByUrl(urlWithoutProtocol) {
         const items = await this.getAll();
-        return items.filter(item => item.urlWithoutProtocol === urlWithoutProtocol);
+        const conversationKey = this.getConversationKey(urlWithoutProtocol);
+        return items.filter(item => this.getConversationKey(item.urlWithoutProtocol) === conversationKey);
     },
 
-    /**
-     * 添加或更新 Pin
-     * @param {Object} item - Pin 项（必须包含 key 字段）
-     */
-    async add(item) {
-        if (!item || !item.key) return;
-        const items = await this.getAll();
-        const existingIndex = items.findIndex(i => i.key === item.key);
-        if (existingIndex >= 0) {
-            items[existingIndex] = item;
-        } else {
-            items.push(item);
-        }
-        await StorageAdapter.set(this.STORAGE_KEY, items);
-    },
-
-    /**
-     * 移除 Pin
-     * @param {string} key - Pin 项的 key
-     */
-    async remove(key) {
-        if (!key) return;
-        const items = await this.getAll();
-        const filtered = items.filter(item => item.key !== key);
-        await StorageAdapter.set(this.STORAGE_KEY, filtered);
-    },
-
-    /**
-     * 根据 key 查找 Pin 项
-     * @param {string} key - Pin 项的 key
-     * @returns {Promise<Object|undefined>}
-     */
-    async findByKey(key) {
-        if (!key) return undefined;
-        const items = await this.getAll();
-        return items.find(item => item.key === key);
-    },
-
-    /**
-     * 检查是否存在
-     * @param {string} key - Pin 项的 key
-     * @returns {Promise<boolean>}
-     */
-    async exists(key) {
-        const item = await this.findByKey(key);
-        return !!item;
+    toggle(item, matchesRecord) {
+        const update = this.pendingToggle.then(async () => {
+            const items = await this.getAll();
+            const conversationKey = this.getConversationKey(item.urlWithoutProtocol);
+            const isCurrentConversation = entry => this.getConversationKey(entry.urlWithoutProtocol) === conversationKey;
+            const remaining = items.filter(entry => !isCurrentConversation(entry) || !matchesRecord(entry));
+            if (remaining.length === items.length) remaining.push(item);
+            await chrome.storage.local.set({ [this.STORAGE_KEY]: remaining });
+            return remaining.filter(isCurrentConversation);
+        });
+        this.pendingToggle = update.catch(() => {});
+        return update;
     }
 };
 
@@ -23865,13 +24062,79 @@ if (typeof window.questionListPopup === 'undefined') {
  * - Virtual rendering for performance
  */
 
+// A SPA can update its URL before it removes or reuses the previous transcript.
+class TimelineRouteRows {
+    constructor() {
+        this.owners = new WeakMap();
+    }
+
+    key(adapter, href) {
+        const url = new URL(href);
+        const id = adapter.getTimelineRouteId?.(url) ?? adapter.extractConversationId?.(url.pathname, url);
+        return id ? `${url.origin}:${id}` : url.href;
+    }
+
+    filter(adapter, elements, route) {
+        // ChatGPT can read the native conversation owner and its captured transcript.
+        if (adapter.filterTimelineUserElements) return adapter.filterTimelineUserElements(elements);
+        const visible = elements.filter(element => element.isConnected !== false
+            && element.getClientRects?.().length !== 0
+            && !element.closest?.('[hidden], [aria-hidden="true"], [inert]'));
+        const confirmedRows = adapter.getTimelineConfirmedRows?.(visible);
+        return visible.filter(element => {
+            if (confirmedRows?.has(element)) return true;
+            const previous = this.owners.get(element);
+            if (!previous || previous.route === route) return true;
+            const id = this.rowId(adapter, element);
+            if (previous.id !== id) return true;
+            const hasConfirmedIdentity = adapter.getTimelineConfirmedRows && adapter.getTimelineDomRowId?.(element);
+            return !hasConfirmedIdentity && previous.text !== this.rowText(element);
+        });
+    }
+
+    remember(adapter, elements, route, { initial = false, previousElements = [] } = {}) {
+        if (adapter.filterTimelineUserElements || elements.length === 0) return false;
+        const rows = elements.map(element => ({
+            element, route, text: this.rowText(element), id: this.rowId(adapter, element)
+        }));
+        const confirmedRows = adapter.getTimelineConfirmedRows?.(elements);
+        const matchesOwner = (owner, row) =>
+            owner?.route === route && owner.id === row.id && owner.text === row.text;
+        const hasAnchor = rows.some(row => confirmedRows?.has(row.element)
+            || matchesOwner(this.owners.get(row.element), row));
+        const isSameTranscript = rows.length === previousElements.length
+            && rows.every((row, index) => matchesOwner(this.owners.get(previousElements[index]), row));
+        // A complete replacement can arrive before the URL changes. Keep the last
+        // confirmed rows unless the replacement matches the transcript we already own.
+        if (!initial && !hasAnchor && !isSameTranscript) return false;
+        for (const { element, ...owner } of rows) this.owners.set(element, owner);
+        return true;
+    }
+
+    rowId(adapter, element) {
+        return adapter.getTimelineDomRowId?.(element) ?? adapter.generateTurnId?.(element, 0);
+    }
+
+    rowText(element) {
+        const labelSelector = '.ait-chat-time-label';
+        if (!element.cloneNode || !element.querySelector(labelSelector)) return element.textContent;
+        const copy = element.cloneNode(true);
+        copy.querySelectorAll(labelSelector).forEach(label => label.remove());
+        return copy.textContent;
+    }
+}
+
 class TimelineManager {
-    constructor(adapter) {
+    constructor(adapter, routeRows = new TimelineRouteRows()) {
         if (!adapter) {
             throw new Error('TimelineManager requires a SiteAdapter');
         }
         this.adapter = adapter;
         this._pageUrl = location.href;
+        this._routeRows = routeRows;
+        this._rowRoute = routeRows.key(adapter, this._pageUrl);
+        this._rowScope = null;
+        this._ownedTimelineRows = [];
         this.scrollContainer = null;
         this.isScrollContainerFallback = false;
         this.hostScrollbarElement = null;
@@ -24001,7 +24264,8 @@ class TimelineManager {
         
         // ✅ Pin（标记）功能状态
         this.pinned = new Set();
-        this.pinnedIndexes = new Set();
+        this._pinRecords = [];
+        this._pinStorageVersion = 0;
         
         // ✅ URL 到网站信息的映射字典（包含名称和 logo）
         // 使用 constants.js 中的函数生成 siteNameMap（在 init() 中异步填充）
@@ -24054,10 +24318,19 @@ class TimelineManager {
         try {
             userTurnElements = Array.from(scope.querySelectorAll(selector));
         } catch {}
-        if (this.adapter.filterTimelineUserElements) {
-            userTurnElements = this.adapter.filterTimelineUserElements(userTurnElements);
-        }
+        userTurnElements = this._routeRows.filter(this.adapter, userTurnElements, this._rowRoute);
         return { selector, userTurnElements };
+    }
+
+    _rememberTimelineRows(elements, initial = false) {
+        const retained = this._rowScope ? elements.filter(element => this._rowScope.contains(element)) : [];
+        const rows = retained.length ? retained : elements;
+        if (this._routeRows.remember(this.adapter, rows, this._rowRoute, {
+            initial, previousElements: this._ownedTimelineRows
+        })) {
+            this._ownedTimelineRows = rows;
+            if (!retained.length) this._rowScope = this.conversationContainer;
+        }
     }
 
     async init() {
@@ -24160,21 +24433,23 @@ class TimelineManager {
                 firstTurn = prepared.userTurnElements[0] || null;
             }
         }
-        if (!firstTurn) return false;
+        if (!firstTurn || !this.isCurrentPage()) return false;
         
         this.conversationContainer = this.adapter.findConversationContainer(firstTurn, {
             messageSelector: prepared.selector,
             userTurnElements: prepared.userTurnElements
         });
-        if (!this.conversationContainer) return false;
+        if (!this.conversationContainer?.contains(firstTurn)) return false;
 
         const scrollInfo = this.resolveScrollContainer(this.conversationContainer);
         this.scrollContainer = scrollInfo.container;
         this.isScrollContainerFallback = scrollInfo.isFallback;
         if (this.isCurrentPage() && this.scrollContainer) {
-            this.adapter.rememberTimelineTranscript?.(prepared.userTurnElements.filter(element =>
+            const elements = prepared.userTurnElements.filter(element =>
                 this.conversationContainer.contains(element)
-            ));
+            );
+            this._rememberTimelineRows(elements, true);
+            this.adapter.rememberTimelineTranscript?.(elements);
         }
 
         return this.scrollContainer !== null;
@@ -24934,30 +25209,61 @@ class TimelineManager {
         bar.appendChild(loading);
     }
 
-    _syncCapturedMarkerStates() {
+    _syncCapturedStarStates() {
         if (!this._apiTimelineMode || !this.markers.length) {
             return;
         }
         const indexesStable = this.adapter.areTimelineIndexesStable?.() !== false;
-        const starred = new Set(), pinned = new Set();
-        let pinsChanged = false;
+        const starred = new Set();
         this.markers.forEach((marker, index) => {
             const key = this.adapter.extractIndexFromTurnId(marker.id);
-            const matches = stored => (typeof key === 'string' && stored.has(key))
-                || (indexesStable && (stored.has(key) || stored.has(index)));
-            const isStarred = matches(this.starredIndexes);
-            const isPinned = matches(this.pinnedIndexes);
-            pinsChanged ||= marker.pinned !== isPinned;
+            const isStarred = (typeof key === 'string' && this.starredIndexes.has(key))
+                || (indexesStable && (this.starredIndexes.has(key) || this.starredIndexes.has(index)));
             marker.starred = isStarred;
-            marker.pinned = isPinned;
             if (isStarred) starred.add(marker.id);
-            if (isPinned) pinned.add(marker.id);
-            marker.dotElement?.classList.toggle('starred', isStarred);
-            marker.dotElement?.classList.toggle('pinned', isPinned);
+            this._updateMarkerStarStyle(marker, isStarred);
         });
         this.starred = starred;
+    }
+
+    _findPinnedMarker(nodeKey) {
+        if (typeof nodeKey === 'number' && this._apiTimelineMode
+            && this.adapter.areTimelineIndexesStable?.() === false) return null;
+
+        if (this.adapter.findMarkerByStoredIndex) {
+            return this.adapter.findMarkerByStoredIndex(nodeKey, this.markers, this.markerMap);
+        }
+        const id = this.adapter.generateTurnIdFromIndex?.(nodeKey);
+        return this.markerMap.get(id) || (typeof nodeKey === 'number' ? this.markers[nodeKey] : null);
+    }
+
+    _legacyPinQuestion(marker) {
+        if (this._apiTimelineMode || !(this.adapter instanceof ChatGPTAdapter)) return null;
+        return this.adapter.isPlaceholderSummary(marker.summary) ? '' : this.truncateText(marker.summary, 100);
+    }
+
+    _syncPinMarkerStates() {
+        const pinned = new Set();
+        for (const record of this._pinRecords) {
+            const nodeKey = PinStorageManager.getNodeKey(record);
+            const marker = this._findPinnedMarker(nodeKey);
+            if (!marker) continue;
+            if (typeof nodeKey === 'number') {
+                const question = this._legacyPinQuestion(marker);
+                if (question !== null && (!question || question !== record.question)) continue;
+            }
+            pinned.add(marker.id);
+        }
         this.pinned = pinned;
-        if (pinsChanged && this.ui?.timelineBar) this.renderPinMarkers();
+        let changed = false;
+        for (const marker of this.markers) {
+            const isPinned = pinned.has(marker.id);
+            if (marker.pinned === isPinned) continue;
+            marker.pinned = isPinned;
+            this.updatePinIcon(marker);
+            changed = true;
+        }
+        if (changed && this.ui.timelineBar) this._schedulePinRender();
     }
 
     _renderCapturedTimeline(entries) {
@@ -24971,7 +25277,7 @@ class TimelineManager {
             });
         this._capturedIndexesStable = indexesStable;
         if (!changed) {
-            this._syncCapturedMarkerStates();
+            this._syncCapturedStarStates();
             this._recalcMarkerPositions();
             this.updateVirtualRangeAndRender();
             this.updateHistoryLoadingIndicator();
@@ -24990,13 +25296,12 @@ class TimelineManager {
                 dotN: 0, dotElement: null, timeLabel: old?.timeLabel || null,
                 starred: (typeof key === 'string' && this.starredIndexes.has(key))
                     || (indexesStable && (this.starredIndexes.has(key) || this.starredIndexes.has(index))),
-                pinned: (typeof key === 'string' && this.pinnedIndexes.has(key))
-                    || (indexesStable && (this.pinnedIndexes.has(key) || this.pinnedIndexes.has(index))) };
+                pinned: false };
         });
         this._updateCapturedScrollPadding();
         this.markerMap = new Map(this.markers.map(marker => [marker.id, marker]));
         this.starred = new Set(this.markers.filter(marker => marker.starred).map(marker => marker.id));
-        this.pinned = new Set(this.markers.filter(marker => marker.pinned).map(marker => marker.id));
+        this._syncPinMarkerStates();
         this._renderedNodeCount = this.markers.length;
         this._renderedNodeIds = new Set(this.markers.map(marker => marker.id));
         this.markersVersion++;
@@ -25067,7 +25372,7 @@ class TimelineManager {
         this.updateHistoryLoadingIndicator();
         let userTurnElements = preparedContext?.userTurnElements || null;
         if (userTurnElements) {
-            userTurnElements = Array.from(userTurnElements).filter(el =>
+            userTurnElements = this._routeRows.filter(this.adapter, Array.from(userTurnElements), this._rowRoute).filter(el =>
                 el === this.conversationContainer || this.conversationContainer.contains(el)
             );
         } else {
@@ -25077,8 +25382,9 @@ class TimelineManager {
             });
             userTurnElements = prepared.userTurnElements;
         }
+        this._rememberTimelineRows(userTurnElements);
         this.adapter.updateTimelineTranscript?.(userTurnElements);
-        const capturedEntries = this.adapter.getCapturedTimelineEntries?.(Array.from(userTurnElements));
+        const capturedEntries = this.adapter.getCapturedTimelineEntries?.(Array.from(userTurnElements), this.conversationContainer);
         if (capturedEntries?.length) {
             this._renderCapturedTimeline(capturedEntries);
             window.questionListPopup?.onMarkersRebuilt();
@@ -25125,6 +25431,7 @@ class TimelineManager {
         
         // 如果节点没有变化，只更新渲染，不重新计算位置
         if (!needsRecalculation && this.markers.length > 0) {
+            if (this.adapter.observesTimelineMarkerText?.()) this.refreshMarkerSummaries();
             // 只更新视图和同步状态（不涉及位置计算）
             this.syncTimelineTrackToMain();
             this.updateVirtualRangeAndRender();
@@ -25321,29 +25628,8 @@ class TimelineManager {
             }
         });
         
-        // ✅ 应用标记状态：根据 pinnedIndexes 设置 pinned 和填充 this.pinned
-        // 与收藏状态相同的逻辑
-        this.pinnedIndexes.forEach(nodeKey => {
-            let marker = null;
-            
-            if (this.adapter.findMarkerByStoredIndex) {
-                marker = this.adapter.findMarkerByStoredIndex(nodeKey, this.markers, this.markerMap);
-            } else {
-                if (this.adapter.generateTurnIdFromIndex) {
-                    const turnId = this.adapter.generateTurnIdFromIndex(nodeKey);
-                    marker = this.markerMap.get(turnId);
-                }
-                if (!marker && typeof nodeKey === 'number' && nodeKey >= 0 && nodeKey < this.markers.length) {
-                    marker = this.markers[nodeKey];
-                }
-            }
-            
-            if (marker && marker.id) {
-                marker.pinned = true;
-                this.pinned.add(marker.id);
-            }
-        });
-        
+        this._syncPinMarkerStates();
+
         // Bump version after markers are rebuilt to invalidate concurrent passes
         this.markersVersion++;
         
@@ -25405,7 +25691,8 @@ class TimelineManager {
         if (!this.mutationObserver || !this.conversationContainer) return;
         const options = {
             childList: true,
-            subtree: true
+            subtree: true,
+            characterData: this.adapter.observesTimelineMarkerText?.() === true
         };
         if (this._timelineStructureAttributeFilter.length > 0) {
             options.attributes = true;
@@ -25429,6 +25716,7 @@ class TimelineManager {
         if (mutation.type === 'childList') {
             return mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0;
         }
+        if (mutation.type === 'characterData') return this._isUserMessageTextMutation(mutation);
         if (mutation.type !== 'attributes') return false;
 
         if (mutation.attributeName === 'data-is-intersecting') {
@@ -25443,6 +25731,7 @@ class TimelineManager {
         if (mutation.type === 'attributes') {
             return true;
         }
+        if (this._isUserMessageTextMutation(mutation)) return true;
         if (mutation.type !== 'childList') return false;
         const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
         if (mutation.target === this.conversationContainer) {
@@ -25470,6 +25759,13 @@ class TimelineManager {
         return changedNodes.some(node => this._nodeContainsTimelineStructure(node));
     }
 
+    _isUserMessageTextMutation(mutation) {
+        if (!this.adapter.observesTimelineMarkerText?.()) return false;
+        const element = mutation.type === 'characterData' ? mutation.target.parentElement : mutation.target;
+        const selector = this.adapter.getUserMessageSelector();
+        return Boolean(selector && element?.closest?.(selector));
+    }
+
     _scheduleTimelineMutationFlush(delay = TIMELINE_CONFIG.DEBOUNCE_DELAY) {
         if (this._timelineMutationTimer) {
             // 结构变化以首次触发时间为准；后续流式 token 不能不断推迟新节点刷新。
@@ -25483,7 +25779,7 @@ class TimelineManager {
     }
 
     _flushTimelineMutations() {
-        if (this._destroyed) return;
+        if (!this.isCurrentPage()) return;
         const structureDirty = this._timelineStructureDirty;
         const layoutDirty = this._timelineLayoutDirty;
         this._timelineStructureDirty = false;
@@ -25709,7 +26005,8 @@ class TimelineManager {
         
         this.healthCheckInterval = setInterval(() => {
             // 检查容器是否仍然连接在文档中
-            const isContainerValid = this.conversationContainer && this.conversationContainer.isConnected;
+            const isContainerValid = this.conversationContainer?.isConnected
+                && this.scrollContainer?.isConnected && this.scrollContainer.contains(this.conversationContainer);
             
             if (!isContainerValid) {
                 // 容器失效，尝试更新
@@ -25720,6 +26017,7 @@ class TimelineManager {
 
     // Ensure our conversation/scroll containers are still current after DOM replacements
     ensureContainersUpToDate(preparedContext = null) {
+        if (!this.isCurrentPage()) return false;
         const prepared = preparedContext || this._collectUserTurnElements({
             scope: document,
             forcePrepare: true,
@@ -25732,7 +26030,9 @@ class TimelineManager {
             messageSelector: prepared.selector,
             userTurnElements: prepared.userTurnElements
         });
-        if (newConv && (newConv !== this.conversationContainer || !this.conversationContainer?.isConnected)) {
+        if (!newConv?.contains(first)) return false;
+        const scrollContainer = this.resolveScrollContainer(newConv).container;
+        if (newConv !== this.conversationContainer || scrollContainer !== this.scrollContainer) {
             this.rebindConversationContainer(newConv, prepared);
             return true;
         }
@@ -26157,7 +26457,7 @@ class TimelineManager {
                         // 更新圆点样式
                         if (marker.dotElement) {
                             try { 
-                                marker.dotElement.classList.toggle('starred', isStarred);
+                                this._updateMarkerStarStyle(marker, isStarred);
                                 this._updateTooltipStarIfVisible(marker.dotElement, marker.id);
                             } catch {}
                         }
@@ -26166,32 +26466,7 @@ class TimelineManager {
                 
                 // ✅ 处理 Pin 数组变化
                 if (changes.chatTimelinePins) {
-                    // 重新加载 Pin 数据
                     await this.loadPins();
-                    
-                    // 同步 Pin 状态到所有 marker
-                    this.markers.forEach(marker => {
-                        const nodeId = this.adapter.extractIndexFromTurnId?.(marker.id);
-                        const nodeKey = (nodeId !== null && nodeId !== undefined) 
-                            ? nodeId 
-                            : this.markers.indexOf(marker);
-                        
-                        const isPinned = this.pinnedIndexes.has(nodeKey);
-                        
-                        if (isPinned) {
-                            this.pinned.add(marker.id);
-                            marker.pinned = true;
-                        } else {
-                            this.pinned.delete(marker.id);
-                            marker.pinned = false;
-                        }
-                        
-                        // 更新图钉图标
-                        this.updatePinIcon(marker);
-                    });
-                    
-                    // ✅ 重新渲染所有图钉
-                    this.renderPinMarkers();
                 }
                 
                 // ✅ 监听箭头键导航功能状态变化
@@ -26424,7 +26699,7 @@ class TimelineManager {
     }
 
     scrollToIndex(index) {
-        if (!this.markers || this.markers.length === 0) return false;
+        if (!this.isCurrentPage() || !this.markers?.length) return false;
         
         // 支持负数索引（如 -1 表示最后一个）
         let targetIndex = index;
@@ -26446,8 +26721,7 @@ class TimelineManager {
         const controller = new AbortController();
         this._markerNavigationController = controller;
         const deadline = Date.now() + 120000;
-        const isReady = element => element?.isConnected
-            && (this.adapter.isTimelineTargetReady?.(element) ?? true);
+        const isReady = element => this._isNavigationTargetReady(element);
         if (!isReady(marker.element) && !this.adapter.resolveTimelineTarget) return false;
 
         let loading = null;
@@ -26464,14 +26738,24 @@ class TimelineManager {
         controller.signal.addEventListener('abort', cleanup, { once: true });
         const navigate = async () => {
             let element = marker.element;
-            while (!controller.signal.aborted && !this._destroyed && Date.now() < deadline) {
+            while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 if (!isReady(element)) {
                     if (!this.adapter.resolveTimelineTarget) return false;
+                    const conversationContainer = this.conversationContainer;
+                    const scrollContainer = this.scrollContainer;
+                    const isScopeCurrent = () => this.conversationContainer === conversationContainer
+                        && this.scrollContainer === scrollContainer;
+                    const filterRows = rows => this._routeRows.filter(this.adapter, rows, this._rowRoute);
                     loading = this._showNodeNavigationLoading(controller);
-                    element = await this.adapter.resolveTimelineTarget(marker, this.scrollContainer,
-                        controller.signal, undefined, { deadline });
+                    element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
+                        controller.signal, undefined, { deadline, conversationContainer, isScopeCurrent, filterRows });
                     closeLoading();
-                    if (controller.signal.aborted || this._destroyed || !isReady(element)) return false;
+                    if (controller.signal.aborted || !this.isCurrentPage()) return false;
+                    if (!isScopeCurrent()) {
+                        element = null;
+                        continue;
+                    }
+                    if (!isReady(element)) return false;
                 }
                 const reached = await this.smoothScrollTo(element, 400, {
                     signal: controller.signal,
@@ -26492,7 +26776,7 @@ class TimelineManager {
             return false;
         };
         const showFailure = () => {
-            if (!controller.signal.aborted && !this._destroyed) {
+            if (!controller.signal.aborted && this.isCurrentPage()) {
                 this.showErrorToast(TimelineI18n.getMessage('timelineNodeLoadFailed') || '该提问暂未加载，请稍后重试');
             }
         };
@@ -26521,8 +26805,7 @@ class TimelineManager {
         const task = { status: 'loading', getMarker };
         this._nodeNavigationTask = task;
         const deadline = Date.now() + 120000;
-        const isReady = element => element?.isConnected
-            && (this.adapter.isTimelineTargetReady?.(element) ?? true);
+        const isReady = element => this._isNavigationTargetReady(element);
 
         let loading = null;
         const ensureLoading = () => loading ||= this._showNodeNavigationLoading(controller);
@@ -26541,7 +26824,7 @@ class TimelineManager {
         const navigate = async () => {
             // 收藏重试时重新读取历史；上次请求失败后也能重新启动补齐。
             if (waitForTarget) this.adapter.syncCapturedChatsData?.({ force: true, restartHistory });
-            while (!controller.signal.aborted && !this._destroyed && Date.now() < deadline) {
+            while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 const marker = getMarker();
                 if (!marker) {
                     ensureLoading();
@@ -26552,8 +26835,14 @@ class TimelineManager {
                 if (!isReady(element)) {
                     ensureLoading();
                     if (this.adapter.resolveTimelineTarget) {
-                        element = await this.adapter.resolveTimelineTarget(marker, this.scrollContainer,
-                            controller.signal, undefined, { deadline, waitForTarget });
+                        const conversationContainer = this.conversationContainer;
+                        const scrollContainer = this.scrollContainer;
+                        const isScopeCurrent = () => this.conversationContainer === conversationContainer
+                            && this.scrollContainer === scrollContainer;
+                        const filterRows = rows => this._routeRows.filter(this.adapter, rows, this._rowRoute);
+                        element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
+                            controller.signal, undefined, { deadline, waitForTarget, conversationContainer, isScopeCurrent, filterRows });
+                        if (!isScopeCurrent()) continue;
                         if (!isReady(element) && !waitForTarget) return false;
                     }
                     if (controller.signal.aborted || this._destroyed) return false;
@@ -26589,7 +26878,7 @@ class TimelineManager {
             } catch {
                 // 失败时保留原目标，重试重新取节点，不复用旧 DOM。
             }
-            if (controller.signal.aborted || this._destroyed) {
+            if (controller.signal.aborted || !this.isCurrentPage()) {
                 cleanup();
                 return false;
             }
@@ -26620,8 +26909,15 @@ class TimelineManager {
         return this.scrollToIndex(0);
     }
     
+    _isNavigationTargetReady(element) {
+        return element?.isConnected
+            && (this.adapter.isTimelineTargetInScope?.(element, this.conversationContainer) ?? true)
+            && (this.adapter.isTimelineTargetReady?.(element) ?? true);
+    }
+
     smoothScrollTo(targetElement, duration = 600, navigation = {}) {
-        if (!targetElement || !this.scrollContainer) return Promise.resolve(false);
+        const scrollContainer = this.scrollContainer;
+        if (!targetElement || !scrollContainer) return Promise.resolve(false);
 
         const preventAutoScroll = window.__aitPreventAutoScroll;
         const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + 150 });
@@ -26629,13 +26925,13 @@ class TimelineManager {
         this._recalcMarkerPositions();
         
         const scrollOffset = this.adapter?.getScrollOffset?.() ?? 30;
-        const startPosition = this.scrollContainer.scrollTop;
+        const startPosition = scrollContainer.scrollTop;
         
         // 计算初始目标位置
         const getTargetPosition = () => {
-            const containerRect = this.scrollContainer.getBoundingClientRect();
+            const containerRect = scrollContainer.getBoundingClientRect();
             const targetRect = targetElement.getBoundingClientRect();
-            return targetRect.top - containerRect.top + this.scrollContainer.scrollTop - scrollOffset;
+            return targetRect.top - containerRect.top + scrollContainer.scrollTop - scrollOffset;
         };
         
         return new Promise(resolve => {
@@ -26651,8 +26947,9 @@ class TimelineManager {
             const onAbort = () => finish(false);
             const animation = currentTime => {
                 if (finished) return;
-                if (navigation.signal?.aborted || this._destroyed || !targetElement.isConnected
-                    || !(this.adapter?.isTimelineTargetReady?.(targetElement) ?? true)) {
+                if (navigation.signal?.aborted || !this.isCurrentPage() || this.scrollContainer !== scrollContainer
+                    || scrollContainer.isConnected === false || scrollContainer.contains?.(targetElement) === false
+                    || !this._isNavigationTargetReady(targetElement)) {
                     finish(false);
                     return;
                 }
@@ -26661,10 +26958,10 @@ class TimelineManager {
                 const easedProgress = this.easeInOutQuad(progress, 0, 1, 1);
 
                 // 每帧重新计算目标位置，应对 DOM 动态插入。
-                this.scrollContainer.scrollTop = startPosition + (getTargetPosition() - startPosition) * easedProgress;
+                scrollContainer.scrollTop = startPosition + (getTargetPosition() - startPosition) * easedProgress;
                 if (progress < 1) requestAnimationFrame(animation);
                 else {
-                    this.scrollContainer.scrollTop = getTargetPosition();
+                    scrollContainer.scrollTop = getTargetPosition();
                     finish(true);
                 }
             };
@@ -26883,16 +27180,18 @@ class TimelineManager {
     refreshPlaceholderSummaries() {
         // 先让 adapter 有机会补拉接口数据（上次拉取时接口可能尚未返回）
         this.adapter.syncCapturedChatsData?.();
+        return this.refreshMarkerSummaries({ placeholdersOnly: true });
+    }
+
+    refreshMarkerSummaries({ placeholdersOnly = false } = {}) {
         let updatedCount = 0;
         this.markers.forEach(marker => {
             const oldText = (marker.summary || '').trim();
-            if (!this.adapter.isPlaceholderSummary(oldText)) return;
+            if (!marker.element || (placeholdersOnly && !this.adapter.isPlaceholderSummary(oldText))) return;
 
             try {
-                const freshText = marker.element
-                    ? (this.adapter.extractText(marker.element) || '').trim()
-                    : '';
-                if (this.adapter.isPlaceholderSummary(freshText)) return;
+                const freshText = (this.adapter.extractText(marker.element) || '').trim();
+                if (freshText === oldText || (placeholdersOnly && this.adapter.isPlaceholderSummary(freshText))) return;
 
                 marker.summary = freshText;
                 marker.dotElement?.setAttribute('aria-label', freshText);
@@ -28133,33 +28432,29 @@ class TimelineManager {
         } catch (e) {
             // Silently fail
         }
-        this._syncCapturedMarkerStates();
+        this._syncCapturedStarStates();
     }
     
     /**
      * ✅ 加载标记数据（与loadStars类似）
      */
     async loadPins() {
-        this.pinned.clear();
-        this.pinnedIndexes.clear();
+        const version = ++this._pinStorageVersion;
         try {
-            const url = location.href.replace(/^https?:\/\//, '');
-            
-            // 使用 PinStorageManager 获取当前 URL 的 Pin
+            const url = this._pageUrl.replace(/^https?:\/\//, '');
             const items = await PinStorageManager.getByUrl(url);
-            
-            // ✅ 提取 nodeId/index（支持字符串和数字，与 loadStars 保持一致）
-            items.forEach(item => {
-                // 优先使用 nodeId，其次 index
-                const nodeKey = item.nodeId !== undefined ? item.nodeId : item.index;
-                if (nodeKey !== undefined && nodeKey !== '' && !Number.isNaN(nodeKey)) {
-                    this.pinnedIndexes.add(nodeKey);
-                }
-            });
+            if (this._pinStorageVersion === version && this.isCurrentPage()) this._applyPins(items);
         } catch (e) {
             // Silently fail
         }
-        this._syncCapturedMarkerStates();
+    }
+
+    _applyPins(items) {
+        this._pinRecords = items.filter(item => {
+            const key = PinStorageManager.getNodeKey(item);
+            return (typeof key === 'string' && key !== '') || (Number.isInteger(key) && key >= 0);
+        });
+        this._syncPinMarkerStates();
     }
 
     /**
@@ -28486,7 +28781,7 @@ class TimelineManager {
             // ✅ 更新圆点样式
             if (m.dotElement) {
                 try {
-                    m.dotElement.classList.remove('starred');
+                    this._updateMarkerStarStyle(m, false);
                     this._updateTooltipStarIfVisible(m.dotElement, id);
                 } catch {}
             }
@@ -28522,7 +28817,7 @@ class TimelineManager {
             // ✅ 更新圆点样式
             if (m.dotElement) {
                 try {
-                    m.dotElement.classList.add('starred');
+                    this._updateMarkerStarStyle(m, true);
                     this._updateTooltipStarIfVisible(m.dotElement, id);
                 } catch {}
             }
@@ -28669,30 +28964,28 @@ class TimelineManager {
         if (this.ui.questionListBtn && this.getTimelineFeatures()?.questionList === true) {
             this.ui.questionListBtn.style.display = 'flex';
         }
-        if (!this.ui.starredBtn) return;
+        const { starredBtn, notepadBtn } = this.ui;
+        if (!starredBtn) return;
 
         // 隐藏收藏按钮（功能已合并到提问列表中）
-        this.ui.starredBtn.style.display = 'none';
+        starredBtn.style.display = 'none';
 
         // 同步显示闪记按钮（受开关控制，默认开启）
-        if (this.ui.notepadBtn && this.getTimelineFeatures()?.notepad === true) {
+        if (notepadBtn && this.getTimelineFeatures()?.notepad === true) {
+            let enabled = true;
             try {
                 const result = await chrome.storage.local.get('aitNotepadEnabled');
-                const enabled = result.aitNotepadEnabled !== false;
-                this.ui.notepadBtn.style.display = enabled ? 'flex' : 'none';
-            } catch (e) {
-                this.ui.notepadBtn.style.display = 'flex';
+                enabled = result.aitNotepadEnabled !== false;
+            } catch {}
+            if (this.ui.notepadBtn === notepadBtn) {
+                notepadBtn.style.display = enabled ? 'flex' : 'none';
             }
         }
         
         // 根据是否有收藏数据来设置不同的颜色状态
         const hasData = await this.hasStarredData();
-        if (hasData) {
-            // 有收藏记录：移除灰色类，使用橙色
-            this.ui.starredBtn.classList.remove('no-starred-data');
-        } else {
-            // 没有收藏记录：添加灰色类
-            this.ui.starredBtn.classList.add('no-starred-data');
+        if (this.ui.starredBtn === starredBtn) {
+            starredBtn.classList.toggle('no-starred-data', !hasData);
         }
     }
     
@@ -28770,7 +29063,7 @@ class TimelineManager {
      * ✅ 切换节点的标记状态
      */
     async togglePin(id) {
-        if (!id) {
+        if (!id || !this.isCurrentPage()) {
             return false;
         }
         
@@ -28796,61 +29089,37 @@ class TimelineManager {
         // ✅ 使用 adapter 提取稳定的 nodeId（与 toggleStar 一致）
         const nodeId = this.adapter.extractIndexFromTurnId?.(id);
         // 最终使用的存储 key（nodeId 或 fallback 到数组索引）
-        const nodeKey = (nodeId !== null && nodeId !== undefined) 
-            ? nodeId 
-            : this.markers.indexOf(marker);
+        const index = this.markers.indexOf(marker);
+        const nodeKey = nodeId ?? index;
         
         if (nodeKey === -1) {
             return false;
         }
         
         try {
-            // ✅ 修复：动态计算 urlWithoutProtocol
-            const urlWithoutProtocol = location.href.replace(/^https?:\/\//, '');
-            const key = `chatTimelinePin:${urlWithoutProtocol}:${nodeKey}`;
-            const isPinned = await PinStorageManager.findByKey(key);
-            
-            if (isPinned) {
-                // 取消标记
-                await PinStorageManager.remove(key);
-                
-                // ✅ 兼容性修复：清理可能存在的旧数据（数字索引）
-                if (typeof nodeKey !== 'number') {
-                    const index = this.markers.indexOf(marker);
-                    if (index !== -1) {
-                        const oldKey = `chatTimelinePin:${urlWithoutProtocol}:${index}`;
-                        await PinStorageManager.remove(oldKey);
-                        this.pinnedIndexes.delete(index);
-                    }
-                }
-                
-                marker.pinned = false;
-                this.pinned.delete(id);
-                this.pinnedIndexes.delete(nodeKey);
-            } else {
-                // 添加标记
-                // ✅ 限制标记文字长度为前100个字符
-                const truncatedSummary = this.truncateText(marker.summary || '', 100);
-                const pinData = {
-                    key,
-                    url: location.href,
-                    urlWithoutProtocol: urlWithoutProtocol,
-                    // ✅ 根据 nodeKey 类型决定存储字段（与 saveStarItemWithFolder 一致）
-                    ...(typeof nodeKey === 'string' ? { nodeId: nodeKey } : { index: nodeKey }),
-                    question: truncatedSummary,
-                    siteName: this.getSiteNameFromUrl(location.href),
-                    timestamp: Date.now(),
-                };
-                await PinStorageManager.add(pinData);
-                marker.pinned = true;
-                this.pinned.add(id);
-                this.pinnedIndexes.add(nodeKey);
+            const url = this._pageUrl;
+            const urlWithoutProtocol = PinStorageManager.getConversationKey(url.replace(/^https?:\/\//, ''));
+            const question = this.truncateText(marker.summary || '', 100);
+            // 存储返回前可能重建列表。使用点击时的序号，ChatGPT DOM 回退还需核对提问文本。
+            const legacyQuestion = this._legacyPinQuestion(marker);
+            const matchesLegacyIndex = this._findPinnedMarker(index) === marker;
+            const items = await PinStorageManager.toggle({
+                key: `chatTimelinePin:${urlWithoutProtocol}:${nodeKey}`,
+                url,
+                urlWithoutProtocol,
+                ...(typeof nodeKey === 'string' ? { nodeId: nodeKey } : { index: nodeKey }),
+                question,
+                siteName: this.getSiteNameFromUrl(url),
+                timestamp: Date.now(),
+            }, entry => {
+                const storedKey = PinStorageManager.getNodeKey(entry);
+                return storedKey === nodeKey || (matchesLegacyIndex && storedKey === index
+                    && (legacyQuestion === null || (legacyQuestion && entry.question === legacyQuestion)));
+            });
+            if (this.isCurrentPage()) {
+                this._pinStorageVersion++;
+                this._applyPins(items);
             }
-            
-            // 更新节点UI
-            this.updatePinIcon(marker);
-            // ✅ 重新渲染所有图钉
-            this.renderPinMarkers();
             return true;
         } catch (e) {
             return false;
@@ -28867,6 +29136,11 @@ class TimelineManager {
         }
     }
     
+    _updateMarkerStarStyle(marker, isStarred) {
+        marker.dotElement?.classList.toggle('starred', isStarred);
+        this._pinElements.get(marker.id)?.classList.toggle('ait-node-starred', isStarred);
+    }
+
     _schedulePinRender() {
         if (this._destroyed || this._pinRenderRafId !== null) return;
         this._pinRenderRafId = requestAnimationFrame(() => {
@@ -28900,6 +29174,7 @@ class TimelineManager {
                 this._pinElements.set(marker.id, pinMarker);
                 fragment.appendChild(pinMarker);
             }
+            pinMarker.classList.toggle('ait-node-starred', marker.dotElement.classList.contains('starred'));
             pinMarker.classList.toggle('ait-node-hovered', marker.dotElement.matches(':hover'));
             const n = String(marker.dotN || 0);
             if (pinMarker.style.getPropertyValue('--n') !== n) pinMarker.style.setProperty('--n', n);
@@ -28942,6 +29217,7 @@ let adapterRegistry = new SiteAdapterRegistry();
 let currentAdapter = null;
 let timelineInitInFlight = null;
 let timelineInitInFlightVersion = null;
+const timelineRouteRows = new TimelineRouteRows();
 
 // Check if current route is a conversation page (uses adapter)
 async function resolveCurrentAdapter() {
@@ -28993,10 +29269,9 @@ async function canInitialize() {
     });
     const selector = adapter.getUserMessageSelector();
     if (!selector) return false;
-    if (adapter.filterTimelineUserElements) {
-        return adapter.filterTimelineUserElements(Array.from(document.querySelectorAll(selector))).length > 0;
-    }
-    return document.querySelector(selector) !== null;
+    const rows = Array.from(document.querySelectorAll(selector));
+    const route = timelineRouteRows.key(adapter, location.href);
+    return timelineRouteRows.filter(adapter, rows, route).length > 0;
 }
 
 function isCurrentInitialization(version) {
@@ -29009,8 +29284,13 @@ function waitForFirstMessage(version) {
     if (!observerManager) return;
 
     let checking = false;
+    let checkPending = false;
     const check = async () => {
-        if (checking || !isCurrentInitialization(version)) return;
+        if (!isCurrentInitialization(version)) return;
+        if (checking) {
+            checkPending = true;
+            return;
+        }
         checking = true;
         try {
             if (await canInitialize() && await isPlatformEnabled() && isCurrentInitialization(version)) {
@@ -29018,6 +29298,10 @@ function waitForFirstMessage(version) {
             }
         } finally {
             checking = false;
+            if (checkPending && unsubscribePageObserver) {
+                checkPending = false;
+                onChange();
+            }
         }
     };
     const onChange = () => void check().catch(() => {});
@@ -29027,13 +29311,25 @@ function waitForFirstMessage(version) {
         throttle: 150
     });
     const unsubscribeCapturedData = currentAdapter?.subscribeCapturedChatsDataUpdated?.(onChange);
-    const attributes = currentAdapter?.getTimelineStructureAttributeFilter?.();
-    const attributeObserver = attributes?.length ? new MutationObserver(onChange) : null;
-    attributeObserver?.observe(document.body, { subtree: true, attributes: true, attributeFilter: attributes });
+    const adapter = currentAdapter;
+    const structureAttributes = new Set(adapter?.getTimelineStructureAttributeFilter?.() || []);
+    const attributes = [...new Set([...structureAttributes, 'hidden', 'aria-hidden', 'inert', 'style', 'class'])];
+    const mutationObserver = new MutationObserver(mutations => {
+        const selector = adapter?.getUserMessageSelector();
+        if (!selector) return;
+        if (mutations.some(({ type, target, attributeName }) => {
+            if (type === 'characterData') return target.parentElement?.closest(selector);
+            return structureAttributes.has(attributeName) || target.matches?.(selector) || target.querySelector?.(selector);
+        })) onChange();
+    });
+    mutationObserver.observe(document.body, {
+        subtree: true, attributes: true, attributeFilter: attributes,
+        characterData: !adapter?.filterTimelineUserElements
+    });
     unsubscribePageObserver = () => {
         unsubscribeBody();
         unsubscribeCapturedData?.();
-        attributeObserver?.disconnect();
+        mutationObserver.disconnect();
     };
     onChange();
 }
@@ -29132,7 +29428,7 @@ async function initializeTimeline(version = initVersion) {
 
         destroyTimelineInstance({ keepPageObserver: true });
 
-        const manager = new TimelineManager(adapter);
+        const manager = new TimelineManager(adapter, timelineRouteRows);
         timelineManagerInstance = manager;
 
         try {
@@ -31302,17 +31598,23 @@ class MessageActionManager {
         let outcome = 'complete';
         const operation = new AbortController();
         const abort = () => operation.abort();
+        let outputWarning;
+        const prepareContext = async () => ({
+            ...await this.prepareOutput(session, options, operation.signal, timing),
+            reportWarning(message) { outputWarning = message; }
+        });
         session.controller.signal.addEventListener('abort', abort, { once: true });
         session.busy = true; session.busyKind = destination; session.ui.update(session);
         try {
             if (copying) {
                 // Invoke write before any await; data collection/rendering runs through its deferred payload.
-                await AITClipboard.write(type, async () => session.action.copy(await this.prepareOutput(session, options, operation.signal, timing)), { signal: operation.signal });
+                await AITClipboard.write(type, async () => session.action.copy(await prepareContext()), { signal: operation.signal });
             } else {
-                await session.action.execute(await this.prepareOutput(session, options, operation.signal, timing));
+                await session.action.execute(await prepareContext());
             }
             if (this.current(session)) {
-                window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
+                if (outputWarning) window.globalToastManager?.warning(outputWarning);
+                else window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
                 if (!copying) this.close();
             }
         } catch (error) {
@@ -34157,14 +34459,15 @@ class MessageScreenshotAction {
         return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage, timing });
     }
     async copy(context) {
-        const blobs = await this.render(context, true);
+        const { blobs, unavailableImageCount } = await this.render(context, true);
         context.signal.throwIfAborted();
         if (blobs.length !== 1) throw new Error('CopyTooLong');
+        this.reportPartialOutput(context, unavailableImageCount);
         return blobs[0];
     }
     async execute(context) {
         const { signal, timing } = context;
-        const blobs = await this.render(context);
+        const { blobs, unavailableImageCount } = await this.render(context);
         signal.throwIfAborted();
         const dispatchDownloads = timing?.start('dispatch downloads');
         const filename = `${AITDownload.filename(document.title.replace(/\s*[-–]\s*ChatGPT$/, ''))}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
@@ -34173,6 +34476,12 @@ class MessageScreenshotAction {
             AITDownload.saveBlob(blobs[index], `${filename}${blobs.length > 1 ? `-${index + 1}` : ''}.png`);
         }
         dispatchDownloads?.({ files: blobs.length, bytes: blobs.reduce((total, blob) => total + blob.size, 0) });
+        this.reportPartialOutput(context, unavailableImageCount);
+    }
+    reportPartialOutput(context, unavailableImageCount) {
+        if (unavailableImageCount > 0) {
+            context.reportWarning?.(TimelineI18n.getMessage('messageScreenshotPartial', String(unavailableImageCount)));
+        }
     }
 }
 

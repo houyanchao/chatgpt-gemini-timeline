@@ -1143,7 +1143,13 @@
     "message": "Aguarde que esta resposta termine."
   },
   "messageScreenshotImageFailed": {
-    "message": "Não foi possível carregar uma imagem. Tente após o carregamento."
+    "message": "Não foi possível ler as imagens selecionadas. Não foi criada nenhuma captura de ecrã."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Imagem indisponível"
+  },
+  "messageScreenshotPartial": {
+    "message": "Captura de ecrã criada. Não foi possível ler algumas imagens ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Esta mensagem contém conteúdo incorporado que não pode ser capturado."

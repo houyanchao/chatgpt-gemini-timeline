@@ -115,14 +115,14 @@ class DoubaoAdapter extends SiteAdapter {
         return pathname.includes('/chat/') || pathname === '/share' || pathname.startsWith('/share/');
     }
 
-    extractConversationId(pathname) {
+    extractConversationId(pathname, url = location) {
         try {
             // Extract conversation ID from /chat/数字 pattern
             const match = pathname.match(/\/chat\/(\d+)/);
             if (match) return match[1];
 
             if (pathname === '/share' || pathname.startsWith('/share/')) {
-                const params = new URLSearchParams(location.search);
+                const params = new URLSearchParams(url.search);
                 return params.get('conversationId')
                     || params.get('shareId')
                     || params.get('threadId')
@@ -136,7 +136,7 @@ class DoubaoAdapter extends SiteAdapter {
         }
     }
 
-    findConversationContainer(firstMessage) {
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         /**
          * 查找对话容器
          * 
@@ -149,7 +149,8 @@ class DoubaoAdapter extends SiteAdapter {
          * 优势：比传统的向上遍历更精确，避免找到过于外层的容器
          */
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         });
     }
     

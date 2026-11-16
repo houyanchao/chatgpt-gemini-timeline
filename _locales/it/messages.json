@@ -1143,7 +1143,13 @@
     "message": "Attendi il completamento di questa risposta."
   },
   "messageScreenshotImageFailed": {
-    "message": "Impossibile caricare un’immagine. Riprova dopo il caricamento."
+    "message": "Impossibile leggere le immagini selezionate. Nessuna schermata generata."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Immagine non disponibile"
+  },
+  "messageScreenshotPartial": {
+    "message": "Schermata acquisita. Impossibile leggere alcune immagini ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Questo messaggio contiene contenuti incorporati non acquisibili."

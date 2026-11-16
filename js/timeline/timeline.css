@@ -849,7 +849,7 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
     transform: translateY(-50%);
 }
 
-/* 从左到右：pin、收藏、横线；悬停伸长时两个图标一起移动。 */
+/* 图钉跟随横线伸长，已收藏时为星标留出位置。 */
 .ait-compact-mode .timeline-pin-marker {
     --ait-compact-line-width: var(--timeline-compact-line-width);
     left: auto !important;
@@ -857,9 +857,13 @@ html[data-timeline-theme="dark"] .ait-chat-timeline-bar.ait-compact-mode {
         (100% - var(--timeline-hit-size)) / 2
         + 4px + var(--ait-compact-line-width)
         + var(--timeline-marker-line-gap)
-        + var(--timeline-marker-icon-size) + var(--timeline-marker-icon-gap)
+        + var(--ait-pin-star-space, 0px)
     ) !important;
     transition: right 0.16s ease;
+}
+
+.ait-compact-mode .timeline-pin-marker.ait-node-starred {
+    --ait-pin-star-space: calc(var(--timeline-marker-icon-size) + var(--timeline-marker-icon-gap));
 }
 
 .ait-compact-mode .timeline-pin-marker.ait-node-hovered {

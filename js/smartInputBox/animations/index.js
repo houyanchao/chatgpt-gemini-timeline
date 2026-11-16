@@ -35,7 +35,7 @@ class InputBoxAnimationManager {
         return this._petData[id] || { count: 1, messages: 0 };
     }
 
-    async init() {
+    async init(generationAdapter) {
         await TimelineI18n.ready();
 
         this._petData = await StorageAdapter.get(this._petDataKey) || {};
@@ -47,7 +47,9 @@ class InputBoxAnimationManager {
         }
         this._startStorageListener();
         this._startAIStateListener();
-        this.pauseActive();
+        if (generationAdapter) {
+            this._unwatchGeneration = window.AIStateMonitor?.getInstance().watch(generationAdapter);
+        }
     }
 
     async toggle(id) {
@@ -193,6 +195,8 @@ class InputBoxAnimationManager {
             window.removeEventListener('ai:stateChange', this._aiStateHandler);
             this._aiStateHandler = null;
         }
+        this._unwatchGeneration?.();
+        this._unwatchGeneration = null;
     }
 
     _activate(id) {

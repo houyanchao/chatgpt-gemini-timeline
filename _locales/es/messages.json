@@ -1143,7 +1143,13 @@
     "message": "Espera a que termine esta respuesta."
   },
   "messageScreenshotImageFailed": {
-    "message": "No se pudo cargar una imagen. Inténtalo cuando termine de cargar."
+    "message": "No se pudieron leer las imágenes seleccionadas. No se generó la captura."
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "Imagen no disponible"
+  },
+  "messageScreenshotPartial": {
+    "message": "Captura generada. No se pudieron leer algunas imágenes ($1)."
   },
   "messageScreenshotUnsupported": {
     "message": "Este mensaje contiene contenido incrustado que no se puede capturar."

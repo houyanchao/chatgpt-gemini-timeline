@@ -83,14 +83,15 @@ class MessageScreenshotAction {
         return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage, timing });
     }
     async copy(context) {
-        const blobs = await this.render(context, true);
+        const { blobs, unavailableImageCount } = await this.render(context, true);
         context.signal.throwIfAborted();
         if (blobs.length !== 1) throw new Error('CopyTooLong');
+        this.reportPartialOutput(context, unavailableImageCount);
         return blobs[0];
     }
     async execute(context) {
         const { signal, timing } = context;
-        const blobs = await this.render(context);
+        const { blobs, unavailableImageCount } = await this.render(context);
         signal.throwIfAborted();
         const dispatchDownloads = timing?.start('dispatch downloads');
         const filename = `${AITDownload.filename(document.title.replace(/\s*[-–]\s*ChatGPT$/, ''))}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
@@ -99,5 +100,11 @@ class MessageScreenshotAction {
             AITDownload.saveBlob(blobs[index], `${filename}${blobs.length > 1 ? `-${index + 1}` : ''}.png`);
         }
         dispatchDownloads?.({ files: blobs.length, bytes: blobs.reduce((total, blob) => total + blob.size, 0) });
+        this.reportPartialOutput(context, unavailableImageCount);
+    }
+    reportPartialOutput(context, unavailableImageCount) {
+        if (unavailableImageCount > 0) {
+            context.reportWarning?.(TimelineI18n.getMessage('messageScreenshotPartial', String(unavailableImageCount)));
+        }
     }
 }

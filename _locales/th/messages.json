@@ -1143,7 +1143,13 @@
     "message": "รอให้คำตอบนี้เสร็จสิ้นก่อน"
   },
   "messageScreenshotImageFailed": {
-    "message": "โหลดรูปภาพไม่ได้ โปรดลองอีกครั้งหลังโหลดเสร็จ"
+    "message": "ไม่สามารถอ่านรูปภาพที่เลือกได้ จึงไม่ได้สร้างภาพหน้าจอ"
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "ไม่สามารถอ่านรูปภาพได้"
+  },
+  "messageScreenshotPartial": {
+    "message": "สร้างภาพหน้าจอแล้ว แต่ไม่สามารถอ่านรูปภาพได้ $1 รูป"
   },
   "messageScreenshotUnsupported": {
     "message": "ข้อความนี้มีเนื้อหาฝังตัวที่ยังจับภาพไม่ได้"

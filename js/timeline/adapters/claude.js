@@ -42,6 +42,7 @@ class ClaudeAdapter extends SiteAdapter {
         this._conversationId = null;
         this._snapshot = null;
         this._liveEntries = new Map();
+        this._liveScope = null;
         this._staleIds = new Set();
         this._confirmedScope = null;
     }
@@ -54,6 +55,23 @@ class ClaudeAdapter extends SiteAdapter {
         return document.querySelector('[data-testid="transcript-sizer"]')
             ? '[data-testid="transcript-row"]:has([data-testid="user-message"])'
             : '[data-test-render-count]:has([data-testid="user-message"])';
+    }
+
+    prepareTimelineNodes({ reason } = {}) {
+        if (reason === 'initialization-check' || reason === 'initialization' || reason === 'initialization-ready') {
+            this.syncCapturedChatsData();
+        }
+    }
+
+    getTimelineDomRowId(element) {
+        const id = this.extractIndexFromTurnId(this.generateTurnId(element, -1));
+        return typeof id === 'string' && id !== '-1' ? id : null;
+    }
+
+    getTimelineConfirmedRows(elements) {
+        if (this._snapshot?.conversationId !== this.extractConversationId(location.pathname)) return null;
+        const capturedIds = new Set(this._snapshot.entries.map(entry => entry.id));
+        return new Set(elements.filter(element => capturedIds.has(this.getTimelineDomRowId(element))));
     }
 
     generateTurnId(element, index) {
@@ -84,6 +102,7 @@ class ClaudeAdapter extends SiteAdapter {
             this._conversationId = conversationId;
             this._snapshot = null;
             this._liveEntries.clear();
+            this._liveScope = null;
             this._staleIds.clear();
             this._confirmedScope = null;
         }
@@ -124,18 +143,28 @@ class ClaudeAdapter extends SiteAdapter {
         return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
     }
 
-    getCapturedTimelineEntries(userElements) {
+    getCapturedTimelineEntries(userElements, conversationContainer = null) {
         if (!document.querySelector('[data-testid="transcript-sizer"]')) return null;
-        const elements = new Map(userElements.map((element, index) => [this.generateTurnId(element, index), element]));
-        const scope = document.querySelector('[data-testid="transcript-list"]');
         const captured = (this._snapshot?.entries || []).map(entry => ({
             id: `claude-${entry.id}`, summary: entry.text, rowIndex: entry.rowIndex
         }));
         const capturedIds = new Set(captured.map(entry => entry.id));
-        if (captured.some(entry => elements.has(entry.id))) this._confirmedScope = scope;
+        const candidates = conversationContainer
+            ? userElements.filter(element => this.isTimelineTargetInScope(element, conversationContainer))
+            : userElements;
+        const anchor = candidates.find(element => capturedIds.has(this.generateTurnId(element, -1)));
+        const scope = (anchor || candidates[0])?.closest('[data-testid="transcript-list"]')
+            || conversationContainer || this._liveScope;
+        const scopedElements = scope ? candidates.filter(element => scope.contains(element)) : candidates;
+        const elements = new Map(scopedElements.map((element, index) => [this.generateTurnId(element, index), element]));
+        if (scope !== this._liveScope) {
+            this._liveEntries.clear();
+            this._liveScope = scope;
+        }
+        if (scope && anchor) this._confirmedScope = scope;
         for (const [id, element] of elements) {
             if (capturedIds.has(id) || this._staleIds.has(id)) continue;
-            if (this._snapshot && this._confirmedScope !== scope) continue;
+            if (this._snapshot && (!scope || this._confirmedScope !== scope)) continue;
             const value = element.getAttribute('data-index');
             const rowIndex = value === null ? NaN : Number(value);
             if (!Number.isFinite(rowIndex)) continue;
@@ -205,6 +234,10 @@ class ClaudeAdapter extends SiteAdapter {
         return !!element?.isConnected && element.getBoundingClientRect().height > 0;
     }
 
+    isTimelineTargetInScope(element, scope) {
+        return scope?.contains(element) === true;
+    }
+
     _waitForTimelineRender(signal) {
         return new Promise(resolve => {
             const finish = () => {
@@ -220,17 +253,21 @@ class ClaudeAdapter extends SiteAdapter {
 
     async resolveTimelineTarget(marker, scrollContainer, signal, onProgress, navigation = {}) {
         const conversationId = this.extractConversationId(location.pathname);
+        const scope = navigation.conversationContainer || scrollContainer;
+        const isScopeCurrent = () => scope.isConnected !== false && scrollContainer.isConnected !== false
+            && this.extractConversationId(location.pathname) === conversationId
+            && (navigation.isScopeCurrent?.() ?? true);
         const deadline = Math.min(navigation.deadline ?? Infinity, Date.now() + 10000);
         let low = 0, high = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
-        while (!signal.aborted && Date.now() < deadline
-            && this.extractConversationId(location.pathname) === conversationId) {
-            const elements = Array.from(document.querySelectorAll(this.getUserMessageSelector()));
+        while (!signal.aborted && Date.now() < deadline && isScopeCurrent()) {
+            const rowsInScope = Array.from(scope.querySelectorAll(this.getUserMessageSelector()));
+            const elements = navigation.filterRows?.(rowsInScope) ?? rowsInScope;
             const target = elements.find((element, index) => this.generateTurnId(element, index) === marker.id);
             if (this.isTimelineTargetReady(target)) return target;
-            const entries = this.getCapturedTimelineEntries(elements) || [];
+            const entries = this.getCapturedTimelineEntries(elements, scope) || [];
             const entry = entries.find(item => item.id === marker.id);
             if (!entry) return null;
-            const rows = Array.from(document.querySelectorAll('[data-testid="transcript-row"]'));
+            const rows = Array.from(scope.querySelectorAll('[data-testid="transcript-row"][data-index]'));
             const indexes = rows.map(row => Number(row.getAttribute('data-index'))).filter(Number.isFinite);
             if (!indexes.length) { await this._waitForTimelineRender(signal); continue; }
             const from = scrollContainer.scrollTop;

@@ -18,7 +18,7 @@
      * 顶栏收藏/导出按钮只显示图标、不显示文字的平台。
      * 这些平台原生顶栏本身就是纯图标按钮，加文字会显得突兀。
      */
-    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek']);
+    const ICON_ONLY_PLATFORMS = new Set(['chatgpt', 'gemini', 'deepseek', 'grok']);
 
     /**
      * 顶栏按钮是否显示文字标签

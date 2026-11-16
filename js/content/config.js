@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "6aa3b8aca907"
+      "revision": "97a6202f39ff"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -79,7 +79,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "1d14e4ffb606"
+      "revision": "d849c512d574"
     },
     "export-ui": {
       "script": "js/content/bundles/export-ui.js",
@@ -97,7 +97,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "28c250b0242c"
+      "revision": "9c53d817d871"
     },
     "message-actions-ui": {
       "script": "js/content/bundles/message-actions-ui.js",
@@ -151,7 +151,7 @@ globalThis.AITContentConfig = {
     },
     {
       "platformId": "grok",
-      "selector": ".items-end[id]"
+      "selector": "[data-user-message-row], .items-end[id]:not([data-user-message-row] *)"
     },
     {
       "platformId": "perplexity",

@@ -12,27 +12,32 @@ class GrokSmartEnterAdapter extends BaseSmartEnterAdapter {
         return matchesSmartInputPlatform('grok');
     }
     
-    /**
-     * 获取输入框选择器
-     * Grok 使用 class="ProseMirror" 且 contenteditable="true" 的 div
-     */
+    /** Grok 的对话编辑器使用 ProseMirror，首页也可能使用 textarea。 */
     getInputSelector() {
-        return '.ProseMirror[contenteditable="true"]';
+        return '.ProseMirror[contenteditable="true"], form[data-composer] [data-composer-field] textarea';
+    }
+
+    getSendButtonSelector() {
+        return 'form[data-composer] button[data-composer-action="send"]';
     }
  
-    /**
-     * 获取定位参考元素
-     * 使用 .query-bar 祖先元素作为定位参考
-     * @param {HTMLElement} inputElement - 输入框元素
-     */
+    /** 使用输入框的外框定位提示词按钮和动画。 */
     getPositionReferenceElement(inputElement) {
-        return inputElement?.closest('.query-bar') || inputElement;
+        return inputElement?.closest('form[data-composer]')
+            || inputElement?.closest('.query-bar')
+            || inputElement;
     }
     
-    /**
-     * 获取提示词按钮位置偏移量
-     */
-    getPromptButtonOffset() {
-        return { top: 12, left: -2 };
+    getPromptButtonOffset(inputElement) {
+        const composer = inputElement?.closest('form[data-composer]');
+        if (!composer) return { top: 12, left: -2 };
+
+        const composerRect = composer.getBoundingClientRect();
+        const attachRect = composer.querySelector('[data-testid="attach-button"]')?.getBoundingClientRect();
+        const center = attachRect?.height
+            ? attachRect.top - composerRect.top + attachRect.height / 2
+            : composerRect.height / 2;
+        const buttonHeight = 32; // 与 .smart-input-prompt-btn 的高度一致
+        return { top: Math.max(0, center - buttonHeight / 2), left: 0 };
     }
 }

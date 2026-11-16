@@ -18,6 +18,10 @@ const MessageScreenshotSnapshot = (() => {
     const OMIT = 'script, style, noscript, input, textarea, select, [data-ait-owned-ui], '
         + '.runner-code-run-btn, .runner-container, .formula-tooltip, .ait-highlight-action, '
         + '.turn-action-controls, [role="toolbar"], [hidden], .sr-only';
+    const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+    const CSS_IMAGE_URL = /url\(\s*(?:"((?:\\[\s\S]|[^"\\])*)"|'((?:\\[\s\S]|[^'\\])*)'|((?:\\[\s\S]|[^)\\])*))\s*\)/gi;
+    const EMPTY_BACKGROUND = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E';
+    const RETRYABLE_IMAGE_STATUS = new Set([408, 500, 502, 503, 504]);
 
     function check(signal) {
         if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
@@ -115,6 +119,8 @@ const MessageScreenshotSnapshot = (() => {
         function clone(node, inheritedVariables) {
             if (node.nodeType === Node.TEXT_NODE) return node.cloneNode(false);
             if (node.nodeType !== Node.ELEMENT_NODE || node.matches(omit)) return null;
+            // The selected picture candidate is already frozen on its img.
+            if (node.tagName === 'SOURCE' && node.parentElement?.tagName === 'PICTURE') return null;
             const style = node === element ? rootStyle : getComputedStyle(node);
             if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return null;
             if (node.matches('iframe, video, object, embed')) throw new Error('Unsupported');
@@ -178,7 +184,9 @@ const MessageScreenshotSnapshot = (() => {
                 if (/^on/i.test(attribute.name) || excludeAttributes.includes(attribute.name)) copy.removeAttribute(attribute.name);
             }
             if (node.tagName === 'IMG') {
-                copy.src = node.currentSrc || node.src;
+                const source = node.currentSrc || node.getAttribute('src')?.trim();
+                if (source) copy.src = node.currentSrc || node.src;
+                else copy.removeAttribute('src');
                 copy.removeAttribute('srcset');
                 copy.removeAttribute('sizes');
                 copy.loading = 'eager';
@@ -201,80 +209,137 @@ const MessageScreenshotSnapshot = (() => {
         return { content, width: rootRect.width, colorScheme: rootStyle.colorScheme };
     }
 
-    async function inlineImages(root, signal) {
-        const cache = new Map();
-        async function dataUrl(url) {
-            if (/^data:/i.test(url)) return url;
-            if (!cache.has(url)) cache.set(url, (async () => {
-                check(signal);
-                const parsed = new URL(url, location.href);
-                if (!['http:', 'https:', 'blob:'].includes(parsed.protocol)) throw new Error('ImageFailed');
-                if (location.origin === 'https://gemini.google.com' && parsed.origin === 'https://www.gstatic.com'
-                    && parsed.pathname.startsWith('/weather/conditions/v1/png/')) {
-                    // Gemini can display these icons, but the CDN does not allow page-level CORS reads.
-                    const result = await wait(chrome.runtime.sendMessage({
-                        type: 'AIT_FETCH_GEMINI_WEATHER_ICON', url: parsed.href
-                    }), signal);
-                    if (!result?.success || !result.data?.startsWith('data:image/png;base64,')) throw new Error('ImageFailed');
-                    return result.data;
-                }
-                const request = new AbortController();
-                const abort = () => request.abort();
-                signal?.addEventListener('abort', abort, { once: true });
-                let reader;
-                try {
-                    // Bound the entire transfer, including a body that stalls after response headers arrive.
-                    return await wait((async () => {
-                        const response = await fetch(parsed.href, {
-                            signal: request.signal, credentials: parsed.origin === location.origin ? 'include' : 'omit'
-                        });
-                        if (!response.ok) throw new Error('ImageFailed');
-                        const blob = await response.blob();
-                        if (!blob.type.startsWith('image/')) throw new Error('ImageFailed');
-                        return await new Promise((resolve, reject) => {
-                            reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = () => reject(new Error('ImageFailed'));
-                            reader.onabort = () => reject(new DOMException('Cancelled', 'AbortError'));
-                            reader.readAsDataURL(blob);
-                        });
-                    })(), signal);
-                } finally {
-                    request.abort();
-                    signal?.removeEventListener('abort', abort);
-                    if (reader?.readyState === 1) reader.abort();
-                }
-            })());
-            return cache.get(url);
-        }
-        try {
-            const jobs = [...root.querySelectorAll('img')].map(async image => {
-                image.src = await dataUrl(image.src);
-                await wait(image.decode(), signal);
+    async function readImage(url, signal) {
+        check(signal);
+        const request = new AbortController();
+        const abort = () => request.abort();
+        signal?.addEventListener('abort', abort, { once: true });
+        let reader;
+        let probe;
+
+        async function readDataUrl() {
+            if (url.protocol === 'data:') return url.href;
+            if (!['http:', 'https:', 'blob:'].includes(url.protocol)) throw new Error('ImageFailed');
+            if (location.origin === 'https://gemini.google.com' && url.origin === 'https://www.gstatic.com'
+                && url.pathname.startsWith('/weather/conditions/v1/png/')) {
+                // Gemini can display these icons, but the CDN does not allow page-level CORS reads.
+                const result = await chrome.runtime.sendMessage({ type: 'AIT_FETCH_GEMINI_WEATHER_ICON', url: url.href });
+                if (!result?.success || !result.data?.startsWith('data:image/png;base64,')) throw new Error('ImageFailed');
+                return result.data;
+            }
+            const options = {
+                signal: request.signal, credentials: url.origin === location.origin ? 'include' : 'omit'
+            };
+            let response = await fetch(url.href, options);
+            if (RETRYABLE_IMAGE_STATUS.has(response.status) && !response.headers.has('Retry-After')) {
+                await response.body?.cancel();
+                check(request.signal);
+                response = await fetch(url.href, options);
+            }
+            if (!response.ok) throw new Error('ImageFailed');
+            const blob = await response.blob();
+            check(request.signal);
+            if (!blob.size || !blob.type.startsWith('image/')) throw new Error('ImageFailed');
+            return new Promise((resolve, reject) => {
+                reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('ImageFailed'));
+                reader.onabort = () => reject(new DOMException('Cancelled', 'AbortError'));
+                reader.readAsDataURL(blob);
             });
-            for (const image of root.querySelectorAll('svg image')) {
-                const source = image.getAttribute('href') || image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
-                if (source) jobs.push(dataUrl(source).then(value => {
-                    image.setAttribute('href', value);
-                    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
-                }));
-            }
-            for (const node of root.querySelectorAll('[style]')) {
-                const value = node.style.backgroundImage;
-                const matches = [...value.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/g)];
-                if (!matches.length) continue;
-                jobs.push(Promise.all(matches.map(match => dataUrl(match[1] || match[2] || match[3].trim()))).then(urls => {
-                    let background = value;
-                    matches.forEach((match, index) => { background = background.replace(match[0], `url("${urls[index]}")`); });
-                    node.style.backgroundImage = background;
-                }));
-            }
-            await Promise.all(jobs);
-        } catch (error) {
-            check(signal);
-            if (error.message === 'Timeout') throw error;
-            throw new Error('ImageFailed');
         }
+
+        try {
+            // The same deadline covers any retry, transfer, and decode, regardless of image type.
+            return await wait((async () => {
+                const data = await readDataUrl();
+                check(request.signal);
+                probe = new Image();
+                probe.src = data;
+                await probe.decode();
+                return data;
+            })(), signal);
+        } finally {
+            request.abort();
+            signal?.removeEventListener('abort', abort);
+            if (reader?.readyState === 1) reader.abort();
+            probe?.removeAttribute('src');
+        }
+    }
+
+    function imagePlaceholder(image, label) {
+        const rect = image.getBoundingClientRect();
+        const width = rect.width || 128;
+        const height = rect.height || 96;
+        const scale = Math.min(1, 256 / Math.max(width, height));
+        const w = Math.max(2, Math.round(width * scale));
+        const h = Math.max(2, Math.round(height * scale));
+        const safeLabel = label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const fontSize = Math.min(14, Math.floor((w - 12) / [...label].length));
+        const mark = fontSize >= 9 && h >= 24
+            ? `<text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="sans-serif" font-size="${fontSize}" fill="#334155">${safeLabel}</text>`
+            : `<path d="M${w / 3} ${h / 3}l${w / 3} ${h / 3}m0 ${-h / 3}l${-w / 3} ${h / 3}" stroke="#64748b"/>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect x=".5" y=".5" width="${w - 1}" height="${h - 1}" fill="#e2e8f0" stroke="#94a3b8" stroke-dasharray="3 2"/>${mark}</svg>`;
+        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
+
+    async function inlineImages(root, signal, unavailableLabel = globalThis.TimelineI18n?.getMessage('messageScreenshotImageUnavailable') || 'Image unavailable') {
+        const cache = new Map();
+        let unavailableImageCount = 0;
+        let usableImageCount = 0;
+        async function readAsset(source) {
+            check(signal);
+            if (!source) return null;
+            try {
+                const url = new URL(source, location.href);
+                if (!cache.has(url.href)) cache.set(url.href, readImage(url, signal));
+                const data = await cache.get(url.href);
+                check(signal);
+                usableImageCount++;
+                return data;
+            } catch {
+                check(signal);
+                unavailableImageCount++;
+                return null;
+            }
+        }
+
+        const jobs = [];
+        for (const image of root.querySelectorAll('img')) {
+            const source = image.getAttribute('src')?.trim();
+            if (!source) continue;
+            jobs.push(readAsset(source).then(data => {
+                check(signal);
+                image.src = data ?? imagePlaceholder(image, unavailableLabel);
+            }));
+        }
+        for (const image of root.querySelectorAll('svg image')) {
+            const source = (image.getAttribute('href') || image.getAttributeNS(XLINK_NAMESPACE, 'href'))?.trim();
+            if (!source) continue;
+            jobs.push(readAsset(source).then(data => {
+                check(signal);
+                image.setAttribute('href', data ?? imagePlaceholder(image, unavailableLabel));
+                image.removeAttributeNS(XLINK_NAMESPACE, 'href');
+            }));
+        }
+        for (const node of root.querySelectorAll('[style]')) {
+            const value = node.style.backgroundImage;
+            const sources = [...value.matchAll(CSS_IMAGE_URL)].map(([, doubleQuoted, singleQuoted, unquoted]) =>
+                decodeCssEscapes(doubleQuoted ?? singleQuoted ?? unquoted.trim()));
+            if (!sources.length) continue;
+            jobs.push(Promise.all(sources.map(readAsset)).then(urls => {
+                check(signal);
+                let index = 0;
+                // Keep the failed layer slot so background position and size lists still align.
+                node.style.backgroundImage = value.replace(CSS_IMAGE_URL, () => {
+                    const url = (urls[index++] ?? EMPTY_BACKGROUND).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+                    return `url("${url}")`;
+                });
+            }));
+        }
+        await Promise.all(jobs);
+        check(signal);
+        return { unavailableImageCount, usableImageCount };
     }
 
     function planSlices(height, width, pixelRatio, boundaries = []) {
@@ -353,14 +418,19 @@ class MessageScreenshotCaptureService {
             // Message clones already retain their own backgrounds; do not paint a shared backdrop.
             backgroundColor: 'transparent', colorScheme: snapshots.at(-1).colorScheme || 'normal'
         });
-        for (const snapshot of snapshots) host.appendChild(snapshot.content);
+        // Embedding changes image sources and can add placeholders. Keep cached
+        // snapshots available with their original sources for the next attempt.
+        for (const snapshot of snapshots) host.appendChild(snapshot.content.cloneNode(true));
         mount.appendChild(host);
         document.body.appendChild(mount);
         try {
             mountReady?.({ messages: snapshots.length });
             const imagesReady = timing?.start('inline images');
-            await utils.inlineImages(host, signal);
-            imagesReady?.();
+            const { unavailableImageCount, usableImageCount } = await utils.inlineImages(host, signal);
+            imagesReady?.({ unavailableImageCount });
+            if (unavailableImageCount && !usableImageCount && !this.hasOtherContent(snapshots)) {
+                throw new Error('ImageFailed');
+            }
             const fontsReady = timing?.start('wait for document fonts');
             await utils.wait(document.fonts.ready, signal);
             fontsReady?.();
@@ -405,8 +475,22 @@ class MessageScreenshotCaptureService {
                     pngReady?.({ slice: blobs.length, width: width * pixelRatio, height: sliceHeight * pixelRatio, bytes: blob.size });
                 } finally { viewport.remove(); }
             }
-            return blobs;
+            return { blobs, unavailableImageCount };
         } finally { mount.remove(); }
+    }
+
+    hasOtherContent(snapshots) {
+        // Inspect the original snapshots so placeholder text does not count as content.
+        const svgDefinitions = 'svg :is(defs, title, desc, clipPath, mask, marker, pattern, symbol)';
+        const svgGraphics = `svg :is(path, line, polyline, polygon, rect, circle, ellipse, use):not(${svgDefinitions} *)`;
+        return snapshots.some(({ content }) => {
+            if (content.querySelector(svgGraphics)) return true;
+            const textNodes = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+            for (let node = textNodes.nextNode(); node; node = textNodes.nextNode()) {
+                if (node.data.trim() && !node.parentElement?.closest(svgDefinitions)) return true;
+            }
+            return false;
+        });
     }
 }
 

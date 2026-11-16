@@ -1200,7 +1200,13 @@
     "message": "請等待這則回覆生成完成。"
   },
   "messageScreenshotImageFailed": {
-    "message": "部分圖片無法讀取，請等待圖片載入後重試。"
+    "message": "無法讀取所選圖片，未產生截圖。"
+  },
+  "messageScreenshotImageUnavailable": {
+    "message": "圖片無法讀取"
+  },
+  "messageScreenshotPartial": {
+    "message": "已產生截圖，有 $1 張圖片無法讀取。"
   },
   "messageScreenshotUnsupported": {
     "message": "這則訊息包含暫不支援截圖的嵌入內容。"

@@ -58,17 +58,22 @@ class CustomSiteAdapter extends SiteAdapter {
         return includes.some(part => part && pathname.includes(part));
     }
 
-    findConversationContainer(firstMessage) {
+    getTimelineRouteId(url) {
+        return this._matchConversationUrl(url.href)?.groups?.conversationId;
+    }
+
+    findConversationContainer(firstMessage, { userTurnElements } = {}) {
         const selector = this._scopeConversationSelector(this.config.conversationContainerSelector);
         if (this.config.conversationScopeSelectors) {
             return selector ? firstMessage?.closest(selector) || null : null;
         }
         if (selector) {
-            const container = document.querySelector(selector);
+            const container = firstMessage?.closest(selector);
             if (container) return container;
         }
         return ContainerFinder.findConversationContainer(firstMessage, {
-            messageSelector: this.getUserMessageSelector()
+            messageSelector: this.getUserMessageSelector(),
+            messages: userTurnElements
         }) || super.findConversationContainer(firstMessage);
     }
 

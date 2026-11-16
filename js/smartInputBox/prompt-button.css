@@ -55,11 +55,9 @@
 
 /* ==================== 深色模式适配 ==================== */
 
-/* 深色模式 */
-html[data-timeline-theme="dark"] .smart-input-prompt-btn,
-html[class*="dark"] .smart-input-prompt-btn,
-body.dark .smart-input-prompt-btn,
-body[class*="dark"] .smart-input-prompt-btn {
+/* 匹配明确的主题标记，避免把 Grok 的 dark:scheme-dark 当成当前主题。 */
+html:not(.light):is(.dark, [data-timeline-theme="dark"], [data-theme="dark"]) .smart-input-prompt-btn,
+html:not(.light) :is(body.dark, body.dark-theme) .smart-input-prompt-btn {
     background: rgba(55, 65, 81, 0.9);
     color: #e5e7eb;
     box-shadow: 
@@ -68,10 +66,8 @@ body[class*="dark"] .smart-input-prompt-btn {
         inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-html[data-timeline-theme="dark"] .smart-input-prompt-btn:hover,
-html[class*="dark"] .smart-input-prompt-btn:hover,
-body.dark .smart-input-prompt-btn:hover,
-body[class*="dark"] .smart-input-prompt-btn:hover {
+html:not(.light):is(.dark, [data-timeline-theme="dark"], [data-theme="dark"]) .smart-input-prompt-btn:hover,
+html:not(.light) :is(body.dark, body.dark-theme) .smart-input-prompt-btn:hover {
     background: rgba(75, 85, 99, 0.95);
     color: #818cf8;
     box-shadow: 
@@ -80,9 +76,9 @@ body[class*="dark"] .smart-input-prompt-btn:hover {
         inset 0 0 0 1px rgba(129, 140, 248, 0.25);
 }
 
-/* 通过 prefers-color-scheme 检测系统深色模式 */
+/* 页面未指定浅色时，跟随系统的深色模式。 */
 @media (prefers-color-scheme: dark) {
-    .smart-input-prompt-btn {
+    html:not(.light, [data-timeline-theme="light"], [data-theme="light"]) .smart-input-prompt-btn {
         background: rgba(55, 65, 81, 0.9);
         color: #e5e7eb;
         box-shadow: 
@@ -91,7 +87,7 @@ body[class*="dark"] .smart-input-prompt-btn:hover {
             inset 0 0 0 1px rgba(255, 255, 255, 0.08);
     }
     
-    .smart-input-prompt-btn:hover {
+    html:not(.light, [data-timeline-theme="light"], [data-theme="light"]) .smart-input-prompt-btn:hover {
         background: rgba(75, 85, 99, 0.95);
         color: #818cf8;
         box-shadow: 

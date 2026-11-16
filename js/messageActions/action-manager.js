@@ -283,17 +283,23 @@ class MessageActionManager {
         let outcome = 'complete';
         const operation = new AbortController();
         const abort = () => operation.abort();
+        let outputWarning;
+        const prepareContext = async () => ({
+            ...await this.prepareOutput(session, options, operation.signal, timing),
+            reportWarning(message) { outputWarning = message; }
+        });
         session.controller.signal.addEventListener('abort', abort, { once: true });
         session.busy = true; session.busyKind = destination; session.ui.update(session);
         try {
             if (copying) {
                 // Invoke write before any await; data collection/rendering runs through its deferred payload.
-                await AITClipboard.write(type, async () => session.action.copy(await this.prepareOutput(session, options, operation.signal, timing)), { signal: operation.signal });
+                await AITClipboard.write(type, async () => session.action.copy(await prepareContext()), { signal: operation.signal });
             } else {
-                await session.action.execute(await this.prepareOutput(session, options, operation.signal, timing));
+                await session.action.execute(await prepareContext());
             }
             if (this.current(session)) {
-                window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
+                if (outputWarning) window.globalToastManager?.warning(outputWarning);
+                else window.globalToastManager?.success(TimelineI18n.getMessage(copying ? 'messageActionsCopied' : 'messageActionsDone'));
                 if (!copying) this.close();
             }
         } catch (error) {

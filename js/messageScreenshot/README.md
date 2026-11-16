@@ -55,9 +55,11 @@ response headers, body reading and data URL conversion; cancellation or timeout
 aborts their network requests and active readers.
 The selected scale is preserved when splitting; huge captures fail explicitly
 instead of silently lowering resolution/truncating. Images/fonts must be readable
-under existing browser permissions. Failed images produce an error; visible
-iframe/video/object content and unreadable canvases are unsupported. Multiple
-fragments are subject to the browser's normal download controls.
+under existing browser permissions. Unreadable content images get placeholders,
+and unreadable background layers are skipped. Partial output is reported after
+copying or downloading. An image-only selection with no readable image produces
+an error. Visible iframe/video/object content and unreadable canvases are unsupported.
+Multiple fragments are subject to the browser's normal download controls.
 
 Real-page validation covers reply/header entries, three rounds/six messages, select-all,
 reply-only Markdown, full JSON, selected-role PNG and 1×/4× styled screenshots.
