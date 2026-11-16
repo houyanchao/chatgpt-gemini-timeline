@@ -12,7 +12,7 @@
  */
 
 const CHANGELOG_DATA = {
-    id: '2026111601',
+    id: '2026111602',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
@@ -32,6 +32,10 @@ const CHANGELOG_DATA = {
         {
             zh: '修复 ChatGPT、Claude 等平台切换会话后的时间轴刷新和节点跳转问题。ChatGPT 重点标记在刷新后会正确恢复',
             en: 'Fixed timeline updates and message jumps after switching conversations on ChatGPT, Claude, and other platforms. ChatGPT pins now persist after a refresh'
+        },
+        {
+            zh: '修复 Edge 上 ChatGPT 时间轴紧凑模式的边界误点击，节点跳转会等待虚拟化内容完成渲染，并避免被页面浮层遮挡',
+            en: 'Fixed boundary misclicks in the compact ChatGPT timeline on Edge. Node navigation now waits for virtualized content to render and stays above page overlays'
         },
         {
             zh: '适配新版 Grok，恢复时间轴和整段对话收藏，修复提示词按钮的定位和配色、宠物动画不动以及点击发送后自动跳底的问题',

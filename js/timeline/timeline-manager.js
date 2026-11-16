@@ -2087,16 +2087,53 @@ class TimelineManager {
                 longPressTriggered = false;
                 return;
             }
-            
-            const dot = e.target.closest('.ait-timeline-dot');
-            if (dot) {
-                const targetId = dot.dataset.targetTurnId;
-                // Find target element by matching marker ID
-                const marker = this.markers.find(m => m.id === targetId);
-                if (marker) {
-                    // Only scroll; let scroll-based computation set active to avoid double-flash
-                    this.scrollToIndex(this.markers.indexOf(marker));
-                }
+
+            // 紧凑模式下节点间距可能小于按钮的默认命中高度，直接使用
+            // closest() 会把边界附近的点击交给相邻节点。统一按点击位置
+            // 选择最近的节点，确保视觉上点到哪个节点就跳到哪个节点。
+            const target = e.target instanceof Element ? e.target : null;
+            if (target?.closest('.timeline-pin-marker, .ait-timeline-history-loading, .ait-timeline-starred-btn, .ait-question-list-btn, .ait-notepad-btn')) {
+                return;
+            }
+            const dot = target?.closest('.ait-timeline-dot');
+            const directTargetId = dot?.dataset.targetTurnId;
+            const directIndex = directTargetId
+                ? this.markers.findIndex(marker => marker.id === directTargetId)
+                : -1;
+            const track = this.ui.track;
+            const trackContent = this.ui.trackContent;
+            const isTrackClick = target === this.ui.timelineBar
+                || target === track
+                || target === trackContent
+                || trackContent?.contains(target);
+            if (!isTrackClick || !this.markers.length) return;
+
+            const trackTop = trackContent?.getBoundingClientRect?.().top;
+            const pointerY = Number(e.clientY);
+            let nearestIndex = -1;
+            // 键盘触发的 click 没有可靠的 clientY，沿用当前按钮对应的节点。
+            if (e.detail === 0 && directIndex >= 0) {
+                nearestIndex = directIndex;
+            } else if (Number.isFinite(trackTop) && Number.isFinite(pointerY)
+                && this.yPositions?.length === this.markers.length) {
+                const localY = pointerY - trackTop;
+                let nearestDistance = Infinity;
+                this.yPositions.forEach((position, index) => {
+                    const distance = Math.abs(position - localY);
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestIndex = index;
+                    }
+                });
+            }
+
+            // 如果布局信息尚未完成，仍兼容已有的按钮命中路径。
+            if (nearestIndex < 0) {
+                nearestIndex = directIndex;
+            }
+            if (nearestIndex >= 0) {
+                // Only scroll; let scroll-based computation set active to avoid double-flash
+                this.scrollToIndex(nearestIndex);
             }
         };
         this.ui.timelineBar.addEventListener('click', this.onTimelineBarClick);
@@ -2700,7 +2737,13 @@ class TimelineManager {
                     const filterRows = rows => this._routeRows.filter(this.adapter, rows, this._rowRoute);
                     loading = this._showNodeNavigationLoading(controller);
                     element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
-                        controller.signal, undefined, { deadline, conversationContainer, isScopeCurrent, filterRows });
+                        controller.signal, undefined, {
+                            deadline,
+                            waitForTarget: true,
+                            conversationContainer,
+                            isScopeCurrent,
+                            filterRows
+                        });
                     closeLoading();
                     if (controller.signal.aborted || !this.isCurrentPage()) return false;
                     if (!isScopeCurrent()) {

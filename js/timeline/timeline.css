@@ -109,7 +109,8 @@ html[data-timeline-theme="dark"] .ait-node-navigation-loading {
     /* Position values (top, right) are set by JavaScript based on site adapter */
     top: 60px; /* Default fallback */
     right: 17px; /* Default fallback */
-    z-index: 30; /* ensure above site chrome */
+    /* Keep the track above host floating panels so its narrow hit areas remain usable. */
+    z-index: 2147483645;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
