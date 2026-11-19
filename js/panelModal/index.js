@@ -468,6 +468,7 @@ class PanelModal {
             this.container.classList.add('visible');
             this.container.hidden = false;
             this.isVisible = true;
+            document.documentElement.setAttribute('data-ait-settings-open', '');
 
             if (!this._bodyOverflow) {
                 const style = document.body.style;
@@ -565,6 +566,7 @@ class PanelModal {
         this.container.hidden = true;
         this.container.classList.remove('visible');
         this.isVisible = false;
+        document.documentElement.removeAttribute('data-ait-settings-open');
         
         // 恢复 body 滚动
         if (this._bodyOverflow) {
@@ -611,6 +613,7 @@ class PanelModal {
      */
     destroy() {
         this._showRequestId++;
+        document.documentElement.removeAttribute('data-ait-settings-open');
         // 移除 URL 监听
         this._detachUrlListeners();
         

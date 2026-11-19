@@ -49,6 +49,11 @@
     display: none !important;
 }
 
+/* 设置打开时覆盖时间轴的常规层级，包括站点适配器设置的内联层级。 */
+html[data-ait-settings-open] .ait-chat-timeline-wrapper {
+    z-index: 0 !important;
+}
+
 /* ========== 遮罩层 ========== */
 .ait-panel-modal-overlay {
     position: absolute !important;

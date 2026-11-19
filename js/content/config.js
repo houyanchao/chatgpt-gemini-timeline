@@ -67,7 +67,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "5d7e1f189fd9"
+      "revision": "46a98c86e54d"
     },
     "runner-ui": {
       "script": "js/content/bundles/runner-ui.js",
