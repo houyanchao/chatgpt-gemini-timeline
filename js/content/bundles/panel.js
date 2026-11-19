@@ -4445,11 +4445,13 @@ class PanelModal {
     /**
      * 显示面板
      * @param {string} tabId - 要显示的 tab ID（可选）
+     * @param {AbortSignal} options.signal - 取消尚未打开的面板（可选）
      */
-    async show(tabId = null) {
+    async show(tabId = null, { signal } = {}) {
+        if (signal?.aborted) return;
         const requestId = ++this._showRequestId;
         const url = location.href;
-        const isCurrent = () => requestId === this._showRequestId && url === location.href;
+        const isCurrent = () => !signal?.aborted && requestId === this._showRequestId && url === location.href;
         try {
             await TimelineI18n.ready();
             if (!isCurrent()) return;

@@ -11,6 +11,7 @@ class ChangelogModal {
     constructor() {
         this.STORAGE_KEY = 'ait-changelog-read-version';
         this.overlay = null;
+        this._dismissalController = null;
         this._boundHandleEscape = this._handleEscape.bind(this);
     }
 
@@ -130,6 +131,8 @@ class ChangelogModal {
         const version = chrome.runtime.getManifest?.()?.version || '';
 
         const overlay = document.createElement('div');
+        const dismissalController = new AbortController();
+        const { signal } = dismissalController;
         overlay.className = 'changelog-modal-overlay';
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) this._close();
@@ -224,6 +227,20 @@ class ChangelogModal {
         githubLink.title = TimelineI18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
         githubLink.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>';
 
+        const dshTabId = 'dsh-promo';
+        const dshTooltipText = lang === 'zh' ? 'DeepSeek Harness 插件' : 'DeepSeek Harness Plugin';
+        const dshButton = document.createElement('button');
+        dshButton.type = 'button';
+        dshButton.className = 'changelog-footer-icon changelog-footer-dsh';
+        dshButton.setAttribute('aria-label', dshTooltipText);
+
+        const dshIcon = document.createElement('span');
+        dshIcon.className = 'changelog-footer-dsh-mark';
+        dshIcon.setAttribute('aria-hidden', 'true');
+        const dshIconUrl = chrome.runtime.getURL('images/logo/deepseek-harness.svg');
+        dshIcon.style.setProperty('--changelog-dsh-icon', `url("${dshIconUrl}")`);
+        dshButton.appendChild(dshIcon);
+
         const tooltipOpts = { style: 'mini', placement: 'top' };
         const docsTooltipText = TimelineI18n.getMessage('aboutBtnDocs') || '功能文档';
         const githubTooltipText = TimelineI18n.getMessage('aboutBtnGithub') || 'GitHub 开源';
@@ -241,8 +258,36 @@ class ChangelogModal {
             window.globalTooltipManager?.hide();
         });
 
+        const showDshTooltip = () => {
+            window.globalTooltipManager?.show('changelog-dsh-plugin', 'button', dshButton, dshTooltipText, tooltipOpts);
+        };
+        const hideDshTooltip = () => window.globalTooltipManager?.hide();
+        dshButton.addEventListener('mouseenter', showDshTooltip);
+        dshButton.addEventListener('focus', showDshTooltip);
+        dshButton.addEventListener('mouseleave', hideDshTooltip);
+        dshButton.addEventListener('blur', hideDshTooltip);
+
+        let openingDshTab = false;
+        dshButton.addEventListener('click', async () => {
+            if (openingDshTab || signal.aborted) return;
+            openingDshTab = true;
+            window.globalTooltipManager?.hide(true);
+
+            try {
+                await window.panelModal?.show(dshTabId, { signal });
+                const panel = window.panelModal;
+                if (!signal.aborted && panel?.isVisible && panel.currentTabId === dshTabId) {
+                    this._close();
+                    panel.tabsContainer?.querySelector(`[data-tab-id="${dshTabId}"]`)?.focus();
+                }
+            } finally {
+                openingDshTab = false;
+            }
+        });
+
         footerLinks.appendChild(docsLink);
         footerLinks.appendChild(githubLink);
+        footerLinks.appendChild(dshButton);
 
         const confirmBtn = document.createElement('button');
         confirmBtn.className = 'changelog-modal-btn';
@@ -261,10 +306,11 @@ class ChangelogModal {
         document.body.appendChild(overlay);
 
         requestAnimationFrame(() => {
-            overlay.classList.add('visible');
+            if (!signal.aborted) overlay.classList.add('visible');
         });
 
         this.overlay = overlay;
+        this._dismissalController = dismissalController;
         document.addEventListener('keydown', this._boundHandleEscape);
     }
 
@@ -272,16 +318,18 @@ class ChangelogModal {
      * 关闭弹窗并标记已读
      */
     _close() {
-        if (!this.overlay) return;
+        const overlay = this.overlay;
+        if (!overlay || this._dismissalController.signal.aborted) return;
 
-        this.overlay.classList.remove('visible');
+        this._dismissalController.abort();
+        overlay.classList.remove('visible');
         document.removeEventListener('keydown', this._boundHandleEscape);
+        window.globalTooltipManager?.hide(true);
 
         setTimeout(() => {
-            if (this.overlay?.parentNode) {
-                this.overlay.parentNode.removeChild(this.overlay);
-            }
+            overlay.remove();
             this.overlay = null;
+            this._dismissalController = null;
         }, 200);
 
         this._markAsRead();

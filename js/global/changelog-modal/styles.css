@@ -318,6 +318,26 @@
     transform: translateY(0);
 }
 
+.changelog-footer-dsh {
+    padding: 0;
+    border: none;
+    cursor: pointer;
+}
+
+.changelog-footer-dsh-mark {
+    display: block;
+    width: 18px;
+    height: 18px;
+    background-color: currentColor;
+    -webkit-mask: var(--changelog-dsh-icon) center / contain no-repeat;
+    mask: var(--changelog-dsh-icon) center / contain no-repeat;
+}
+
+.changelog-footer-dsh:focus-visible {
+    outline: 2px solid #7864d3;
+    outline-offset: 2px;
+}
+
 .changelog-modal-btn {
     padding: 9px 36px;
     border: none;

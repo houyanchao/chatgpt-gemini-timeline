@@ -12,7 +12,7 @@ globalThis.AITContentConfig = {
         "js/highlight/styles.css"
       ],
       "dependencies": [],
-      "revision": "86629333efb1"
+      "revision": "8396b078c615"
     },
     "core": {
       "script": "js/content/bundles/core.js",
@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "5edcaeff60ed"
+      "revision": "f8c0cca59be9"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -67,7 +67,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "8b646af231eb"
+      "revision": "5d7e1f189fd9"
     },
     "runner-ui": {
       "script": "js/content/bundles/runner-ui.js",
