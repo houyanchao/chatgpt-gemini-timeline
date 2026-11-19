@@ -3,7 +3,7 @@
     "message": "Timeline: Эффективное общение с ИИ: GPT-6, Claude, Gemini"
   },
   "extDescription": {
-    "message": "Хронология, папки, библиотека промптов, виртуальный питомец. Поддержка DeepSeek, Claude и всех AI-платформ."
+    "message": "Навигация по таймлайну, папки избранного, библиотека промптов, экспорт чатов и копирование LaTeX. Для ChatGPT, Claude, Gemini и др."
   },
   "qwxpzm": {
     "message": "Избранное"
