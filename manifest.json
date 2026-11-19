@@ -85,7 +85,6 @@
         "icons/icon128.png",
         "assets/sounds/done1.mp3",
         "images/logo.png",
-        "images/dsh-desktop-install.png",
         "images/logo/*.webp",
         "images/logo/*.svg",
         "_locales/en/messages.json",

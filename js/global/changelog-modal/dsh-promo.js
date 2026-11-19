@@ -24,6 +24,7 @@
             desktopInstructions: `「插件」→「添加插件」，输入 <code>${PLUGIN}</code>，点「安装」，再点「立即启用」。`,
             screenshot: 'DeepSeek Harness 的添加插件窗口，包名已填入 dsh-timeline',
             openScreenshot: '查看大图',
+            screenshotFallback: '查看安装截图',
             marketplace: '第三方插件商店',
             marketplaceInstructions: `如果已安装第三方插件商店，在商店里搜索 <code>${PLUGIN}</code> 并安装。`,
             cli: '命令行',
@@ -43,6 +44,7 @@
             desktopInstructions: `Open Plugins in the sidebar, choose Add plugin, enter <code>${PLUGIN}</code>, and click Install. Then select Enable now.`,
             screenshot: 'The DeepSeek Harness Add plugin dialog with dsh-timeline entered',
             openScreenshot: 'View full size',
+            screenshotFallback: 'View installation screenshot',
             marketplace: 'Third-party plugin store',
             marketplaceInstructions: `If you already have a third-party plugin store, search for <code>${PLUGIN}</code> and install it there.`,
             cli: 'Command line',
@@ -252,6 +254,12 @@ html[data-timeline-theme="dark"] .dsh-promo-tab {
     background: var(--dsh-tint-hover);
 }
 
+.dsh-promo-tab .dsh-promo-screenshot-fallback .dsh-promo-screenshot-label {
+    position: static;
+    display: block;
+    padding: 6px 10px;
+}
+
 .dsh-promo-tab .dsh-promo-method-header {
     display: flex;
     flex-wrap: wrap;
@@ -321,7 +329,6 @@ html[data-timeline-theme="dark"] .dsh-promo-tab {
             ensureStyles();
 
             const copy = getCopy();
-            const screenshotUrl = chrome.runtime.getURL('images/dsh-desktop-install.png');
             const container = document.createElement('div');
             container.className = 'dsh-promo-tab';
             container.innerHTML = `
@@ -347,7 +354,7 @@ html[data-timeline-theme="dark"] .dsh-promo-tab {
                             </div>
                             <p class="dsh-promo-description">${copy.desktopInstructions}</p>
                             <a class="dsh-promo-screenshot" href="${DESKTOP_SCREENSHOT_URL}" target="_blank" rel="noopener noreferrer">
-                                <img src="${screenshotUrl}" alt="${copy.screenshot}" width="2342" height="1322">
+                                <img alt="${copy.screenshot}" width="2342" height="1322" referrerpolicy="no-referrer">
                                 <span class="dsh-promo-screenshot-label">${copy.openScreenshot} <span aria-hidden="true">↗</span></span>
                             </a>
                         </div>
@@ -374,6 +381,15 @@ html[data-timeline-theme="dark"] .dsh-promo-tab {
                     </li>
                 </ol>
             `;
+
+            const screenshotLink = container.querySelector('.dsh-promo-screenshot');
+            const screenshotImage = screenshotLink.querySelector('img');
+            this.addEventListener(screenshotImage, 'error', () => {
+                screenshotImage.remove();
+                screenshotLink.classList.add('dsh-promo-screenshot-fallback');
+                screenshotLink.querySelector('.dsh-promo-screenshot-label').textContent = copy.screenshotFallback;
+            }, { once: true });
+            screenshotImage.src = DESKTOP_SCREENSHOT_URL;
 
             const button = container.querySelector('.dsh-promo-copy');
             this.addEventListener(button, 'click', async () => {
