@@ -3,7 +3,7 @@
     "message": "Timeline：AI 对话提效：GPT-6、Claude、Gemini"
   },
   "extDescription": {
-    "message": "时间轴导航、对话收藏夹、提示词库、对话导出、LaTeX 复制。支持 ChatGPT、Claude、Gemini 等 AI 平台。"
+    "message": "对话收藏夹、时间轴导航、LaTeX 复制、提示词库、对话导出与截图、文本高亮、闪记。"
   },
   "qwxpzm": {
     "message": "收藏"
