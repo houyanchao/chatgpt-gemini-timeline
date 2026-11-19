@@ -1331,6 +1331,9 @@
   "messageScreenshotPartial": {
     "message": "Screenshot generated. Some images could not be read ($1)."
   },
+  "messageScreenshotResolutionReduced": {
+    "message": "The resolution was reduced to fit all of the content into one image."
+  },
   "messageScreenshotUnsupported": {
     "message": "This message contains embedded content that cannot be captured."
   },

@@ -69,7 +69,7 @@ After installation, open a supported AI chat page. Most features are enabled by 
 | Question list | Displays all questions in the current conversation with jump, bookmark, and pin support. |
 | Bookmarks and archives | Saves individual Q&A entries or entire conversations, with folders, notes, search, and optional native-sidebar access on supported platforms. |
 | Input enhancements | Provides a prompt library, quick follow-up actions, Smart Enter behavior, input animations, and common settings. |
-| Message screenshots | Reply export and screenshot entries share individual-message selection and a bottom action bar on ChatGPT, Gemini, Claude, DeepSeek, Kimi and Doubao. Screenshots support 1×–4× resolution and split long content into multiple files. |
+| Message screenshots | Reply export and screenshot entries share individual-message selection and a bottom action bar on ChatGPT, Gemini, Claude, DeepSeek, Kimi and Doubao. Screenshots support 1×–4× resolution and output one PNG, scaling long content down when it exceeds the size limit. |
 | Reading and copying | Supports text highlighting, LaTeX / MathML formula copy, Mermaid diagram preview, and code block helpers. |
 | Code running | Runs or previews common code blocks including JavaScript, TypeScript, SQL, HTML, JSON, and Markdown. |
 | Data management | Supports JSON import/export and Google Drive backup/restore for migration and multi-device use. |

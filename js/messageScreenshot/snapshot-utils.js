@@ -1,10 +1,10 @@
 /** DOM capture helpers shared by every screenshot platform. No host DOM mutations. */
 const MessageScreenshotSnapshot = (() => {
-    // Allow ordinary multi-message 4x captures to remain one image (32 MP / 128 MB RGBA).
-    // Keep both canvas dimensions bounded so html-to-image never silently rescales them.
+    // Bound the final canvas to 32 MP (128 MB RGBA) and keep fallback slices short.
     const MAX_CANVAS_PIXELS = 32000000;
     const MAX_CANVAS_SIDE = 16000;
-    const MAX_FILES = 30;
+    const MAX_SLICE_HEIGHT = 4000;
+    const MAX_SLICES = 30;
     const OMIT = 'script, style, noscript, input, textarea, select, [data-ait-owned-ui], '
         + '.runner-code-run-btn, .runner-container, .formula-tooltip, .ait-highlight-action, '
         + '.turn-action-controls, [role="toolbar"], [hidden], .sr-only';
@@ -332,20 +332,30 @@ const MessageScreenshotSnapshot = (() => {
         return { unavailableImageCount, usableImageCount };
     }
 
-    function planSlices(height, width, pixelRatio, boundaries = []) {
-        const maximum = Math.min(4000, Math.floor(MAX_CANVAS_PIXELS / (width * pixelRatio * pixelRatio)), Math.floor(MAX_CANVAS_SIDE / pixelRatio));
-        if (!Number.isFinite(height) || !Number.isFinite(width) || width <= 0 || width * pixelRatio > MAX_CANVAS_SIDE
-            || maximum < 256 || height > maximum * MAX_FILES) throw new Error('TooLarge');
+    function planCapture(width, height, pixelRatio) {
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0
+            || width > MAX_CANVAS_SIDE || height > MAX_SLICE_HEIGHT * MAX_SLICES) throw new Error('TooLarge');
+        const scale = Math.min(pixelRatio, MAX_CANVAS_SIDE / width, MAX_CANVAS_SIDE / height,
+            Math.sqrt(MAX_CANVAS_PIXELS / (width * height)));
+        const outputWidth = Math.floor(width * scale);
+        const outputHeight = Math.floor(height * scale);
+        if (!outputWidth || !outputHeight) throw new Error('TooLarge');
+
+        return { outputWidth, outputHeight, reducedResolution: scale < pixelRatio };
+    }
+
+    function planSlices(height, boundaries) {
+        // A failed whole render also needs a smaller retry for short captures.
+        const maximum = Math.min(MAX_SLICE_HEIGHT, Math.ceil(height / 2));
         const slices = [];
         for (let start = 0; start < height;) {
             let end = Math.min(height, start + maximum);
             if (end < height) {
-                // Paragraph breaks must leave enough capacity to finish within the file limit.
-                const minimumEnd = height - maximum * (MAX_FILES - slices.length - 1);
+                // Paragraph breaks must leave enough capacity for the remaining slices.
+                const minimumEnd = height - maximum * (MAX_SLICES - slices.length - 1);
                 const suitable = boundaries.filter(value => value > start + maximum / 2 && value >= minimumEnd && value <= end);
                 if (suitable.length) end = Math.max(...suitable);
             }
-            if (slices.length >= MAX_FILES) throw new Error('TooLarge');
             slices.push({ start, end });
             start = end;
         }
@@ -380,5 +390,5 @@ const MessageScreenshotSnapshot = (() => {
         return viewport;
     }
 
-    return Object.freeze({ check, wait, capture, inlineImages, planSlices, slice });
+    return Object.freeze({ check, wait, capture, inlineImages, planCapture, planSlices, slice });
 })();

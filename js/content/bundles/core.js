@@ -3332,46 +3332,26 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 
 const CHANGELOG_DATA = {
-    id: '2026111602',
+    id: '2026111901',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
     features: [
         {
-            zh: '新增消息截图，在 ChatGPT、Gemini、Claude、DeepSeek、Kimi 和豆包中勾选提问或回复，即可复制图片或下载 PNG',
-            en: 'Message screenshots let you select questions or replies and copy the image or download it as a PNG on ChatGPT, Gemini, Claude, DeepSeek, Kimi, and Doubao'
-        },
-        {
-            zh: 'Poe、Arena Agent 和 Muse 新增时间轴、提问列表和闪记',
-            en: 'Poe, Arena Agent, and Muse now support the timeline, question list, and quick notes'
+            zh: '更新日志底部新增 DeepSeek Harness 入口，可直达「DSH 插件」页，查看三种安装方式和官方客户端下载链接',
+            en: 'A new DeepSeek Harness shortcut in the changelog opens the DSH Plugin tab with three installation options and the official desktop download link'
         }
     ],
 
     improvements: [
         {
-            zh: '修复 ChatGPT、Claude 等平台切换会话后的时间轴刷新和节点跳转问题。ChatGPT 重点标记在刷新后会正确恢复',
-            en: 'Fixed timeline updates and message jumps after switching conversations on ChatGPT, Claude, and other platforms. ChatGPT pins now persist after a refresh'
+            zh: '消息截图下载和复制均生成一张 PNG。超长内容超出尺寸上限时，会等比缩小以保留完整内容',
+            en: 'Message screenshot downloads and copies now produce one PNG. Captures that exceed the size limit are scaled down to keep all content'
         },
         {
-            zh: '修复 Edge 上 ChatGPT 时间轴紧凑模式的边界误点击，节点跳转会等待虚拟化内容完成渲染，并避免被页面浮层遮挡',
-            en: 'Fixed boundary misclicks in the compact ChatGPT timeline on Edge. Node navigation now waits for virtualized content to render and stays above page overlays'
-        },
-        {
-            zh: '适配新版 Grok，恢复时间轴和整段对话收藏，修复提示词按钮的定位和配色、宠物动画不动以及点击发送后自动跳底的问题',
-            en: 'Restored the timeline and conversation bookmarks on the updated Grok interface and fixed the prompt button styling and position, pet animation during replies, and unwanted jumps when clicking Send'
-        },
-        {
-            zh: '优化对话导出，新增 Claude 支持，可逐条勾选提问和回复，并直接复制支持的格式。改善 PNG 和 PDF 的图片与公式呈现',
-            en: 'Conversation export now supports Claude, lets you select individual questions and replies, and can copy supported formats directly. Improved image and formula rendering in PNG and PDF exports'
-        },
-        {
-            zh: '加快截图速度并保留原页面样式，个别图片无法读取时仍可生成截图，并提示缺图数量',
-            en: 'Screenshots render faster and retain page styling. When individual images cannot be read, the screenshot can still be generated and reports how many images are missing'
-        },
-        {
-            zh: '修复带语言标签的短 JavaScript 代码块缺少运行按钮，以及运行器切换语言时误用上次设置的问题',
-            en: 'Fixed missing Run buttons on short JavaScript blocks with language labels and made the runner use the language of the selected code block'
+            zh: '修复设置弹窗打开时，右侧时间轴盖住遮罩、仍可点击的问题',
+            en: 'Fixed the timeline appearing above the settings backdrop and remaining clickable while settings were open'
         }
     ]
 };
@@ -34427,39 +34407,38 @@ class MessageScreenshotAction {
             destroy() { cache.clear(); nodeCount = 0; }
         };
     }
-    async render({ messages, collector, options, signal, timing }, singleImage = false) {
+    async render({ messages, collector, options, signal, timing }) {
         signal.throwIfAborted();
         const snapshots = messages.map(message => {
             const snapshot = collector.get(message.key);
             if (!snapshot) throw new Error('Changed');
             return snapshot;
         });
-        return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, singleImage, timing });
+        return new MessageScreenshotCaptureService().capture({ snapshots, pixelRatio: options.scale, signal, timing });
     }
     async copy(context) {
-        const { blobs, unavailableImageCount } = await this.render(context, true);
+        const result = await this.render(context);
         context.signal.throwIfAborted();
-        if (blobs.length !== 1) throw new Error('CopyTooLong');
-        this.reportPartialOutput(context, unavailableImageCount);
-        return blobs[0];
+        this.reportOutput(context, result);
+        return result.blob;
     }
     async execute(context) {
         const { signal, timing } = context;
-        const { blobs, unavailableImageCount } = await this.render(context);
+        const result = await this.render(context);
         signal.throwIfAborted();
-        const dispatchDownloads = timing?.start('dispatch downloads');
+        const dispatchDownload = timing?.start('dispatch download');
         const filename = `${AITDownload.filename(document.title.replace(/\s*[-–]\s*ChatGPT$/, ''))}-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
-        for (let index = 0; index < blobs.length; index++) {
-            signal.throwIfAborted();
-            AITDownload.saveBlob(blobs[index], `${filename}${blobs.length > 1 ? `-${index + 1}` : ''}.png`);
-        }
-        dispatchDownloads?.({ files: blobs.length, bytes: blobs.reduce((total, blob) => total + blob.size, 0) });
-        this.reportPartialOutput(context, unavailableImageCount);
+        AITDownload.saveBlob(result.blob, `${filename}.png`);
+        dispatchDownload?.({ bytes: result.blob.size });
+        this.reportOutput(context, result);
     }
-    reportPartialOutput(context, unavailableImageCount) {
+    reportOutput(context, { unavailableImageCount, reducedResolution }) {
+        const warnings = [];
+        if (reducedResolution) warnings.push(TimelineI18n.getMessage('messageScreenshotResolutionReduced'));
         if (unavailableImageCount > 0) {
-            context.reportWarning?.(TimelineI18n.getMessage('messageScreenshotPartial', String(unavailableImageCount)));
+            warnings.push(TimelineI18n.getMessage('messageScreenshotPartial', String(unavailableImageCount)));
         }
+        if (warnings.length) context.reportWarning?.(warnings.join(' '));
     }
 }
 

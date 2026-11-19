@@ -4,10 +4,9 @@ Available on ChatGPT, Gemini, Claude, DeepSeek, Kimi and Doubao. The scissors bu
 row opens the shared message selection surface. Users can select arbitrary
 questions/replies and choose 1×, 2× (default), 3× or 4× resolution. The separate
 export button uses the same selection surface with export-specific options.
-The operation bar offers Copy image alongside Download screenshot. Copy preserves
-the selected resolution and message backgrounds, and keeps selection open. If a
-capture requires multiple fragments, copying reports that it needs downloading
-before rendering any fragment; no partial image is silently copied.
+The operation bar offers Copy image alongside Download screenshot. Each action
+produces one PNG. Copy keeps the selection open. The renderer preserves message
+backgrounds and the selected resolution when the full image fits.
 
 ## Responsibilities
 
@@ -18,7 +17,7 @@ before rendering any fragment; no partial image is silently copied.
 - `snapshot-utils.js`: styled DOM clones, safe media embedding, bounded waits and
   contiguous fragments. Native action rows, owned UI, accessibility-only headings
   and platform identity attributes are excluded; source messages are untouched.
-- `capture-service.js`: staging, font embedding, pixel limits and PNG blobs.
+- `capture-service.js`: staging, font embedding, slice compositing and PNG encoding.
 - `libs/`: fixed html-to-image npm version, MIT license and integrity provenance.
 
 Message discovery, page adapters, checkbox UI, selection state and history loading
@@ -42,26 +41,24 @@ The descriptor is lightweight core code; options live in `message-actions-ui`;
 `messageScreenshotPlatformSettings` stores independent per-platform switches
 (default on). The settings section shares the conversation-export tab but does
 not depend on export capability or its switches. `messageScreenshotOptions`
-persists the confirmed scale. Both business actions use `AITDownload`.
+persists the confirmed scale. Copy uses `AITClipboard`; download uses `AITDownload`.
 
 ## Limits and validation
 
-Fragments are bounded to 32 million pixels, 16,000 pixels per side, 4,000 CSS
-pixels high and 30 files. This keeps ordinary multi-message 4× captures together
-instead of separating a short trailing paragraph into its own file.
-Paragraph-aligned cuts reserve enough capacity for the remaining fragments to
-stay within the 30-file limit. Image transfers have a bounded total wait across
-response headers, body reading and data URL conversion; cancellation or timeout
-aborts their network requests and active readers.
-The selected scale is preserved when splitting; huge captures fail explicitly
-instead of silently lowering resolution/truncating. Images/fonts must be readable
+The output is bounded to 32 million pixels and 16,000 pixels per side. The
+renderer first tries to render the complete selection. If rendering or PNG
+encoding fails, it renders up to 30 internal slices of at most 4,000 CSS pixels
+high and combines them into one PNG. When needed, it scales down uniformly
+and reports the resolution change. Cancellation or selections beyond the
+layout limit fail without producing a partial file.
+Image transfers have a bounded total wait across response headers, body
+reading and data URL conversion; cancellation or timeout aborts their
+network requests and active readers. Images/fonts must be readable
 under existing browser permissions. Unreadable content images get placeholders,
 and unreadable background layers are skipped. Partial output is reported after
 copying or downloading. An image-only selection with no readable image produces
 an error. Visible iframe/video/object content and unreadable canvases are unsupported.
-Multiple fragments are subject to the browser's normal download controls.
-
 Real-page validation covers reply/header entries, three rounds/six messages, select-all,
 reply-only Markdown, full JSON, selected-role PNG and 1×/4× styled screenshots.
 Renderer fixtures additionally cover text, tables, code, MathML, SVG, embedded
-images, dark theme, long fragments, failed-image handling and staging cleanup.
+images, dark theme, long single-image captures, failed-image handling and staging cleanup.

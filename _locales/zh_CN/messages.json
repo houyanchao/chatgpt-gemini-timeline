@@ -1331,6 +1331,9 @@
   "messageScreenshotPartial": {
     "message": "已生成截图，$1 张图片未能读取。"
   },
+  "messageScreenshotResolutionReduced": {
+    "message": "已自动降低清晰度，将完整内容保存为一张图。"
+  },
   "messageScreenshotUnsupported": {
     "message": "这条消息包含暂不支持截图的嵌入内容。"
   },

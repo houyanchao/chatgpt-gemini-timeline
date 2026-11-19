@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "f8c0cca59be9"
+      "revision": "140101f9425b"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -97,7 +97,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "9c53d817d871"
+      "revision": "1cccd6703fe3"
     },
     "message-actions-ui": {
       "script": "js/content/bundles/message-actions-ui.js",
