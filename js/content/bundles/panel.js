@@ -3157,6 +3157,50 @@ class DataSyncTab extends BaseTab {
 
 ;
 
+// Source: js/panelModal/tabs/sponsor/index.js
+class SponsorTab extends BaseTab {
+    constructor() {
+        super();
+        this.id = 'sponsor';
+        this.name = TimelineI18n.getMessage('sponsorTabName');
+        this.icon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.8 8.6c0 4.3-8.8 10-8.8 10s-8.8-5.7-8.8-10a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9Z"/>
+        </svg>`;
+    }
+
+    render() {
+        const message = key => TimelineI18n.getMessage(key);
+        const methods = [
+            { id: 'wechat', name: message('sponsorWeChatPay'), image: 'images/weixin.jpg' },
+            { id: 'alipay', name: message('sponsorAlipay'), image: 'images/zhifubao.jpg' }
+        ];
+        const container = document.createElement('div');
+        container.className = 'ait-sponsor-tab';
+        container.innerHTML = `
+            <div class="ait-sponsor-intro">
+                <h3>${message('sponsorHeadline')}</h3>
+                <p>${message('sponsorIntro')}</p>
+                <p class="ait-sponsor-support">${message('sponsorSupport')}</p>
+            </div>
+            <div class="ait-sponsor-methods">
+                ${methods.map(({ id, name, image }) => `
+                    <div class="ait-sponsor-method" data-payment-method="${id}">
+                        <h3 class="ait-sponsor-method-name">${name}</h3>
+                        <div class="ait-sponsor-qr-frame">
+                            <img class="ait-sponsor-qr" src="${chrome.runtime.getURL(image)}"
+                                alt="${TimelineI18n.getMessage('sponsorQrAlt', [name])}">
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        return container;
+    }
+}
+
+;
+
 // Source: js/panelModal/tabs/about/index.js
 /**
  * About Tab - 关于插件
@@ -3925,6 +3969,7 @@ TimelineI18n.ready()
  */
 function getTabClass(name) {
     switch (name) {
+        case 'SponsorTab': return typeof SponsorTab !== 'undefined' ? SponsorTab : null;
         case 'StarredTab': return typeof StarredTab !== 'undefined' ? StarredTab : null;
         case 'TimelineSettingsTab': return typeof TimelineSettingsTab !== 'undefined' ? TimelineSettingsTab : null;
         case 'PromptTab': return typeof PromptTab !== 'undefined' ? PromptTab : null;
@@ -3950,6 +3995,7 @@ function getTabClass(name) {
  * - className: 对应的类名（字符串）
  */
 const TAB_CONFIG = [
+    { id: 'sponsor', className: 'SponsorTab' },
     { id: 'about', className: 'AboutTab' },
     // 【临时-DSH宣传】DSH 插件 tab（位于"关于插件"下方，下线时删除本行）
     { id: 'dsh-promo', className: 'DshPromoTab' },
@@ -4470,15 +4516,14 @@ class PanelModal {
             // 确定要显示的 tab（带 fallback）
             let targetTabId = tabId;
 
-            // 如果指定的 tab 不存在，fallback 到当前 tab 或第一个可用的 tab
+            // 如果指定的 tab 不存在，回退到当前 tab 或默认页。
             if (targetTabId && !this.tabs.has(targetTabId)) {
                 targetTabId = null;
             }
 
             if (!targetTabId) {
-                targetTabId = this.currentTabId && this.tabs.has(this.currentTabId)
-                    ? this.currentTabId
-                    : this.tabs.keys().next().value;
+                const defaultTabId = this.tabs.has('about') ? 'about' : this.tabs.keys().next().value;
+                targetTabId = this.tabs.has(this.currentTabId) ? this.currentTabId : defaultTabId;
             }
 
             if (!targetTabId) {

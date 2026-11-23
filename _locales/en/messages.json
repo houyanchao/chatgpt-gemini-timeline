@@ -758,6 +758,27 @@
   "notepadSaveToFolder": {
     "message": "Save to folder"
   },
+  "sponsorTabName": {
+    "message": "Sponsor"
+  },
+  "sponsorHeadline": {
+    "message": "It's been a year since this extension launched!"
+  },
+  "sponsorIntro": {
+    "message": "Over the past year, I've shipped at least one new version most weeks, and the extension has reached over 40,000 users."
+  },
+  "sponsorSupport": {
+    "message": "If it's been helpful, feel free to buy the developer a coffee."
+  },
+  "sponsorWeChatPay": {
+    "message": "WeChat"
+  },
+  "sponsorAlipay": {
+    "message": "Alipay"
+  },
+  "sponsorQrAlt": {
+    "message": "$1 payment QR code"
+  },
   "aboutTabName": {
     "message": "About"
   },

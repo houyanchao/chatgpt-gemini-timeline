@@ -9,6 +9,7 @@
  */
 function getTabClass(name) {
     switch (name) {
+        case 'SponsorTab': return typeof SponsorTab !== 'undefined' ? SponsorTab : null;
         case 'StarredTab': return typeof StarredTab !== 'undefined' ? StarredTab : null;
         case 'TimelineSettingsTab': return typeof TimelineSettingsTab !== 'undefined' ? TimelineSettingsTab : null;
         case 'PromptTab': return typeof PromptTab !== 'undefined' ? PromptTab : null;
@@ -34,6 +35,7 @@ function getTabClass(name) {
  * - className: 对应的类名（字符串）
  */
 const TAB_CONFIG = [
+    { id: 'sponsor', className: 'SponsorTab' },
     { id: 'about', className: 'AboutTab' },
     // 【临时-DSH宣传】DSH 插件 tab（位于"关于插件"下方，下线时删除本行）
     { id: 'dsh-promo', className: 'DshPromoTab' },

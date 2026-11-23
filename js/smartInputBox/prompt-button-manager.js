@@ -570,6 +570,10 @@ class PromptButtonManager {
             onManageClick: () => {
                 if (window.panelModal) window.panelModal.show('prompt');
             },
+            onSponsorClick: () => {
+                this._hidePromptDropdown(true);
+                void window.panelModal?.show('sponsor');
+            },
             onChatWidthClick: () => {
                 this._hidePromptDropdown();
                 setTimeout(() => {

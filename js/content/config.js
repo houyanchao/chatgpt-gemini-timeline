@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "a4e94bba9bd0"
+      "revision": "09060aa002b1"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -59,6 +59,7 @@ globalThis.AITContentConfig = {
         "js/panelModal/tabs/runner/styles.css",
         "js/panelModal/tabs/conversationExport/styles.css",
         "js/panelModal/tabs/dataSync/styles.css",
+        "js/panelModal/tabs/sponsor/styles.css",
         "js/panelModal/tabs/about/styles.css",
         "js/panelModal/tabs/mirrorSite/styles.css",
         "js/panelModal/tabs/highlight/styles.css",
@@ -67,7 +68,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "46a98c86e54d"
+      "revision": "9c8e30a96711"
     },
     "runner-ui": {
       "script": "js/content/bundles/runner-ui.js",

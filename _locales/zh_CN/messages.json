@@ -770,6 +770,27 @@
   "notepadSaveToFolder": {
     "message": "保存到文件夹"
   },
+  "sponsorTabName": {
+    "message": "赞助"
+  },
+  "sponsorHeadline": {
+    "message": "一转眼，这个插件上线满一年了！"
+  },
+  "sponsorIntro": {
+    "message": "这一年，基本保持每周至少发了一个新版本，累计用户也突破了 4 万。"
+  },
+  "sponsorSupport": {
+    "message": "如果它帮到了你，欢迎随手打赏，请作者喝杯咖啡。"
+  },
+  "sponsorWeChatPay": {
+    "message": "微信"
+  },
+  "sponsorAlipay": {
+    "message": "支付宝"
+  },
+  "sponsorQrAlt": {
+    "message": "$1收款二维码"
+  },
   "aboutTabName": {
     "message": "关于插件"
   },

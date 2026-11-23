@@ -3332,26 +3332,22 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 
 const CHANGELOG_DATA = {
-    id: '2026111901',
+    id: '2026112401',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
     features: [
         {
-            zh: '更新日志底部新增 DeepSeek Harness 入口，可直达「DSH 插件」页，查看三种安装方式和官方客户端下载链接',
-            en: 'A new DeepSeek Harness shortcut in the changelog opens the DSH Plugin tab with three installation options and the official desktop download link'
+            zh: '设置面板新增「赞助」页，可通过微信或支付宝支持插件开发',
+            en: 'The new Sponsor tab in settings lets you support development through WeChat or Alipay'
         }
     ],
 
     improvements: [
         {
-            zh: '消息截图下载和复制均生成一张 PNG。超长内容超出尺寸上限时，会等比缩小以保留完整内容',
-            en: 'Message screenshot downloads and copies now produce one PNG. Captures that exceed the size limit are scaled down to keep all content'
-        },
-        {
-            zh: '修复设置弹窗打开时，右侧时间轴盖住遮罩、仍可点击的问题',
-            en: 'Fixed the timeline appearing above the settings backdrop and remaining clickable while settings were open'
+            zh: '提示词弹窗顶部的爱心按钮可直接打开「赞助」页',
+            en: 'The heart button in the prompt menu opens the Sponsor tab directly'
         }
     ]
 };
@@ -10932,6 +10928,7 @@ if (typeof window.smartEnterAdapterRegistry === 'undefined') {
  * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
  * @param {Function} [options.onAICompleteReminderClick] - () => void 点击回复完成提醒设置按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
+ * @param {Function} [options.onSponsorClick] - () => void 点击赞助按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
  */
@@ -10945,12 +10942,31 @@ function createPromptDropdownUI({
     onMirrorSiteClick,
     onAICompleteReminderClick,
     onSettingsClick,
+    onSponsorClick,
     showStoreDetailButton = true,
     tooltipPlacement = 'right'
 }) {
     const container = document.createElement('div');
     container.className = 'prompt-dropdown-container';
     container.setAttribute('data-ait-owned-ui', 'prompt-menu');
+
+    const actionClass = showCommonSettings ? 'prompt-dropdown-tab-action' : 'prompt-dropdown-action-btn';
+    const headerActions = showStoreDetailButton ? `
+        ${onSponsorClick ? `<button type="button" class="${actionClass} prompt-dropdown-sponsor-btn" aria-label="${TimelineI18n.getMessage('sponsorTabName') || '赞助'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.8 8.6c0 4.3-8.8 10-8.8 10s-8.8-5.7-8.8-10a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9Z"/>
+            </svg>
+        </button>` : ''}
+        <button type="button" class="${actionClass} prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <path d="M8.59 13.51 15.42 17.49"/>
+                <path d="M15.41 6.51 8.59 10.49"/>
+            </svg>
+        </button>
+    ` : '';
 
     if (showCommonSettings) {
         const tabs = document.createElement('div');
@@ -10975,15 +10991,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-share-btn prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="18" cy="5" r="3"/>
-                    <circle cx="6" cy="12" r="3"/>
-                    <circle cx="18" cy="19" r="3"/>
-                    <path d="M8.59 13.51 15.42 17.49"/>
-                    <path d="M15.41 6.51 8.59 10.49"/>
-                </svg>
-            </button>` : ''}
+            ${headerActions}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = TimelineI18n.getMessage('byaskjndg') || '添加提示词';
@@ -11023,7 +11031,6 @@ function createPromptDropdownUI({
             window.globalTooltipManager?.hide();
         });
 
-        _promptDropdownBindStoreDetailButton(tabs.querySelector('.prompt-dropdown-store-detail-btn'));
         container.appendChild(tabs);
     } else {
         // ===== Header =====
@@ -11037,15 +11044,7 @@ function createPromptDropdownUI({
                 <span class="prompt-dropdown-title">${TimelineI18n.getMessage('hosegod')}</span>
             </div>
             <div class="prompt-dropdown-actions">
-                ${showStoreDetailButton ? `<button type="button" class="prompt-dropdown-action-btn prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="18" cy="5" r="3"/>
-                        <circle cx="6" cy="12" r="3"/>
-                        <circle cx="18" cy="19" r="3"/>
-                        <path d="M8.59 13.51 15.42 17.49"/>
-                        <path d="M15.41 6.51 8.59 10.49"/>
-                    </svg>
-                </button>` : ''}
+                ${headerActions}
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
                         <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -11057,9 +11056,19 @@ function createPromptDropdownUI({
             e.stopPropagation();
             if (onManageClick) onManageClick();
         });
-        _promptDropdownBindStoreDetailButton(header.querySelector('.prompt-dropdown-store-detail-btn'));
         container.appendChild(header);
     }
+
+    _promptDropdownBindHeaderAction(
+        container.querySelector('.prompt-dropdown-sponsor-btn'),
+        'prompt-dropdown-sponsor',
+        onSponsorClick
+    );
+    _promptDropdownBindHeaderAction(
+        container.querySelector('.prompt-dropdown-store-detail-btn'),
+        'prompt-dropdown-share-extension',
+        () => _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl())
+    );
 
     const promptsPanel = document.createElement('div');
     promptsPanel.className = 'prompt-dropdown-panel prompt-dropdown-prompts-panel active';
@@ -11380,25 +11389,27 @@ function _promptDropdownGetStoreDetailUrl() {
     return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
 }
 
-function _promptDropdownBindStoreDetailButton(button) {
+function _promptDropdownBindHeaderAction(button, tooltipId, onClick) {
     if (!button) return;
-    const tooltip = TimelineI18n.getMessage('shareExtension') || '分享插件';
+    const tooltip = button.getAttribute('aria-label');
     button.addEventListener('click', (e) => {
         e.stopPropagation();
-        _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl());
+        onClick();
     });
-    button.addEventListener('mouseenter', () => {
+    const showTooltip = () => {
         window.globalTooltipManager?.show(
-            'prompt-dropdown-share-extension',
+            tooltipId,
             'button',
             button,
             tooltip,
             { style: 'mini', placement: 'top' }
         );
-    });
-    button.addEventListener('mouseleave', () => {
-        window.globalTooltipManager?.hide();
-    });
+    };
+    const hideTooltip = () => window.globalTooltipManager?.hide();
+    button.addEventListener('mouseenter', showTooltip);
+    button.addEventListener('mouseleave', hideTooltip);
+    button.addEventListener('focus', showTooltip);
+    button.addEventListener('blur', hideTooltip);
 }
 
 function _promptDropdownOpenExternalUrl(url) {
@@ -12054,6 +12065,10 @@ class PromptButtonManager {
             },
             onManageClick: () => {
                 if (window.panelModal) window.panelModal.show('prompt');
+            },
+            onSponsorClick: () => {
+                this._hidePromptDropdown(true);
+                void window.panelModal?.show('sponsor');
             },
             onChatWidthClick: () => {
                 this._hidePromptDropdown();

@@ -1,0 +1,150 @@
+.ait-panel-modal .ait-sponsor-tab {
+    display: grid;
+    gap: 16px;
+    max-width: 532px;
+    margin: 4px auto;
+    color: #253042;
+    color-scheme: light;
+    font-family: system-ui, sans-serif;
+}
+
+.ait-panel-modal .ait-sponsor-intro {
+    padding: 20px clamp(14px, 3vw, 24px);
+    border: 1px solid #efe2d1;
+    border-radius: 16px;
+    background: #fdf8f1;
+}
+
+.ait-panel-modal .ait-sponsor-intro h3 {
+    margin: 0 0 8px;
+    color: #2d241c;
+    font-size: clamp(19px, 3vw, 24px);
+    font-weight: 700;
+    line-height: 1.35;
+    text-wrap: balance;
+}
+
+.ait-panel-modal .ait-sponsor-intro p {
+    margin: 0;
+    color: #63564b;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.ait-panel-modal .ait-sponsor-intro .ait-sponsor-support {
+    margin-top: 8px;
+    color: #4f3b29;
+    font-weight: 600;
+}
+
+.ait-panel-modal .ait-sponsor-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 208px), 1fr));
+    gap: 14px;
+}
+
+.ait-panel-modal .ait-sponsor-method {
+    min-width: 0;
+    padding: clamp(10px, 2vw, 16px);
+    border: 1px solid var(--ait-sponsor-card-border);
+    border-radius: 14px;
+    background: var(--ait-sponsor-card-surface);
+}
+
+.ait-panel-modal .ait-sponsor-method[data-payment-method="wechat"] {
+    --ait-sponsor-card-border: #dae9df;
+    --ait-sponsor-card-surface: #f4faf6;
+    --ait-sponsor-method-accent: #138044;
+}
+
+.ait-panel-modal .ait-sponsor-method[data-payment-method="alipay"] {
+    --ait-sponsor-card-border: #dce8f4;
+    --ait-sponsor-card-surface: #f4f8fd;
+    --ait-sponsor-method-accent: #126bb4;
+}
+
+.ait-panel-modal .ait-sponsor-method-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    color: #253042;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.ait-panel-modal .ait-sponsor-method-name::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ait-sponsor-method-accent);
+}
+
+.ait-panel-modal .ait-sponsor-qr-frame {
+    box-sizing: border-box;
+    max-width: 218px;
+    margin: 0 auto;
+    padding: 8px;
+    border: 1px solid var(--ait-sponsor-card-border);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.ait-panel-modal .ait-sponsor-qr {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
+@media (max-width: 560px) {
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-sidebar {
+        width: 54px;
+        flex-shrink: 0;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-sidebar-header {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-close {
+        margin: 0;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) :is(.ait-panel-modal-sidebar-title, .panel-tab .tab-label) {
+        display: none;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .panel-tab {
+        justify-content: center;
+        width: calc(100% - 12px);
+        margin-inline: 6px;
+        padding-inline: 0;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-footer {
+        padding: 8px 0;
+        text-align: center;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-header {
+        justify-content: space-between;
+        gap: 8px;
+        padding: 0 12px;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-header-actions {
+        position: static;
+        transform: none;
+    }
+
+    .ait-panel-modal:has(.ait-sponsor-tab) .ait-panel-modal-content {
+        padding: 12px;
+    }
+}

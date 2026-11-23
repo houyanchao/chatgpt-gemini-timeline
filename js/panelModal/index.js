@@ -448,15 +448,14 @@ class PanelModal {
             // 确定要显示的 tab（带 fallback）
             let targetTabId = tabId;
 
-            // 如果指定的 tab 不存在，fallback 到当前 tab 或第一个可用的 tab
+            // 如果指定的 tab 不存在，回退到当前 tab 或默认页。
             if (targetTabId && !this.tabs.has(targetTabId)) {
                 targetTabId = null;
             }
 
             if (!targetTabId) {
-                targetTabId = this.currentTabId && this.tabs.has(this.currentTabId)
-                    ? this.currentTabId
-                    : this.tabs.keys().next().value;
+                const defaultTabId = this.tabs.has('about') ? 'about' : this.tabs.keys().next().value;
+                targetTabId = this.tabs.has(this.currentTabId) ? this.currentTabId : defaultTabId;
             }
 
             if (!targetTabId) {
