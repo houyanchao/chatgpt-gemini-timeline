@@ -1290,6 +1290,30 @@ class BaseSidebarStarredAdapter {
         throw new Error('BaseSidebarStarredAdapter.findInsertionPoint() must be implemented');
     }
 
+    static isInsertionParentVisible(parent) {
+        if (!parent?.isConnected || parent.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+
+        for (let element = parent; element; element = element.parentElement) {
+            const style = getComputedStyle(element);
+            if (style.visibility !== 'visible' || style.display === 'none') return false;
+            if (style.display === 'contents') continue;
+
+            const bounds = element.getBoundingClientRect();
+            return bounds.width > 0 && bounds.height > 0 && bounds.right > 0 && bounds.left < window.innerWidth;
+        }
+        return false;
+    }
+
+    _preferVisibleInsertionPoint(points) {
+        let fallback = null;
+        for (const point of points) {
+            if (BaseSidebarStarredAdapter.isInsertionParentVisible(point.parent)) return point;
+            fallback ??= point;
+        }
+        // Keep the anchor when the platform's only sidebar is temporarily collapsed.
+        return fallback;
+    }
+
     // ==================== 可选覆盖 ====================
 
     getPlatformClass() { return ''; }
@@ -1799,6 +1823,10 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     }
 
     findInsertionPoint() {
+        return this._preferVisibleInsertionPoint(this._insertionPoints());
+    }
+
+    *_insertionPoints() {
         // 新版使用独立滚动容器；不依赖带哈希的 Navigation 类名或本地化标题。
         const modernSections = document.querySelectorAll('nav [data-app-action-sidebar-section]');
         for (const section of modernSections) {
@@ -1807,7 +1835,8 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
             while (reference.parentElement && reference.parentElement !== nav) {
                 const parent = reference.parentElement;
                 if (parent.classList.contains('overflow-y-auto')) {
-                    return { parent, reference, position: 'before' };
+                    yield { parent, reference, position: 'before' };
+                    break;
                 }
                 reference = parent;
             }
@@ -1816,16 +1845,16 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         // 分组容器（已置顶/最近）在展开与折叠状态都存在、class 稳定；不依赖 #history（折叠时被卸载）。
         // 插到第一个分组之前：有置顶时是「已置顶」，无置顶时即「最近」，始终位于置顶与历史记录之上。
         const sections = document.querySelectorAll('.group\\/sidebar-expando-section');
-        if (sections.length && sections[0].parentElement) {
-            return { parent: sections[0].parentElement, reference: sections[0], position: 'before' };
+        for (const section of sections) {
+            if (section.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
         }
 
         // 兜底：无分组容器（结构大改）时退回到 #history 父容器之前
-        const history = document.getElementById('history');
-        if (history?.parentElement?.parentElement) {
-            return { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };
+        for (const history of document.querySelectorAll('#history')) {
+            if (history.parentElement?.parentElement) {
+                yield { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };
+            }
         }
-        return null;
     }
 
     getPlatformClass() {
@@ -2563,19 +2592,20 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     async matches() { return matchesPlatform(location.href, 'claude'); }
 
     _findNav() {
-        return document.querySelector('[data-testid="sidebar"]')
-            || document.querySelector('nav[aria-label="Sidebar"]');
+        let fallback = null;
+        for (const nav of this._navCandidates()) {
+            if (BaseSidebarStarredAdapter.isInsertionParentVisible(nav)) return nav;
+            fallback ??= nav;
+        }
+        return fallback;
     }
 
-    _findScrollableArea() {
-        const nav = this._findNav();
-        return nav?.querySelector('.dframe-nav-scroll')
-            || nav?.querySelector('[tabindex="-1"]') || null;
+    *_navCandidates() {
+        yield* document.querySelectorAll('[data-testid="sidebar"]');
+        yield* document.querySelectorAll('nav[aria-label="Sidebar"]:not([data-testid="sidebar"])');
     }
 
-    _findHistorySection() {
-        const scrollable = this._findScrollableArea();
-        if (!scrollable) return null;
+    _findHistorySection(scrollable) {
         const modern = scrollable.querySelector('[data-testid="sidebar-pinned"], [data-testid="sidebar-recents"]');
         if (modern) {
             let section = modern;
@@ -2589,11 +2619,24 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         return section;
     }
 
-    findSidebarContainer() { return this._findHistorySection()?.parentElement || null; }
+    findSidebarContainer() { return this.findInsertionPoint()?.parent || null; }
 
     findInsertionPoint() {
-        const section = this._findHistorySection();
-        return section?.parentElement ? { parent: section.parentElement, reference: section, position: 'before' } : null;
+        return this._preferVisibleInsertionPoint(this._insertionPoints());
+    }
+
+    *_insertionPoints() {
+        for (const nav of this._navCandidates()) {
+            for (const scrollable of nav.querySelectorAll('.dframe-nav-scroll')) {
+                const section = this._findHistorySection(scrollable);
+                if (section?.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
+            }
+
+            const legacyScroll = nav.querySelector('[tabindex="-1"]:not(.dframe-nav-scroll)');
+            if (!legacyScroll) continue;
+            const section = this._findHistorySection(legacyScroll);
+            if (section?.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
+        }
     }
 
     getPlatformClass() { return 'claude'; }
@@ -3332,22 +3375,21 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 
 const CHANGELOG_DATA = {
-    id: '2026112401',
+    id: '2026112501',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
-    features: [
-        {
-            zh: '设置面板新增「赞助」页，可通过微信或支付宝支持插件开发',
-            en: 'The new Sponsor tab in settings lets you support development through WeChat or Alipay'
-        }
-    ],
+    features: [],
 
     improvements: [
         {
-            zh: '提示词弹窗顶部的爱心按钮可直接打开「赞助」页',
-            en: 'The heart button in the prompt menu opens the Sponsor tab directly'
+            zh: '修复侧栏较晚展开或切换对话后文件夹偶尔不显示的问题。侧栏重建后也会保留文件夹的展开状态。',
+            en: 'Fixed folders sometimes disappearing when opening the sidebar later or switching chats. Expanded folders now stay open when the sidebar is rebuilt.'
+        },
+        {
+            zh: '重新设计「关于插件」页，将文档、GitHub 和三个浏览器的安装入口集中到页首。',
+            en: 'Redesigned the About page and grouped the documentation, GitHub repository, and links to all three browser stores at the top.'
         }
     ]
 };
@@ -10925,10 +10967,9 @@ if (typeof window.smartEnterAdapterRegistry === 'undefined') {
  * @param {boolean}  [options.showCommonSettings=false] - 是否显示"常用设置"Tab
  * @param {Function} [options.onChatWidthClick] - () => void 点击对话宽度设置按钮
  * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
- * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
+ * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配 AI 网站按钮
  * @param {Function} [options.onAICompleteReminderClick] - () => void 点击回复完成提醒设置按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
- * @param {Function} [options.onSponsorClick] - () => void 点击赞助按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
  */
@@ -10942,7 +10983,6 @@ function createPromptDropdownUI({
     onMirrorSiteClick,
     onAICompleteReminderClick,
     onSettingsClick,
-    onSponsorClick,
     showStoreDetailButton = true,
     tooltipPlacement = 'right'
 }) {
@@ -10950,14 +10990,9 @@ function createPromptDropdownUI({
     container.className = 'prompt-dropdown-container';
     container.setAttribute('data-ait-owned-ui', 'prompt-menu');
 
-    const actionClass = showCommonSettings ? 'prompt-dropdown-tab-action' : 'prompt-dropdown-action-btn';
-    const headerActions = showStoreDetailButton ? `
-        ${onSponsorClick ? `<button type="button" class="${actionClass} prompt-dropdown-sponsor-btn" aria-label="${TimelineI18n.getMessage('sponsorTabName') || '赞助'}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20.8 8.6c0 4.3-8.8 10-8.8 10s-8.8-5.7-8.8-10a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9Z"/>
-            </svg>
-        </button>` : ''}
-        <button type="button" class="${actionClass} prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
+    const shareButtonClass = showCommonSettings ? 'prompt-dropdown-store-detail-btn' : 'prompt-dropdown-store-detail-btn prompt-dropdown-action-btn';
+    const shareButton = showStoreDetailButton ? `
+        <button type="button" class="${shareButtonClass}" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="18" cy="5" r="3"/>
                 <circle cx="6" cy="12" r="3"/>
@@ -10991,7 +11026,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            ${headerActions}
+            ${shareButton}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = TimelineI18n.getMessage('byaskjndg') || '添加提示词';
@@ -11044,7 +11079,7 @@ function createPromptDropdownUI({
                 <span class="prompt-dropdown-title">${TimelineI18n.getMessage('hosegod')}</span>
             </div>
             <div class="prompt-dropdown-actions">
-                ${headerActions}
+                ${shareButton}
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
                         <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -11059,16 +11094,7 @@ function createPromptDropdownUI({
         container.appendChild(header);
     }
 
-    _promptDropdownBindHeaderAction(
-        container.querySelector('.prompt-dropdown-sponsor-btn'),
-        'prompt-dropdown-sponsor',
-        onSponsorClick
-    );
-    _promptDropdownBindHeaderAction(
-        container.querySelector('.prompt-dropdown-store-detail-btn'),
-        'prompt-dropdown-share-extension',
-        () => _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl())
-    );
+    _promptDropdownBindStoreDetailButton(container.querySelector('.prompt-dropdown-store-detail-btn'));
 
     const promptsPanel = document.createElement('div');
     promptsPanel.className = 'prompt-dropdown-panel prompt-dropdown-prompts-panel active';
@@ -11212,7 +11238,7 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('mirrorSiteTabName') || '适配 AI 网站'}</div>
                     </div>
                     <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
                 </div>
@@ -11389,16 +11415,16 @@ function _promptDropdownGetStoreDetailUrl() {
     return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
 }
 
-function _promptDropdownBindHeaderAction(button, tooltipId, onClick) {
+function _promptDropdownBindStoreDetailButton(button) {
     if (!button) return;
     const tooltip = button.getAttribute('aria-label');
     button.addEventListener('click', (e) => {
         e.stopPropagation();
-        onClick();
+        _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl());
     });
     const showTooltip = () => {
         window.globalTooltipManager?.show(
-            tooltipId,
+            'prompt-dropdown-share-extension',
             'button',
             button,
             tooltip,
@@ -12065,10 +12091,6 @@ class PromptButtonManager {
             },
             onManageClick: () => {
                 if (window.panelModal) window.panelModal.show('prompt');
-            },
-            onSponsorClick: () => {
-                this._hidePromptDropdown(true);
-                void window.panelModal?.show('sponsor');
             },
             onChatWidthClick: () => {
                 this._hidePromptDropdown();
@@ -29572,6 +29594,9 @@ class SidebarStarredManager {
         this._storageListener = null;
         this._reinjectTimer = null;
         this._refreshDebounceTimer = null;
+        this._refreshVersion = 0;
+        this._parentObserver = null;
+        this._observedParent = null;
 
         this.treeRenderer = new StarredTreeRenderer({
             scene: 'sidebar',
@@ -29597,17 +29622,19 @@ class SidebarStarredManager {
         if (this.isDestroyed) return false;
 
         await TimelineI18n.ready();
-        const saved = await StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES);
+        if (this.isDestroyed) return false;
+        const [saved, collapsed] = await Promise.all([
+            StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES),
+            StorageAdapter.get('sidebarStarredCollapsed')
+        ]);
         if (this.isDestroyed) return false;
         this.folderStates = saved && typeof saved === 'object' ? saved : {};
-        const ok = this._injectIntoSidebar();
-        if (!ok) return false;
-        await this._restoreCollapseState();
+        if (!this._mountSidebar()) return false;
+        this.container.classList.toggle('ait-ss-collapsed', !!collapsed);
+        this._startStorageListener();
         await this._refreshContent();
         if (this.isDestroyed) return false;
-        this._startStorageListener();
         this._startReinjectCheck();
-        this._startParentObserver();
         this._startNativeMenuInjector();
         this._initCustomDrag();
         this.adapter.refreshStarredIcons?.();
@@ -29615,6 +29642,7 @@ class SidebarStarredManager {
     }
 
     destroy() {
+        if (this.isDestroyed) return;
         this.isDestroyed = true;
         this._destroyCustomDrag();
         this.treeRenderer.destroy();
@@ -29623,26 +29651,42 @@ class SidebarStarredManager {
         if (this._reinjectTimer) { clearInterval(this._reinjectTimer); this._reinjectTimer = null; }
         if (this._refreshDebounceTimer) { clearTimeout(this._refreshDebounceTimer); this._refreshDebounceTimer = null; }
         if (this._parentObserver) { this._parentObserver.disconnect(); this._parentObserver = null; }
-        if (this.container?.parentNode) this.container.parentNode.removeChild(this.container);
+        this._observedParent = null;
+        this.container?.remove();
         this.container = null;
     }
 
     // ==================== 注入 ====================
 
-    _injectIntoSidebar() {
-        const existing = document.querySelector(`.${SidebarStarredManager.CONTAINER_CLASS}`);
-        if (existing) { this.container = existing; return true; }
+    _mountSidebar() {
+        if (this.isDestroyed) return false;
         const info = this.adapter.findInsertionPoint();
-        if (!info) return false;
-        this.container = this._buildContainer();
+        // Hosts may briefly remove the anchor while reconciling the sidebar.
+        // Keep the current tree until another valid insertion point is available.
+        if (!info?.parent?.isConnected) return false;
         const { parent, reference, position } = info;
-        try {
-            if (position === 'before') parent.insertBefore(this.container, reference);
-            else if (position === 'after') parent.insertBefore(this.container, reference?.nextSibling || null);
-            else if (position === 'prepend') parent.insertBefore(this.container, parent.firstChild);
-            else parent.appendChild(this.container);
-            return true;
-        } catch (e) { void 0; return false; }
+        if ((position === 'before' || position === 'after') && reference?.parentNode !== parent) return false;
+
+        const container = this.container || this._buildContainer();
+        let anchor = null;
+        if (position === 'before') anchor = reference;
+        else if (position === 'after') anchor = reference.nextElementSibling;
+        else if (position === 'prepend') anchor = parent.firstElementChild;
+
+        if (container.parentNode !== parent || (container.nextElementSibling !== anchor && container !== anchor)) {
+            try {
+                parent.insertBefore(container, anchor);
+            } catch {
+                return false;
+            }
+            // A stale node cannot carry the listeners owned by this manager.
+            for (const node of parent.querySelectorAll(`:scope > .${SidebarStarredManager.CONTAINER_CLASS}`)) {
+                if (node !== container) node.remove();
+            }
+        }
+        this.container = container;
+        this._startParentObserver(parent);
+        return true;
     }
 
     _buildContainer() {
@@ -29761,20 +29805,15 @@ class SidebarStarredManager {
         await StorageAdapter.set('sidebarStarredCollapsed', collapsed);
     }
 
-    async _restoreCollapseState() {
-        const collapsed = await StorageAdapter.get('sidebarStarredCollapsed');
-        if (collapsed && this.container) {
-            this.container.classList.add('ait-ss-collapsed');
-        }
-    }
-
     // ==================== 数据 → 渲染 ====================
 
     async _refreshContent() {
         if (this.isDestroyed || !this.container) return;
+        const version = ++this._refreshVersion;
         const tree = await this.folderManager.getStarredByFolder();
-        if (this.isDestroyed || !this.container) return;
+        if (this.isDestroyed || version !== this._refreshVersion) return;
         await this.treeRenderer.renderTree(tree, { themeAdaptive: true });
+        if (this.isDestroyed || version !== this._refreshVersion) return;
         
         const hasContent = tree.folders.length > 0 || tree.uncategorized.length > 0;
         if (this.searchBtn) {
@@ -29790,6 +29829,8 @@ class SidebarStarredManager {
             if (changes.chatTimelineStars || changes.folders || changes.hideStarredFromNativeList) {
                 if (this._refreshDebounceTimer) clearTimeout(this._refreshDebounceTimer);
                 this._refreshDebounceTimer = setTimeout(() => {
+                    this._refreshDebounceTimer = null;
+                    if (this.isDestroyed) return;
                     this._refreshContent().catch(error => void 0);
                     this.adapter.refreshStarredIcons?.();
                 }, SidebarStarredManager.STORAGE_DEBOUNCE);
@@ -29798,61 +29839,25 @@ class SidebarStarredManager {
         StorageAdapter.addChangeListener(this._storageListener);
     }
 
-    _startParentObserver() {
-        if (this._parentObserver) this._parentObserver.disconnect();
-        const info = this.adapter.findInsertionPoint();
-        if (!info?.parent) return;
-        this._parentObserver = new MutationObserver(() => {
-            if (this.isDestroyed) return;
-            const info = this.adapter.findInsertionPoint();
-            if (!info) {
-                if (this.container?.parentNode) {
-                    this.container.parentNode.removeChild(this.container);
-                    this.container = null;
-                }
-                return;
-            }
-            if (this.container && this.container.parentNode !== info.parent) {
-                if (this.container.parentNode) this.container.parentNode.removeChild(this.container);
-                this.container = null;
-            }
-            if (!this.container) {
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                this._startParentObserver();
-            } else if (info.position === 'before' && info.reference && this.container.nextElementSibling !== info.reference) {
-                this.container.parentNode.removeChild(this.container);
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                this._startParentObserver();
+    _startParentObserver(parent) {
+        if (this._observedParent === parent) return;
+        this._parentObserver?.disconnect();
+        this._observedParent = parent;
+        this._parentObserver = new MutationObserver(records => {
+            if (!this.container?.isConnected || records.some(record => record.target === parent)) {
+                this._mountSidebar();
             }
         });
-        this._parentObserver.observe(info.parent, { childList: true });
+        // Observe direct children only, including on ancestors that can replace the whole sidebar.
+        for (let target = parent; target; target = target.parentElement) {
+            this._parentObserver.observe(target, { childList: true });
+        }
     }
 
     _startReinjectCheck() {
         this._reinjectTimer = setInterval(() => {
             if (this.isDestroyed) return;
-            const existing = document.querySelector(`.${SidebarStarredManager.CONTAINER_CLASS}`);
-            if (!existing) {
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                return;
-            }
-            const info = this.adapter.findInsertionPoint();
-            if (!info) {
-                if (existing.parentNode) existing.parentNode.removeChild(existing);
-                this.container = null;
-                return;
-            }
-            const needsReinject =
-                existing.parentNode !== info.parent ||
-                (info.position === 'before' && info.reference && existing.nextElementSibling !== info.reference);
-            if (needsReinject) {
-                if (existing.parentNode) existing.parentNode.removeChild(existing);
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-            }
-            this.adapter.refreshStarredIcons?.();
+            if (this._mountSidebar()) this.adapter.refreshStarredIcons?.();
         }, SidebarStarredManager.REINJECT_INTERVAL);
     }
 
@@ -29989,161 +29994,85 @@ class SidebarStarredManager {
 ;
 
 // Source: js/sidebarStarred/index.js
-/**
- * Sidebar Starred - Entry Point
- *
- * 功能入口：检测当前平台是否支持侧边栏收藏列表，
- * 然后以重试机制等待侧边栏 DOM 就绪后初始化 SidebarStarredManager。
- *
- * 生命周期：
- *   1. 平台检测（feature gate）
- *   2. 等待侧边栏 DOM 出现（retry）
- *   3. 初始化 Manager
- *   4. SPA 路由变化时由 Manager 内部的 reinjectTimer 自动处理
- */
+/** Mount folders when the host sidebar is ready, even if it opens much later. */
+window.AITPlatformFeatures.register('sidebar-starred', async () => {
+    const platform = await getCurrentPlatform();
+    if (platform?.features?.sidebarStarred !== true) return;
+    const adapter = await window.sidebarStarredAdapterRegistry?.getAdapter();
+    const session = window.AITContentSession;
+    if (!adapter || session?.active === false) return;
 
-(async function () {
-    const RETRY_DELAYS = [800, 1000, 1500, 2000, 2000, 3000];
-
+    let enabled;
     let manager = null;
-    let platform = null;
-    let adapter = null;
-    let initInFlight = false;
-    let bootstrapInFlight = false;
-    let settingsListenerAttached = false;
+    let stopWaiting = null;
+    const settingsKey = 'sidebarStarredPlatformSettings';
 
-    async function resolveSupport() {
-        platform = await getCurrentPlatform();
-        if (!platform || platform.features?.sidebarStarred !== true) {
-            platform = null;
-            adapter = null;
-            return false;
-        }
-
-        const registry = window.sidebarStarredAdapterRegistry;
-        if (!registry) {
-            adapter = null;
-            return false;
-        }
-
-        adapter = await registry.getAdapter();
-        return !!adapter;
+    function waitForSidebar() {
+        if (stopWaiting) return;
+        const unsubscribe = DOMObserverManager.getInstance().subscribeBody('sidebar-starred-mount', {
+            callback: tryMount, filter: { hasAddedNodes: true }, debounce: 200
+        });
+        // Also catch anchors that become eligible through attributes alone.
+        const timer = setInterval(tryMount, SidebarStarredManager.REINJECT_INTERVAL);
+        stopWaiting = () => {
+            unsubscribe();
+            clearInterval(timer);
+            stopWaiting = null;
+        };
     }
 
-    // ==================== Init with retry ====================
+    async function tryMount() {
+        if (session?.active === false || window.AITExtensionContext?.invalidated) {
+            stopWaiting?.();
+            return;
+        }
+        if (!enabled || manager) return;
 
-    function canInject() {
-        if (!adapter) return false;
-        const info = adapter.findInsertionPoint();
-        if (!info) return false;
-        const { parent } = info;
-        if (!parent || !parent.offsetParent || parent.offsetHeight <= 0) return false;
-        return true;
-    }
-
-    async function initialize(retryIndex) {
-        if (manager || initInFlight) return;
-        initInFlight = true;
+        let candidate = null;
         try {
-            await TimelineI18n.ready();
-
-            if (!adapter) {
-                if (!await resolveSupport()) return;
-            }
-
-            if (window.AITContentSession?.active === false) return;
-            manager = new SidebarStarredManager(adapter);
-            const ok = await manager.init();
-            if (window.AITContentSession?.active === false) return;
-
-            if (!ok) {
-                manager.destroy();
-                manager = null;
-                if (retryIndex !== undefined) {
-                    initWithRetry(retryIndex + 1);
-                }
+            // The host can render the sidebar while collapsed, fixed, or inside display: contents.
+            if (adapter.findInsertionPoint()?.parent?.isConnected) {
+                stopWaiting?.();
+                candidate = new SidebarStarredManager(adapter);
+                manager = candidate;
+                if (await candidate.init()) return;
             }
         } catch (error) {
-            destroyManager();
-            throw error;
-        } finally {
-            initInFlight = false;
+            window.AITExtensionContext?.handleInvalidation(error);
+        }
+
+        // A setting change or session stop may have already destroyed this attempt.
+        if (manager !== candidate) return;
+        manager?.destroy();
+        manager = null;
+        if (enabled && session?.active !== false && !window.AITExtensionContext?.invalidated) waitForSidebar();
+    }
+
+    function setEnabled(value) {
+        if (enabled === value) return;
+        enabled = value;
+        if (enabled) return tryMount();
+        stopWaiting?.();
+        manager?.destroy();
+        manager = null;
+    }
+
+    function onSettingsChanged(changes, area) {
+        if (area === 'local' && changes[settingsKey]) {
+            void setEnabled(changes[settingsKey].newValue?.[platform.id] !== false);
         }
     }
 
-    function destroyManager() {
-        if (manager) {
-            manager.destroy();
-            manager = null;
-        }
-    }
-
-    function initWithRetry(retryIndex = 0) {
-        if (retryIndex >= RETRY_DELAYS.length) return;
-
-        setTimeout(async () => {
-            try {
-                if (!await resolveSupport()) return;
-                if (canInject()) {
-                    await initialize(retryIndex);
-                } else {
-                    initWithRetry(retryIndex + 1);
-                }
-            } catch (error) {
-            }
-        }, RETRY_DELAYS[retryIndex]);
-    }
-
-    // ==================== 监听开关变化 ====================
-
-    function attachSettingsListener() {
-        if (settingsListenerAttached) return;
-        settingsListenerAttached = true;
-        StorageAdapter.addChangeListener((changes, areaName) => {
-            if (areaName !== 'local' || !changes.sidebarStarredPlatformSettings) return;
-            if (!platform) return;
-            const settings = changes.sidebarStarredPlatformSettings.newValue || {};
-            const enabled = settings[platform.id] !== false;
-            if (enabled && !manager) {
-                if (canInject()) {
-                    initialize(0).catch(() => {});
-                } else {
-                    initWithRetry();
-                }
-            } else if (!enabled && manager) {
-                destroyManager();
-            }
-        });
-    }
-
-    // ==================== Bootstrap ====================
-
-    async function bootstrap() {
-        if (manager || bootstrapInFlight) return;
-        bootstrapInFlight = true;
-        try {
-            if (!await resolveSupport()) return;
-            attachSettingsListener();
-
-            const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
-            if (window.AITContentSession?.active === false) return;
-            if (settings && settings[platform.id] === false) return;
-
-            if (canInject()) {
-                await initialize(0);
-            } else {
-                initWithRetry();
-            }
-        } finally {
-            bootstrapInFlight = false;
-        }
-    }
-
-    window.AITContentSession?.onStop(() => {
-        try { destroyManager(); } finally { adapter?.restoreNativeList(); }
+    StorageAdapter.addChangeListener(onSettingsChanged);
+    session?.onStop(() => {
+        StorageAdapter.removeChangeListener(onSettingsChanged);
+        try { setEnabled(false); } finally { adapter.restoreNativeList(); }
     });
-    window.AITPlatformFeatures.register('sidebar-starred', bootstrap);
-})();
+
+    const settings = await StorageAdapter.get(settingsKey);
+    // A newer storage event takes precedence over the initial read.
+    if (enabled === undefined) await setEnabled(settings?.[platform.id] !== false);
+});
 
 ;
 

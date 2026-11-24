@@ -1,155 +1,79 @@
-/**
- * Sidebar Starred - Entry Point
- *
- * 功能入口：检测当前平台是否支持侧边栏收藏列表，
- * 然后以重试机制等待侧边栏 DOM 就绪后初始化 SidebarStarredManager。
- *
- * 生命周期：
- *   1. 平台检测（feature gate）
- *   2. 等待侧边栏 DOM 出现（retry）
- *   3. 初始化 Manager
- *   4. SPA 路由变化时由 Manager 内部的 reinjectTimer 自动处理
- */
+/** Mount folders when the host sidebar is ready, even if it opens much later. */
+window.AITPlatformFeatures.register('sidebar-starred', async () => {
+    const platform = await getCurrentPlatform();
+    if (platform?.features?.sidebarStarred !== true) return;
+    const adapter = await window.sidebarStarredAdapterRegistry?.getAdapter();
+    const session = window.AITContentSession;
+    if (!adapter || session?.active === false) return;
 
-(async function () {
-    const RETRY_DELAYS = [800, 1000, 1500, 2000, 2000, 3000];
-
+    let enabled;
     let manager = null;
-    let platform = null;
-    let adapter = null;
-    let initInFlight = false;
-    let bootstrapInFlight = false;
-    let settingsListenerAttached = false;
+    let stopWaiting = null;
+    const settingsKey = 'sidebarStarredPlatformSettings';
 
-    async function resolveSupport() {
-        platform = await getCurrentPlatform();
-        if (!platform || platform.features?.sidebarStarred !== true) {
-            platform = null;
-            adapter = null;
-            return false;
-        }
-
-        const registry = window.sidebarStarredAdapterRegistry;
-        if (!registry) {
-            adapter = null;
-            return false;
-        }
-
-        adapter = await registry.getAdapter();
-        return !!adapter;
+    function waitForSidebar() {
+        if (stopWaiting) return;
+        const unsubscribe = DOMObserverManager.getInstance().subscribeBody('sidebar-starred-mount', {
+            callback: tryMount, filter: { hasAddedNodes: true }, debounce: 200
+        });
+        // Also catch anchors that become eligible through attributes alone.
+        const timer = setInterval(tryMount, SidebarStarredManager.REINJECT_INTERVAL);
+        stopWaiting = () => {
+            unsubscribe();
+            clearInterval(timer);
+            stopWaiting = null;
+        };
     }
 
-    // ==================== Init with retry ====================
+    async function tryMount() {
+        if (session?.active === false || window.AITExtensionContext?.invalidated) {
+            stopWaiting?.();
+            return;
+        }
+        if (!enabled || manager) return;
 
-    function canInject() {
-        if (!adapter) return false;
-        const info = adapter.findInsertionPoint();
-        if (!info) return false;
-        const { parent } = info;
-        if (!parent || !parent.offsetParent || parent.offsetHeight <= 0) return false;
-        return true;
-    }
-
-    async function initialize(retryIndex) {
-        if (manager || initInFlight) return;
-        initInFlight = true;
+        let candidate = null;
         try {
-            await TimelineI18n.ready();
-
-            if (!adapter) {
-                if (!await resolveSupport()) return;
-            }
-
-            if (window.AITContentSession?.active === false) return;
-            manager = new SidebarStarredManager(adapter);
-            const ok = await manager.init();
-            if (window.AITContentSession?.active === false) return;
-
-            if (!ok) {
-                manager.destroy();
-                manager = null;
-                if (retryIndex !== undefined) {
-                    initWithRetry(retryIndex + 1);
-                }
+            // The host can render the sidebar while collapsed, fixed, or inside display: contents.
+            if (adapter.findInsertionPoint()?.parent?.isConnected) {
+                stopWaiting?.();
+                candidate = new SidebarStarredManager(adapter);
+                manager = candidate;
+                if (await candidate.init()) return;
             }
         } catch (error) {
-            destroyManager();
-            throw error;
-        } finally {
-            initInFlight = false;
+            window.AITExtensionContext?.handleInvalidation(error);
+        }
+
+        // A setting change or session stop may have already destroyed this attempt.
+        if (manager !== candidate) return;
+        manager?.destroy();
+        manager = null;
+        if (enabled && session?.active !== false && !window.AITExtensionContext?.invalidated) waitForSidebar();
+    }
+
+    function setEnabled(value) {
+        if (enabled === value) return;
+        enabled = value;
+        if (enabled) return tryMount();
+        stopWaiting?.();
+        manager?.destroy();
+        manager = null;
+    }
+
+    function onSettingsChanged(changes, area) {
+        if (area === 'local' && changes[settingsKey]) {
+            void setEnabled(changes[settingsKey].newValue?.[platform.id] !== false);
         }
     }
 
-    function destroyManager() {
-        if (manager) {
-            manager.destroy();
-            manager = null;
-        }
-    }
-
-    function initWithRetry(retryIndex = 0) {
-        if (retryIndex >= RETRY_DELAYS.length) return;
-
-        setTimeout(async () => {
-            try {
-                if (!await resolveSupport()) return;
-                if (canInject()) {
-                    await initialize(retryIndex);
-                } else {
-                    initWithRetry(retryIndex + 1);
-                }
-            } catch (error) {
-            }
-        }, RETRY_DELAYS[retryIndex]);
-    }
-
-    // ==================== 监听开关变化 ====================
-
-    function attachSettingsListener() {
-        if (settingsListenerAttached) return;
-        settingsListenerAttached = true;
-        StorageAdapter.addChangeListener((changes, areaName) => {
-            if (areaName !== 'local' || !changes.sidebarStarredPlatformSettings) return;
-            if (!platform) return;
-            const settings = changes.sidebarStarredPlatformSettings.newValue || {};
-            const enabled = settings[platform.id] !== false;
-            if (enabled && !manager) {
-                if (canInject()) {
-                    initialize(0).catch(() => {});
-                } else {
-                    initWithRetry();
-                }
-            } else if (!enabled && manager) {
-                destroyManager();
-            }
-        });
-    }
-
-    // ==================== Bootstrap ====================
-
-    async function bootstrap() {
-        if (manager || bootstrapInFlight) return;
-        bootstrapInFlight = true;
-        try {
-            if (!await resolveSupport()) return;
-            attachSettingsListener();
-
-            const settings = await StorageAdapter.get('sidebarStarredPlatformSettings');
-            if (window.AITContentSession?.active === false) return;
-            if (settings && settings[platform.id] === false) return;
-
-            if (canInject()) {
-                await initialize(0);
-            } else {
-                initWithRetry();
-            }
-        } finally {
-            bootstrapInFlight = false;
-        }
-    }
-
-    window.AITContentSession?.onStop(() => {
-        try { destroyManager(); } finally { adapter?.restoreNativeList(); }
+    StorageAdapter.addChangeListener(onSettingsChanged);
+    session?.onStop(() => {
+        StorageAdapter.removeChangeListener(onSettingsChanged);
+        try { setEnabled(false); } finally { adapter.restoreNativeList(); }
     });
-    window.AITPlatformFeatures.register('sidebar-starred', bootstrap);
-})();
+
+    const settings = await StorageAdapter.get(settingsKey);
+    // A newer storage event takes precedence over the initial read.
+    if (enabled === undefined) await setEnabled(settings?.[platform.id] !== false);
+});

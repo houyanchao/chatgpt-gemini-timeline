@@ -42,6 +42,30 @@ class BaseSidebarStarredAdapter {
         throw new Error('BaseSidebarStarredAdapter.findInsertionPoint() must be implemented');
     }
 
+    static isInsertionParentVisible(parent) {
+        if (!parent?.isConnected || parent.closest('[hidden], [inert], [aria-hidden="true"]')) return false;
+
+        for (let element = parent; element; element = element.parentElement) {
+            const style = getComputedStyle(element);
+            if (style.visibility !== 'visible' || style.display === 'none') return false;
+            if (style.display === 'contents') continue;
+
+            const bounds = element.getBoundingClientRect();
+            return bounds.width > 0 && bounds.height > 0 && bounds.right > 0 && bounds.left < window.innerWidth;
+        }
+        return false;
+    }
+
+    _preferVisibleInsertionPoint(points) {
+        let fallback = null;
+        for (const point of points) {
+            if (BaseSidebarStarredAdapter.isInsertionParentVisible(point.parent)) return point;
+            fallback ??= point;
+        }
+        // Keep the anchor when the platform's only sidebar is temporarily collapsed.
+        return fallback;
+    }
+
     // ==================== 可选覆盖 ====================
 
     getPlatformClass() { return ''; }

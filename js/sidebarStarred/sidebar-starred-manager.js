@@ -21,6 +21,9 @@ class SidebarStarredManager {
         this._storageListener = null;
         this._reinjectTimer = null;
         this._refreshDebounceTimer = null;
+        this._refreshVersion = 0;
+        this._parentObserver = null;
+        this._observedParent = null;
 
         this.treeRenderer = new StarredTreeRenderer({
             scene: 'sidebar',
@@ -46,17 +49,19 @@ class SidebarStarredManager {
         if (this.isDestroyed) return false;
 
         await TimelineI18n.ready();
-        const saved = await StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES);
+        if (this.isDestroyed) return false;
+        const [saved, collapsed] = await Promise.all([
+            StorageAdapter.get(SidebarStarredManager.STORAGE_KEY_FOLDER_STATES),
+            StorageAdapter.get('sidebarStarredCollapsed')
+        ]);
         if (this.isDestroyed) return false;
         this.folderStates = saved && typeof saved === 'object' ? saved : {};
-        const ok = this._injectIntoSidebar();
-        if (!ok) return false;
-        await this._restoreCollapseState();
+        if (!this._mountSidebar()) return false;
+        this.container.classList.toggle('ait-ss-collapsed', !!collapsed);
+        this._startStorageListener();
         await this._refreshContent();
         if (this.isDestroyed) return false;
-        this._startStorageListener();
         this._startReinjectCheck();
-        this._startParentObserver();
         this._startNativeMenuInjector();
         this._initCustomDrag();
         this.adapter.refreshStarredIcons?.();
@@ -64,6 +69,7 @@ class SidebarStarredManager {
     }
 
     destroy() {
+        if (this.isDestroyed) return;
         this.isDestroyed = true;
         this._destroyCustomDrag();
         this.treeRenderer.destroy();
@@ -72,26 +78,42 @@ class SidebarStarredManager {
         if (this._reinjectTimer) { clearInterval(this._reinjectTimer); this._reinjectTimer = null; }
         if (this._refreshDebounceTimer) { clearTimeout(this._refreshDebounceTimer); this._refreshDebounceTimer = null; }
         if (this._parentObserver) { this._parentObserver.disconnect(); this._parentObserver = null; }
-        if (this.container?.parentNode) this.container.parentNode.removeChild(this.container);
+        this._observedParent = null;
+        this.container?.remove();
         this.container = null;
     }
 
     // ==================== 注入 ====================
 
-    _injectIntoSidebar() {
-        const existing = document.querySelector(`.${SidebarStarredManager.CONTAINER_CLASS}`);
-        if (existing) { this.container = existing; return true; }
+    _mountSidebar() {
+        if (this.isDestroyed) return false;
         const info = this.adapter.findInsertionPoint();
-        if (!info) return false;
-        this.container = this._buildContainer();
+        // Hosts may briefly remove the anchor while reconciling the sidebar.
+        // Keep the current tree until another valid insertion point is available.
+        if (!info?.parent?.isConnected) return false;
         const { parent, reference, position } = info;
-        try {
-            if (position === 'before') parent.insertBefore(this.container, reference);
-            else if (position === 'after') parent.insertBefore(this.container, reference?.nextSibling || null);
-            else if (position === 'prepend') parent.insertBefore(this.container, parent.firstChild);
-            else parent.appendChild(this.container);
-            return true;
-        } catch (e) { void 0; return false; }
+        if ((position === 'before' || position === 'after') && reference?.parentNode !== parent) return false;
+
+        const container = this.container || this._buildContainer();
+        let anchor = null;
+        if (position === 'before') anchor = reference;
+        else if (position === 'after') anchor = reference.nextElementSibling;
+        else if (position === 'prepend') anchor = parent.firstElementChild;
+
+        if (container.parentNode !== parent || (container.nextElementSibling !== anchor && container !== anchor)) {
+            try {
+                parent.insertBefore(container, anchor);
+            } catch {
+                return false;
+            }
+            // A stale node cannot carry the listeners owned by this manager.
+            for (const node of parent.querySelectorAll(`:scope > .${SidebarStarredManager.CONTAINER_CLASS}`)) {
+                if (node !== container) node.remove();
+            }
+        }
+        this.container = container;
+        this._startParentObserver(parent);
+        return true;
     }
 
     _buildContainer() {
@@ -210,20 +232,15 @@ class SidebarStarredManager {
         await StorageAdapter.set('sidebarStarredCollapsed', collapsed);
     }
 
-    async _restoreCollapseState() {
-        const collapsed = await StorageAdapter.get('sidebarStarredCollapsed');
-        if (collapsed && this.container) {
-            this.container.classList.add('ait-ss-collapsed');
-        }
-    }
-
     // ==================== 数据 → 渲染 ====================
 
     async _refreshContent() {
         if (this.isDestroyed || !this.container) return;
+        const version = ++this._refreshVersion;
         const tree = await this.folderManager.getStarredByFolder();
-        if (this.isDestroyed || !this.container) return;
+        if (this.isDestroyed || version !== this._refreshVersion) return;
         await this.treeRenderer.renderTree(tree, { themeAdaptive: true });
+        if (this.isDestroyed || version !== this._refreshVersion) return;
         
         const hasContent = tree.folders.length > 0 || tree.uncategorized.length > 0;
         if (this.searchBtn) {
@@ -239,6 +256,8 @@ class SidebarStarredManager {
             if (changes.chatTimelineStars || changes.folders || changes.hideStarredFromNativeList) {
                 if (this._refreshDebounceTimer) clearTimeout(this._refreshDebounceTimer);
                 this._refreshDebounceTimer = setTimeout(() => {
+                    this._refreshDebounceTimer = null;
+                    if (this.isDestroyed) return;
                     this._refreshContent().catch(error => void 0);
                     this.adapter.refreshStarredIcons?.();
                 }, SidebarStarredManager.STORAGE_DEBOUNCE);
@@ -247,61 +266,25 @@ class SidebarStarredManager {
         StorageAdapter.addChangeListener(this._storageListener);
     }
 
-    _startParentObserver() {
-        if (this._parentObserver) this._parentObserver.disconnect();
-        const info = this.adapter.findInsertionPoint();
-        if (!info?.parent) return;
-        this._parentObserver = new MutationObserver(() => {
-            if (this.isDestroyed) return;
-            const info = this.adapter.findInsertionPoint();
-            if (!info) {
-                if (this.container?.parentNode) {
-                    this.container.parentNode.removeChild(this.container);
-                    this.container = null;
-                }
-                return;
-            }
-            if (this.container && this.container.parentNode !== info.parent) {
-                if (this.container.parentNode) this.container.parentNode.removeChild(this.container);
-                this.container = null;
-            }
-            if (!this.container) {
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                this._startParentObserver();
-            } else if (info.position === 'before' && info.reference && this.container.nextElementSibling !== info.reference) {
-                this.container.parentNode.removeChild(this.container);
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                this._startParentObserver();
+    _startParentObserver(parent) {
+        if (this._observedParent === parent) return;
+        this._parentObserver?.disconnect();
+        this._observedParent = parent;
+        this._parentObserver = new MutationObserver(records => {
+            if (!this.container?.isConnected || records.some(record => record.target === parent)) {
+                this._mountSidebar();
             }
         });
-        this._parentObserver.observe(info.parent, { childList: true });
+        // Observe direct children only, including on ancestors that can replace the whole sidebar.
+        for (let target = parent; target; target = target.parentElement) {
+            this._parentObserver.observe(target, { childList: true });
+        }
     }
 
     _startReinjectCheck() {
         this._reinjectTimer = setInterval(() => {
             if (this.isDestroyed) return;
-            const existing = document.querySelector(`.${SidebarStarredManager.CONTAINER_CLASS}`);
-            if (!existing) {
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-                return;
-            }
-            const info = this.adapter.findInsertionPoint();
-            if (!info) {
-                if (existing.parentNode) existing.parentNode.removeChild(existing);
-                this.container = null;
-                return;
-            }
-            const needsReinject =
-                existing.parentNode !== info.parent ||
-                (info.position === 'before' && info.reference && existing.nextElementSibling !== info.reference);
-            if (needsReinject) {
-                if (existing.parentNode) existing.parentNode.removeChild(existing);
-                this.container = null;
-                if (this._injectIntoSidebar()) this._refreshContent().catch(error => void 0);
-            }
-            this.adapter.refreshStarredIcons?.();
+            if (this._mountSidebar()) this.adapter.refreshStarredIcons?.();
         }, SidebarStarredManager.REINJECT_INTERVAL);
     }
 

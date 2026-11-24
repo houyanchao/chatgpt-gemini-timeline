@@ -1,201 +1,344 @@
-/**
- * About Tab Styles - 认识我们
- */
-
-.about-tab {
-    padding: 0;
-    margin-top: -20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.ait-panel-modal:has(.about-tab) {
+    --about-paper: #fff;
+    --about-sidebar: #f6f6f5;
+    --about-ink: #20201f;
+    --about-text: #53534f;
+    --about-line: #e3e3de;
+    --about-mark: #b9b9b0;
+    --about-accent: #7956e8;
+    --about-selected: #e9e9e5;
 }
 
-/* 区块 */
-.about-section {
-    display: flex;
-    gap: 14px;
-    padding: 16px;
-    background: #f9fafb;
-    border-radius: 10px;
-    align-items: flex-start;
+html[data-timeline-theme="dark"] .ait-panel-modal:has(.about-tab) {
+    --about-paper: #1c1c1b;
+    --about-sidebar: #171716;
+    --about-ink: #f3f3ef;
+    --about-text: #bcbcb5;
+    --about-line: #3b3b38;
+    --about-mark: #666660;
+    --about-accent: #b6a0ff;
+    --about-selected: #30302d;
+    color-scheme: dark;
 }
 
-/* 高亮区块（恳请支持） */
-.about-section-highlight {
-    background: #ede9fe;
-    border: 1px solid #c4b5fd;
+/* These shell colors apply only while the About page is mounted. */
+.ait-panel-modal:has(.about-tab) :is(.ait-panel-modal-main, .ait-panel-modal-header) {
+    background: var(--about-paper);
 }
 
-/* 图标 */
-.about-section-icon {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
+.ait-panel-modal:has(.about-tab) .ait-panel-modal-sidebar {
+    background: var(--about-sidebar);
+}
+
+.ait-panel-modal:has(.about-tab) :is(.ait-panel-modal-sidebar, .ait-panel-modal-header, .ait-panel-modal-sidebar-header) {
+    border-color: var(--about-line);
+}
+
+.ait-panel-modal:has(.about-tab) :is(.ait-panel-modal-title, .ait-panel-modal-sidebar-title) {
+    color: var(--about-ink);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.ait-panel-modal:has(.about-tab) :is(.panel-tab, .ait-panel-modal-language, .ait-panel-modal-close, .ait-panel-modal-share) {
+    color: var(--about-text);
+}
+
+.ait-panel-modal:has(.about-tab) :is(.panel-tab.active, .panel-tab:hover, .ait-panel-modal-language:hover, .ait-panel-modal-close:hover, .ait-panel-modal-share:hover) {
+    background: var(--about-selected);
+    color: var(--about-ink);
+}
+
+.ait-panel-modal:has(.about-tab) .ait-panel-modal-footer-version {
+    background: transparent;
+    border-color: var(--about-line);
+    color: var(--about-text);
+}
+
+.ait-panel-modal:has(.about-tab) .ait-panel-modal-content {
+    padding: clamp(16px, 3vw, 32px);
+}
+
+.ait-panel-modal .about-tab {
+    container-type: inline-size;
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto;
+    color: var(--about-ink);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+.ait-panel-modal .about-tab .about-intro {
+    display: grid;
+    gap: 16px;
+    padding: 2px 0 26px;
+}
+
+.ait-panel-modal .about-tab .about-masthead {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: #374151;
-}
-
-.about-section-highlight .about-section-icon {
-    background: #ddd6fe;
-    border-color: #c4b5fd;
-    color: #6d28d9;
-}
-
-/* 内容区 */
-.about-section-body {
-    flex: 1;
+    gap: 12px;
     min-width: 0;
 }
 
-/* 区块标题 */
-.about-section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 6px;
+.ait-panel-modal .about-tab .about-logo {
+    display: block;
+    width: 52px;
+    height: 52px;
+    flex: none;
 }
 
-/* 区块内容 */
-.about-section-content {
+.ait-panel-modal .about-tab h2 {
+    margin: 0;
+    padding: 0;
+    color: var(--about-ink);
+    font: 600 46px/1.1 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: -0.045em;
+}
+
+/* A timeline scale, with one selected point. */
+.ait-panel-modal .about-tab .about-ruler {
+    position: relative;
+    height: 25px;
+    flex: 1;
+    margin-inline-start: 24px;
+    color: var(--about-mark);
+    background:
+        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 30px) left center / 100% 17px no-repeat,
+        repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 6px) left center / 100% 7px no-repeat;
+    mask-image: linear-gradient(90deg, transparent, #000 18%, #000 92%, transparent);
+}
+
+.ait-panel-modal .about-tab .about-ruler::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 63%;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--about-accent);
+}
+
+.ait-panel-modal .about-tab p {
+    margin: 0;
+    padding: 0;
+    color: var(--about-text);
+    font-family: inherit;
     font-size: 13px;
-    color: #4b5563;
+    font-weight: 400;
     line-height: 1.7;
 }
 
-/* 链接 */
-.about-link {
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: 500;
+.ait-panel-modal .about-tab .about-intro p {
+    max-width: 64ch;
+    font-size: 14px;
+    line-height: 1.7;
 }
 
-.about-link:hover {
-    text-decoration: underline;
-}
-
-/* 反馈渠道块状 */
-.about-feedback-blocks {
+.ait-panel-modal .about-tab :is(.about-actions, .about-links) {
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.about-feedback-block {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    padding: 12px 8px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #374151;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    gap: 4px 18px;
 }
 
-.about-feedback-block:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-    color: #111827;
+.ait-panel-modal .about-tab .about-actions {
+    gap: 8px 20px;
 }
 
-.about-feedback-block svg {
-    color: #6b7280;
-}
-
-.about-feedback-block:hover svg {
-    color: #374151;
-}
-
-.about-feedback-email {
-    cursor: pointer;
-}
-
-/* 分享操作按钮组 */
-.about-share-actions {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 6px;
-    margin-top: 14px;
-}
-
-.about-share-action-btn {
+.ait-panel-modal .about-tab :is(.about-primary, .about-link) {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 5px;
-    padding: 7px 10px;
-    flex: 1;
-    background: linear-gradient(180deg, #ffffff 0%, #eef0f4 50%, #e2e5eb 100%);
-    border: 1px solid #c5c8d0;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #2d2d34;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    background: transparent;
+    color: var(--about-ink);
+    border: 0;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: start;
     text-decoration: none;
-    white-space: nowrap;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(0, 0, 0, 0.04);
-    transition: all 0.15s ease;
+    cursor: pointer;
 }
 
-.about-share-action-btn:hover {
-    background: linear-gradient(180deg, #ffffff 0%, #f3f4f8 50%, #e8eaef 100%);
-    border-color: #adb1bc;
-    color: #111118;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), inset 0 1px 0 #ffffff, inset 0 -1px 0 rgba(0, 0, 0, 0.04);
-}
-
-.about-share-action-btn:active {
-    background: linear-gradient(180deg, #eef0f4 0%, #e2e5eb 100%);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* 小红书投流收集（嵌在想请你帮个忙块内） */
-.about-xhs-collect {
-    margin-top: 12px;
-}
-
-.about-xhs-collect-tip {
-    font-size: 12px;
-    color: #5b21b6;
-    line-height: 1.6;
-    margin-bottom: 10px;
-}
-
-.about-xhs-collect-tip strong {
-    color: #7c3aed;
+.ait-panel-modal .about-tab .about-primary {
+    min-height: 36px;
+    padding: 6px 16px;
+    gap: 10px;
+    border-radius: 100px;
+    background: var(--about-ink);
+    color: var(--about-paper);
     font-weight: 600;
 }
 
-.about-xhs-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: #e11d48;
-    color: #ffffff;
-    border-radius: 7px;
-    font-size: 12px;
+.ait-panel-modal .about-tab .about-primary:hover {
+    background: var(--about-text);
+    color: var(--about-paper);
+}
+
+.ait-panel-modal .about-tab .about-link {
+    min-height: 28px;
+    padding: 2px 0;
     font-weight: 500;
-    text-decoration: none;
-    transition: background 0.12s;
 }
 
-.about-xhs-btn:hover {
-    background: #be123c;
-    color: #ffffff;
+.ait-panel-modal .about-tab .about-link:hover > span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-/* 功能文档按钮 - 同金属质感，无额外覆盖 */
+.ait-panel-modal .about-tab :is(a, button):focus-visible {
+    outline: 2px solid var(--about-accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+.ait-panel-modal .about-tab .about-primary:focus-visible {
+    border-radius: 100px;
+}
+
+.ait-panel-modal .about-tab .about-arrow {
+    flex: none;
+    font: 400 1.12em/1 system-ui, sans-serif;
+}
+
+.ait-panel-modal .about-tab .about-row {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.29fr) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px 22px;
+    margin: 0;
+    padding: 20px 0;
+    border-top: 1px solid var(--about-line);
+}
+
+.ait-panel-modal .about-tab h3 {
+    margin: 0;
+    padding: 0;
+    color: var(--about-ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.ait-panel-modal .about-tab .about-links {
+    margin-top: 7px;
+}
+
+.ait-panel-modal .about-tab .about-feedback-email {
+    color: var(--about-text);
+}
+
+.ait-panel-modal .about-tab .about-copy-icon {
+    box-sizing: border-box;
+    flex: none;
+    width: 10px;
+    height: 12px;
+    margin-inline: 4px 1px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    position: relative;
+}
+
+.ait-panel-modal .about-tab .about-copy-icon::before {
+    content: "";
+    position: absolute;
+    inset: -4px 2px 2px -4px;
+    border-inline-start: 1px solid currentColor;
+    border-top: 1px solid currentColor;
+    border-radius: 2px 0 0 0;
+}
+
+@container (max-width: 400px) {
+    .ait-panel-modal .about-tab .about-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+        padding: 16px 0;
+    }
+
+    .ait-panel-modal .about-tab .about-ruler {
+        margin-inline-start: 0;
+    }
+
+    .ait-panel-modal .about-tab .about-logo {
+        width: 38px;
+        height: 38px;
+    }
+
+    .ait-panel-modal .about-tab h2 {
+        font-size: 36px;
+    }
+}
+
+@container (max-width: 260px) {
+    .ait-panel-modal .about-tab .about-ruler {
+        display: none;
+    }
+
+    .ait-panel-modal .about-tab .about-actions {
+        gap: 6px 12px;
+    }
+
+    .ait-panel-modal .about-tab .about-primary {
+        padding-inline: 12px;
+        gap: 7px;
+    }
+}
+
+@media (max-width: 640px) {
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-sidebar {
+        width: 52px;
+        flex-shrink: 0;
+    }
+
+    .ait-panel-modal:has(.about-tab) :is(.ait-panel-modal-sidebar-title, .panel-tab .tab-label) {
+        display: none;
+    }
+
+    .ait-panel-modal:has(.about-tab) :is(.ait-panel-modal-sidebar-header, .panel-tab) {
+        justify-content: center;
+        padding-inline: 0;
+    }
+
+    .ait-panel-modal:has(.about-tab) .panel-tab {
+        width: calc(100% - 12px);
+        margin-inline: 6px;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-close {
+        margin: 0;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-footer {
+        padding: 8px 0;
+        text-align: center;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-header {
+        justify-content: space-between;
+        gap: 6px;
+        padding-inline: 12px;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-title {
+        min-width: 0;
+        font-size: 16px;
+        overflow-wrap: anywhere;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-header-actions {
+        position: static;
+        transform: none;
+        flex: none;
+    }
+
+    .ait-panel-modal:has(.about-tab) .ait-panel-modal-language-value {
+        max-width: 52px;
+    }
+}

@@ -666,7 +666,7 @@
     "message": "插件簡介"
   },
   "aboutPluginContent": {
-    "message": "Timeline 是專為瀏覽器端 AI 對話開發的提效插件，擁有時間軸、資料夾、文字醒目標示、複製 LaTeX 公式、自訂提示詞等超多功能，把效率拉爆。支援 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、千問等所有主流 AI 平台。"
+    "message": "Timeline 是一款瀏覽器擴充功能，協助你瀏覽和整理 AI 對話。它提供時間軸、資料夾、文字醒目標示、LaTeX 公式複製和自訂提示詞等功能。支援 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、千問等主流 AI 平台。"
   },
   "aboutDataSecurityTitle": {
     "message": "數據安全"
@@ -678,13 +678,13 @@
     "message": "提需求"
   },
   "aboutDeveloperContent": {
-    "message": "本專案由我和 Claude Opus 4.6 共同維護，每週 1~2 新版本的更新節奏。如果想提需求或回饋 bug，可透過以下管道進行回饋（我看到一定會回覆）："
+    "message": "我和 Claude fabel 5.2 一起維護 Timeline，每週發布 1 至 2 個版本。歡迎透過下方渠道提出功能建議或回報問題。我看到後會回覆。"
   },
   "aboutShareTitle": {
     "message": "推薦給朋友"
   },
   "aboutShareContent": {
-    "message": "如果 Timeline 插件好用，歡迎在小紅書、B站、X、Reddit、YouTube 等平台發帖推薦，幫助更多人發現它，謝謝。❤️"
+    "message": "如果 Timeline 對你有幫助，歡迎在小紅書、B 站、X、Reddit、YouTube 等平台分享，讓更多人發現它。謝謝你的推薦。"
   },
   "formulaCopyGeneric": {
     "message": "複製公式"
@@ -915,7 +915,7 @@
     "message": "目前平台暫不支援調整對話寬度"
   },
   "mirrorSiteTabName": {
-    "message": "適配新平台"
+    "message": "適配 AI 網站"
   },
   "mirrorSiteHint": {
     "message": "添加 AI 鏡像站域名後，在這些網站上會出現浮窗按鈕，可使用本插件的部分功能。"

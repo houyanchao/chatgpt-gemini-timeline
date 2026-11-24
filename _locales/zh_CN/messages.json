@@ -770,27 +770,6 @@
   "notepadSaveToFolder": {
     "message": "保存到文件夹"
   },
-  "sponsorTabName": {
-    "message": "赞助"
-  },
-  "sponsorHeadline": {
-    "message": "一转眼，这个插件上线满一年了！"
-  },
-  "sponsorIntro": {
-    "message": "这一年，基本保持每周至少发了一个新版本，累计用户也突破了 4 万。"
-  },
-  "sponsorSupport": {
-    "message": "如果它帮到了你，欢迎随手打赏，请作者喝杯咖啡。"
-  },
-  "sponsorWeChatPay": {
-    "message": "微信"
-  },
-  "sponsorAlipay": {
-    "message": "支付宝"
-  },
-  "sponsorQrAlt": {
-    "message": "$1收款二维码"
-  },
   "aboutTabName": {
     "message": "关于插件"
   },
@@ -798,7 +777,7 @@
     "message": "插件简介"
   },
   "aboutPluginContent": {
-    "message": "Timeline 是专为浏览器端 AI 对话开发的提效插件，拥有 时间轴、文件夹、文本高亮、复制 LaTeX 公式、自定义提示词等超多功能，把效率拉爆。支持 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、千问等所有主流 AI 平台。"
+    "message": "Timeline 是一款浏览器扩展，帮助你浏览和整理 AI 对话。它提供时间轴、文件夹、文本高亮、LaTeX 公式复制和自定义提示词等功能。支持 ChatGPT、Gemini、Claude、DeepSeek、Kimi、豆包、千问等主流 AI 平台。"
   },
   "aboutDataSecurityTitle": {
     "message": "数据安全"
@@ -810,13 +789,13 @@
     "message": "提需求"
   },
   "aboutDeveloperContent": {
-    "message": "本项目由我和 Claude Opus 4.6 共同维护，每周 1~2 新版本的更新节奏。如果想提需求或反馈 bug，可通过以下渠道进行反馈（我看到一定会回复）："
+    "message": "我和 Claude fabel 5.2 一起维护 Timeline，每周发布 1 至 2 个版本。欢迎通过下方渠道提出功能建议或报告问题。我看到后会回复。"
   },
   "aboutShareTitle": {
     "message": "推荐给朋友"
   },
   "aboutShareContent": {
-    "message": "如果 Timeline 插件好用，欢迎在 小红书、B站、X、Reddit、YouTube 等平台发帖推荐，帮助更多人发现它，谢谢。❤️"
+    "message": "如果 Timeline 对你有帮助，欢迎在小红书、B 站、X、Reddit、YouTube 等平台分享，让更多人发现它。谢谢你的推荐。"
   },
   "nativeMenuStarToFolder": {
     "message": "收藏到文件夹"
@@ -1020,7 +999,7 @@
     "message": "当前平台暂不支持调节对话宽度"
   },
   "mirrorSiteTabName": {
-    "message": "适配新平台"
+    "message": "适配 AI 网站"
   },
   "mirrorSiteHint": {
     "message": "添加 AI 镜像站域名后，在这些网站上会出现浮窗按钮，可使用本插件的部分功能。"

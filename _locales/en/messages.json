@@ -758,27 +758,6 @@
   "notepadSaveToFolder": {
     "message": "Save to folder"
   },
-  "sponsorTabName": {
-    "message": "Sponsor"
-  },
-  "sponsorHeadline": {
-    "message": "It's been a year since this extension launched!"
-  },
-  "sponsorIntro": {
-    "message": "Over the past year, I've shipped at least one new version most weeks, and the extension has reached over 40,000 users."
-  },
-  "sponsorSupport": {
-    "message": "If it's been helpful, feel free to buy the developer a coffee."
-  },
-  "sponsorWeChatPay": {
-    "message": "WeChat"
-  },
-  "sponsorAlipay": {
-    "message": "Alipay"
-  },
-  "sponsorQrAlt": {
-    "message": "$1 payment QR code"
-  },
   "aboutTabName": {
     "message": "About"
   },
@@ -786,7 +765,7 @@
     "message": "About This Extension"
   },
   "aboutPluginContent": {
-    "message": "Timeline is a productivity plugin built for browser-based AI conversations, featuring timeline, folders, text highlighting, LaTeX formula copying, custom prompts, and more — supercharging your efficiency. Works with ChatGPT, Gemini, Claude, DeepSeek, Kimi, Doubao, Qwen, and all major AI platforms."
+    "message": "Timeline is a browser extension for navigating and organizing AI conversations. Its features include a conversation timeline, folders, text highlighting, copying formulas as LaTeX, and custom prompts. It supports ChatGPT, Gemini, Claude, DeepSeek, Kimi, Doubao, Qwen, and other major AI platforms."
   },
   "aboutDataSecurityTitle": {
     "message": "Data Security"
@@ -798,13 +777,13 @@
     "message": "Feedback"
   },
   "aboutDeveloperContent": {
-    "message": "This project is co-maintained by me and Claude Opus 4.6, with 1–2 new versions released every week. To request a feature or report a bug, reach out through the channels below (I will definitely reply when I see it):"
+    "message": "Claude fabel 5.2 and I maintain Timeline together and release one or two updates each week. Use the channels below to suggest a feature or report a bug. I'll reply when I see your message."
   },
   "aboutShareTitle": {
     "message": "Recommend to Friends"
   },
   "aboutShareContent": {
-    "message": "If you find Timeline useful, feel free to post a recommendation on Xiaohongshu, Bilibili, X, Reddit, YouTube, or other platforms to help more people discover it. Thanks. ❤️"
+    "message": "If Timeline helps you, consider recommending it on Xiaohongshu, Bilibili, X, Reddit, YouTube, or other platforms. Thanks for helping more people discover it."
   },
   "nativeMenuStarToFolder": {
     "message": "Star to Folder"

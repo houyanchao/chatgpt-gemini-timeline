@@ -11,10 +11,9 @@
  * @param {boolean}  [options.showCommonSettings=false] - 是否显示"常用设置"Tab
  * @param {Function} [options.onChatWidthClick] - () => void 点击对话宽度设置按钮
  * @param {Function} [options.onSmartInputSettingsClick] - () => void 点击换行与发送消息设置按钮
- * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配新平台按钮
+ * @param {Function} [options.onMirrorSiteClick] - () => void 点击适配 AI 网站按钮
  * @param {Function} [options.onAICompleteReminderClick] - () => void 点击回复完成提醒设置按钮
  * @param {Function} [options.onSettingsClick] - () => void 点击设置按钮
- * @param {Function} [options.onSponsorClick] - () => void 点击赞助按钮
  * @param {string}   [options.tooltipPlacement='right'] - tooltip 方向
  * @returns {HTMLElement} prompt-dropdown-container 元素（未添加到 DOM）
  */
@@ -28,7 +27,6 @@ function createPromptDropdownUI({
     onMirrorSiteClick,
     onAICompleteReminderClick,
     onSettingsClick,
-    onSponsorClick,
     showStoreDetailButton = true,
     tooltipPlacement = 'right'
 }) {
@@ -36,14 +34,9 @@ function createPromptDropdownUI({
     container.className = 'prompt-dropdown-container';
     container.setAttribute('data-ait-owned-ui', 'prompt-menu');
 
-    const actionClass = showCommonSettings ? 'prompt-dropdown-tab-action' : 'prompt-dropdown-action-btn';
-    const headerActions = showStoreDetailButton ? `
-        ${onSponsorClick ? `<button type="button" class="${actionClass} prompt-dropdown-sponsor-btn" aria-label="${TimelineI18n.getMessage('sponsorTabName') || '赞助'}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20.8 8.6c0 4.3-8.8 10-8.8 10s-8.8-5.7-8.8-10a4.6 4.6 0 0 1 8.8-1.9 4.6 4.6 0 0 1 8.8 1.9Z"/>
-            </svg>
-        </button>` : ''}
-        <button type="button" class="${actionClass} prompt-dropdown-store-detail-btn" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
+    const shareButtonClass = showCommonSettings ? 'prompt-dropdown-store-detail-btn' : 'prompt-dropdown-store-detail-btn prompt-dropdown-action-btn';
+    const shareButton = showStoreDetailButton ? `
+        <button type="button" class="${shareButtonClass}" aria-label="${TimelineI18n.getMessage('shareExtension') || '分享插件'}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="18" cy="5" r="3"/>
                 <circle cx="6" cy="12" r="3"/>
@@ -77,7 +70,7 @@ function createPromptDropdownUI({
                     </span>
                 </button>
             </div>
-            ${headerActions}
+            ${shareButton}
         `;
         const addBtn = tabs.querySelector('.prompt-dropdown-add-tab-action');
         const addTooltip = TimelineI18n.getMessage('byaskjndg') || '添加提示词';
@@ -130,7 +123,7 @@ function createPromptDropdownUI({
                 <span class="prompt-dropdown-title">${TimelineI18n.getMessage('hosegod')}</span>
             </div>
             <div class="prompt-dropdown-actions">
-                ${headerActions}
+                ${shareButton}
                 <button type="button" class="prompt-dropdown-action-btn prompt-dropdown-manage-btn">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px!important;height:14px!important">
                         <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -145,16 +138,7 @@ function createPromptDropdownUI({
         container.appendChild(header);
     }
 
-    _promptDropdownBindHeaderAction(
-        container.querySelector('.prompt-dropdown-sponsor-btn'),
-        'prompt-dropdown-sponsor',
-        onSponsorClick
-    );
-    _promptDropdownBindHeaderAction(
-        container.querySelector('.prompt-dropdown-store-detail-btn'),
-        'prompt-dropdown-share-extension',
-        () => _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl())
-    );
+    _promptDropdownBindStoreDetailButton(container.querySelector('.prompt-dropdown-store-detail-btn'));
 
     const promptsPanel = document.createElement('div');
     promptsPanel.className = 'prompt-dropdown-panel prompt-dropdown-prompts-panel active';
@@ -298,7 +282,7 @@ function _promptDropdownCreateCommonSettings({
             <div class="prompt-common-setting-item">
                 <div class="prompt-common-setting-info">
                     <div class="prompt-common-setting-title-row">
-                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('mirrorSiteTabName') || '适配新平台'}</div>
+                        <div class="prompt-common-setting-label">${TimelineI18n.getMessage('mirrorSiteTabName') || '适配 AI 网站'}</div>
                     </div>
                     <div class="prompt-common-setting-hint">${TimelineI18n.getMessage('promptCommonMirrorSiteHint') || '添加新的 AI 对话网站，解锁时间轴、提示词等功能。'}</div>
                 </div>
@@ -475,16 +459,16 @@ function _promptDropdownGetStoreDetailUrl() {
     return 'https://chromewebstore.google.com/detail/timeline-ai-chat/fgebdnlceacaiaeikopldglhffljjlhh?utm_source=item-share-cb';
 }
 
-function _promptDropdownBindHeaderAction(button, tooltipId, onClick) {
+function _promptDropdownBindStoreDetailButton(button) {
     if (!button) return;
     const tooltip = button.getAttribute('aria-label');
     button.addEventListener('click', (e) => {
         e.stopPropagation();
-        onClick();
+        _promptDropdownOpenExternalUrl(_promptDropdownGetStoreDetailUrl());
     });
     const showTooltip = () => {
         window.globalTooltipManager?.show(
-            tooltipId,
+            'prompt-dropdown-share-extension',
             'button',
             button,
             tooltip,

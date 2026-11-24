@@ -6,19 +6,20 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     async matches() { return matchesPlatform(location.href, 'claude'); }
 
     _findNav() {
-        return document.querySelector('[data-testid="sidebar"]')
-            || document.querySelector('nav[aria-label="Sidebar"]');
+        let fallback = null;
+        for (const nav of this._navCandidates()) {
+            if (BaseSidebarStarredAdapter.isInsertionParentVisible(nav)) return nav;
+            fallback ??= nav;
+        }
+        return fallback;
     }
 
-    _findScrollableArea() {
-        const nav = this._findNav();
-        return nav?.querySelector('.dframe-nav-scroll')
-            || nav?.querySelector('[tabindex="-1"]') || null;
+    *_navCandidates() {
+        yield* document.querySelectorAll('[data-testid="sidebar"]');
+        yield* document.querySelectorAll('nav[aria-label="Sidebar"]:not([data-testid="sidebar"])');
     }
 
-    _findHistorySection() {
-        const scrollable = this._findScrollableArea();
-        if (!scrollable) return null;
+    _findHistorySection(scrollable) {
         const modern = scrollable.querySelector('[data-testid="sidebar-pinned"], [data-testid="sidebar-recents"]');
         if (modern) {
             let section = modern;
@@ -32,11 +33,24 @@ class ClaudeSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         return section;
     }
 
-    findSidebarContainer() { return this._findHistorySection()?.parentElement || null; }
+    findSidebarContainer() { return this.findInsertionPoint()?.parent || null; }
 
     findInsertionPoint() {
-        const section = this._findHistorySection();
-        return section?.parentElement ? { parent: section.parentElement, reference: section, position: 'before' } : null;
+        return this._preferVisibleInsertionPoint(this._insertionPoints());
+    }
+
+    *_insertionPoints() {
+        for (const nav of this._navCandidates()) {
+            for (const scrollable of nav.querySelectorAll('.dframe-nav-scroll')) {
+                const section = this._findHistorySection(scrollable);
+                if (section?.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
+            }
+
+            const legacyScroll = nav.querySelector('[tabindex="-1"]:not(.dframe-nav-scroll)');
+            if (!legacyScroll) continue;
+            const section = this._findHistorySection(legacyScroll);
+            if (section?.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
+        }
     }
 
     getPlatformClass() { return 'claude'; }

@@ -33,6 +33,10 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
     }
 
     findInsertionPoint() {
+        return this._preferVisibleInsertionPoint(this._insertionPoints());
+    }
+
+    *_insertionPoints() {
         // 新版使用独立滚动容器；不依赖带哈希的 Navigation 类名或本地化标题。
         const modernSections = document.querySelectorAll('nav [data-app-action-sidebar-section]');
         for (const section of modernSections) {
@@ -41,7 +45,8 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
             while (reference.parentElement && reference.parentElement !== nav) {
                 const parent = reference.parentElement;
                 if (parent.classList.contains('overflow-y-auto')) {
-                    return { parent, reference, position: 'before' };
+                    yield { parent, reference, position: 'before' };
+                    break;
                 }
                 reference = parent;
             }
@@ -50,16 +55,16 @@ class ChatGPTSidebarStarredAdapter extends BaseSidebarStarredAdapter {
         // 分组容器（已置顶/最近）在展开与折叠状态都存在、class 稳定；不依赖 #history（折叠时被卸载）。
         // 插到第一个分组之前：有置顶时是「已置顶」，无置顶时即「最近」，始终位于置顶与历史记录之上。
         const sections = document.querySelectorAll('.group\\/sidebar-expando-section');
-        if (sections.length && sections[0].parentElement) {
-            return { parent: sections[0].parentElement, reference: sections[0], position: 'before' };
+        for (const section of sections) {
+            if (section.parentElement) yield { parent: section.parentElement, reference: section, position: 'before' };
         }
 
         // 兜底：无分组容器（结构大改）时退回到 #history 父容器之前
-        const history = document.getElementById('history');
-        if (history?.parentElement?.parentElement) {
-            return { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };
+        for (const history of document.querySelectorAll('#history')) {
+            if (history.parentElement?.parentElement) {
+                yield { parent: history.parentElement.parentElement, reference: history.parentElement, position: 'before' };
+            }
         }
-        return null;
     }
 
     getPlatformClass() {
