@@ -3375,21 +3375,22 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 
 const CHANGELOG_DATA = {
-    id: '2026112501',
+    id: '2026112401',
     // 'icon' = 提示词按钮左侧显示 Logo + 小红点（温和提示）
     // 'popup' = 自动弹窗展示更新内容（强提醒）
     displayMode: 'icon',
 
-    features: [],
+    features: [
+        {
+            zh: '设置面板新增「赞助」页，可通过微信或支付宝支持插件开发',
+            en: 'The new Sponsor tab in settings lets you support development through WeChat or Alipay'
+        }
+    ],
 
     improvements: [
         {
-            zh: '修复侧栏较晚展开或切换对话后文件夹偶尔不显示的问题。侧栏重建后也会保留文件夹的展开状态。',
-            en: 'Fixed folders sometimes disappearing when opening the sidebar later or switching chats. Expanded folders now stay open when the sidebar is rebuilt.'
-        },
-        {
-            zh: '重新设计「关于插件」页，将文档、GitHub 和三个浏览器的安装入口集中到页首。',
-            en: 'Redesigned the About page and grouped the documentation, GitHub repository, and links to all three browser stores at the top.'
+            zh: '提示词弹窗顶部的爱心按钮可直接打开「赞助」页',
+            en: 'The heart button in the prompt menu opens the Sponsor tab directly'
         }
     ]
 };

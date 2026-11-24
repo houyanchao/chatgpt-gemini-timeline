@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "052d5ee3e878"
+      "revision": "29b26a072695"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
