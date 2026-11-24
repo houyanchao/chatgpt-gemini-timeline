@@ -84,7 +84,14 @@ class MessageActionManager {
         for (const [button, entry] of this.entries) {
             if (!button.isConnected || !this.enabled.has(entry.action.id) || (entry.key && !currentKeys.has(entry.key))) {
                 this.removeEntry(button);
-            } else button.disabled = !!this.session;
+            } else {
+                button.disabled = !!this.session;
+                // ChatGPT 切换顶栏时，旧工具栏可能仍连接在隐藏的页面中。
+                if (!entry.key && this.adapter.platformId === 'chatgpt'
+                    && (button.closest('[inert], [aria-hidden="true"]') || !button.getClientRects().length)) {
+                    entry.action.mountHeader(button, { adapter: this.adapter });
+                }
+            }
         }
         if (!this.adapter.isConversationPage()) { this.removeEntries(); this.close(); return; }
         for (const message of records.filter(record => record.role === 'assistant')) {

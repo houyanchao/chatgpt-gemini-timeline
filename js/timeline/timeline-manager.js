@@ -833,9 +833,26 @@ class TimelineManager {
      * ✅ 注入收藏聊天按钮（原生插入模式）
      */
     async injectStarChatButton() {
-        // 1. 获取Adapter提供的目标元素
-        const targetElement = this.adapter.getStarChatButtonTarget?.();
         const platformId = this.adapter.platformId;
+        const isChatGPT = platformId === 'chatgpt';
+        if (isChatGPT && !this.isCurrentPage()) return;
+        if (isChatGPT && this.ui.starChatBtn) {
+            // 顶栏重绘后复用原按钮，保留事件监听器和收藏状态。
+            window.AITChatHeaderActions?.mount(this.ui.starChatBtn, 'star');
+            return;
+        }
+
+        let targetElement = this.adapter.getStarChatButtonTarget?.();
+        if (!targetElement || this._starChatButtonPending) return;
+        this._starChatButtonPending = true;
+        const isStarred = await this.isChatStarred();
+        this._starChatButtonPending = false;
+        if (isChatGPT) {
+            if (!this.isCurrentPage()) return;
+            targetElement = this.adapter.getStarChatButtonTarget();
+            if (!targetElement) return;
+        }
+
         const mountShared = button => {
             const actions = window.AITChatHeaderActions;
             if (platformId === 'chatgpt') return actions?.mount(button, 'star');
@@ -846,17 +863,11 @@ class TimelineManager {
         const showLabel = window.AITChatHeaderActions?.shouldShowLabel?.(this.adapter.platformId)
             ?? (this.adapter.platformId !== 'chatgpt');
         
-        // 如果没有目标元素，不显示按钮
-        if (!targetElement) {
-            return;
-        }
-        
         // 2. 检查是否已存在按钮
         let starChatBtn = document.querySelector('.ait-timeline-star-chat-btn-native');
         
         if (starChatBtn) {
             // ✅ 按钮已存在，只更新状态，不重建（避免事件监听器丢失）
-            const isStarred = await this.isChatStarred();
             const svg = starChatBtn.querySelector('svg');
             if (svg) {
                 svg.setAttribute('fill', isStarred ? 'rgb(255, 125, 3)' : 'none');
@@ -892,7 +903,6 @@ class TimelineManager {
         starChatBtn.className = 'ait-timeline-star-chat-btn-native';
         
         // 4. 检查收藏状态并设置图标
-        const isStarred = await this.isChatStarred();
         const starLabel = TimelineI18n.getMessage('qwxpzm') || '收藏';
         starChatBtn.setAttribute('aria-label', starLabel);
         starChatBtn.innerHTML = `
@@ -1839,6 +1849,7 @@ class TimelineManager {
      */
     setupDomCheckObserver() {
         const conflictingSelectors = this.adapter.getConflictingTimelineSelectors?.() || [];
+        const isChatGPT = this.adapter.platformId === 'chatgpt';
         
         // 检查并更新时间轴可见性
         const checkAndUpdateTimelineVisibility = () => {
@@ -1862,8 +1873,9 @@ class TimelineManager {
                 callback: () => {
                     checkAndUpdateTimelineVisibility();
                     this.hideConflictingElements(conflictingSelectors);
+                    if (isChatGPT) this.injectStarChatButton();
                 },
-                filter: { hasAddedNodes: true, hasRemovedNodes: true },
+                filter: { hasAddedNodes: true, hasRemovedNodes: !isChatGPT },
                 debounce: 300  // 300ms 防抖，降低执行频率
             });
         }

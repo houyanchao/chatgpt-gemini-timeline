@@ -30,12 +30,21 @@
     }
 
     function getInsertTarget() {
+        const isConversation = /\/c\/[^/]+/.test(location.pathname);
+        if (isConversation) {
+            // 新版顶栏为每个原生操作单独包装一层。插在同一可点击区域内，
+            // 即使分享按钮缺席，也能挂在右侧的聊天菜单旁。
+            const controls = document.querySelectorAll('[data-app-shell-main-titlebar] > .ms-auto button.conversation-header-control');
+            for (const control of controls) {
+                if (!control.closest('[inert], [aria-hidden="true"]') && control.getClientRects().length) return control;
+            }
+        }
+
         const shareButton = document.querySelector('[data-testid="share-chat-button"]');
         if (!shareButton) {
-            // 新版分享按钮不再带 testid；只在对话路由中使用右侧原生操作区，
-            // 避免匹配侧栏、消息中的分享按钮或首页工具栏。
-            if (!/\/c\/[^/]+/.test(location.pathname)) return null;
-            return document.querySelector('header [data-app-shell-header-obstacle] .gap-toolbar-action > button');
+            return isConversation
+                ? document.querySelector('header [data-app-shell-header-obstacle] .gap-toolbar-action > button')
+                : null;
         }
 
         let actionBar = shareButton.parentElement;
