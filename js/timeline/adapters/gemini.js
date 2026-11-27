@@ -131,18 +131,40 @@ class GeminiAdapter extends SiteAdapter {
         return null;
     }
 
+    static queryAttachments = 'user-uploaded-image, user-uploaded-file, file-preview, file-chip, .file-chip, [data-attachment-id], [data-file-id]';
+    static queryControls = 'button, [role="button"], [role="toolbar"], mat-icon, svg, [hidden], [aria-hidden="true"], '
+        + '.cdk-visually-hidden, .sr-only, [data-ait-owned-ui], script, style';
+
     extractText(element) {
-        // Extract from .query-text-line elements
-        const lines = element.querySelectorAll('.query-text-line');
-        const texts = Array.from(lines).map(line => {
-            // Filter out Angular comment nodes and get text
-            return Array.from(line.childNodes)
-                .filter(node => node.nodeType === Node.TEXT_NODE)
-                .map(node => node.textContent)
-                .join('');
-        });
-        const text = texts.join(' ').replace(/\s+/g, ' ').trim();
-        return text || '[图片或文件]';
+        const skip = GeminiAdapter.queryControls + ', ' + GeminiAdapter.queryAttachments;
+        const parts = [];
+        const read = node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                parts.push(node.textContent);
+                return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE || node.matches(skip)) return;
+            // Keep inline fragments together, but separate paragraphs, explicit breaks and Gemini's lines.
+            const line = node.matches('br, p, div, li, pre, .query-text-line');
+            if (line) parts.push(' ');
+            for (const child of node.childNodes) read(child);
+            if (line) parts.push(' ');
+        };
+        const rootsFor = selector => Array.from(element.querySelectorAll(selector))
+            .filter(root => !root.closest(skip) && !root.parentElement?.closest(selector));
+        let roots = rootsFor('.query-text');
+        if (!roots.length) roots = rootsFor('.query-text-line');
+        if (!roots.length) roots = rootsFor('user-query-content');
+        for (const root of roots.length ? roots : [element]) {
+            read(root);
+            parts.push(' ');
+        }
+        const text = parts.join('').replace(/\s+/g, ' ').trim();
+        if (text) return text;
+
+        const attachment = element.querySelector(GeminiAdapter.queryAttachments)
+            || Array.from(element.querySelectorAll('img')).some(img => !img.closest(GeminiAdapter.queryControls));
+        return attachment ? '[图片或文件]' : '';
     }
     
     /**
