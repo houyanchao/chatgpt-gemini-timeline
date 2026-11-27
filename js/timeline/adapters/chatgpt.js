@@ -25,6 +25,7 @@ class ChatGPTAdapter extends SiteAdapter {
         this._historyLoading = null;
         this._liveTimelineEntries = new Map();
         this._supplementalTimelineOrder = { before: [], after: [] };
+        this._captureEventChanges = new WeakMap();
         this._liveTimelineRevision = null;
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
@@ -51,7 +52,7 @@ class ChatGPTAdapter extends SiteAdapter {
      *
      * @returns {number} 本次发生变化的缓存条目数
      */
-    _pullConvTexts(conversationId, { restartHistory = false } = {}) {
+    _pullConvTexts(conversationId, { restartHistory = false, refreshLatest = false } = {}) {
         let received = null;
         const handler = (event) => {
             if (typeof event.detail !== 'string') return;
@@ -64,7 +65,7 @@ class ChatGPTAdapter extends SiteAdapter {
         };
         document.addEventListener('ait-gpt-user-texts-result', handler, { once: true });
         document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-pull', {
-            detail: restartHistory ? JSON.stringify({ conversationId, restartHistory: true }) : conversationId
+            detail: restartHistory || refreshLatest ? JSON.stringify({ conversationId, restartHistory, refreshLatest }) : conversationId
         }));
         document.removeEventListener('ait-gpt-user-texts-result', handler);
 
@@ -132,7 +133,14 @@ class ChatGPTAdapter extends SiteAdapter {
     getConversationBranch() {
         if (this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
             || this._capturedTimeline?.complete !== true) return null;
-        return { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+        const branch = { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+        const total = this._capturedTimeline.messageTotal;
+        const newerQuestion = this._supplementalTimelineOrder.after.some(id => !this._capturedTimelineIds.has(id.slice('chatgpt-'.length)));
+        if (Number.isInteger(total) && total >= branch.turnIds.length && !newerQuestion) {
+            branch.messageTotal = total;
+            branch.lastQuestionAnswered = this._capturedTimeline.lastQuestionAnswered;
+        }
+        return branch;
     }
 
     getCapturedTimelineEntries(userElements) {
@@ -240,8 +248,14 @@ class ChatGPTAdapter extends SiteAdapter {
         return [...(complete ? [] : supplement('before')), ...entries, ...supplement('after')];
     }
 
-    isTimelineTargetReady(element) {
+    isTimelineTargetReady(element, marker) {
         if (!element?.isConnected || element.childElementCount === 0) return false;
+        if (marker) {
+            const id = marker.id.slice('chatgpt-'.length);
+            const legacyIndex = !marker.apiBacked && /^\d+$/.test(id)
+                && marker.element === element && !this._extractNodeIdFromDom(element);
+            if (!legacyIndex && !this._matchesTimelineTargetId(element, id)) return false;
+        }
         const hasUserContent = element.matches('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]')
             || element.querySelector('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]');
         if (element.matches('[data-turn-id-container], [data-turn-key]') && !hasUserContent) return false;
@@ -256,16 +270,18 @@ class ChatGPTAdapter extends SiteAdapter {
         return !owner || owner === this.extractConversationId(location.pathname);
     }
 
+    _matchesTimelineTargetId(element, id) {
+        return this._extractNodeIdFromDom(element) === id
+            || element.getAttribute('data-turn-key') === id
+            || this._getTimelineElementIds(element).includes(id);
+    }
+
     _findTimelineTarget(targetId, scope) {
         // 同一提问可能同时有外层空壳和已渲染的内层元素，优先采用可定位的内容。
         let shell = null;
         for (const element of scope.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
             if (!this.isTimelineTargetInScope(element, scope)) continue;
-            const matches = this._extractNodeIdFromDom(element) === targetId
-                || element.getAttribute('data-turn-key') === targetId
-                || (element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/).includes(targetId)
-                || [...element.querySelectorAll('[data-message-id]')].some(child => child.getAttribute('data-message-id') === targetId);
-            if (!matches) continue;
+            if (!this._matchesTimelineTargetId(element, targetId)) continue;
             if (this.isTimelineTargetReady(element)) return element;
             shell ||= element;
         }
@@ -315,25 +331,20 @@ class ChatGPTAdapter extends SiteAdapter {
         const deadline = Math.min(Date.now() + 120000, navigation.deadline ?? Infinity);
         const checkedIds = new Set();
         let maxKnownEntries = 0, seenTargetShell = false, maxTargetChildren = 0;
-        let foundTarget = null, lastSignature = '', lastProgressAt = Date.now();
-        let lowerPosition = null, upperPosition = null, searchSnapshot = '';
+        let lastSignature = '', lastProgressAt = Date.now(), lastShell = null;
+        const search = { mounted: new Set(), windowIds: null };
+        let probeCount = 0;
         try {
             while (!signal.aborted && Date.now() < deadline && isCurrentScope()) {
                 const target = this._findTimelineTarget(targetId, scope);
-                if (this.isTimelineTargetReady(target)) {
-                    foundTarget = target;
-                    return target;
-                }
+                if (this.isTimelineTargetReady(target)) return target;
                 const userElements = this.filterTimelineUserElements([...scope.querySelectorAll(this.getUserMessageSelector())]);
                 const entries = this.getCapturedTimelineEntries(userElements) || userElements.map((element, index) => ({
                     id: this.generateTurnId(element, index), element
                 }));
                 const targetIndex = entries.findIndex(entry => entry.id === marker.id);
                 const entryTarget = entries[targetIndex]?.element;
-                if (this.isTimelineTargetReady(entryTarget)) {
-                    foundTarget = entryTarget;
-                    return entryTarget;
-                }
+                if (this.isTimelineTargetReady(entryTarget)) return entryTarget;
                 const loadedIndexes = [];
                 entries.forEach((entry, index) => {
                     if (!this.isTimelineTargetReady(entry.element)) return;
@@ -344,65 +355,184 @@ class ChatGPTAdapter extends SiteAdapter {
                 seenTargetShell ||= !!target;
                 maxTargetChildren = Math.max(maxTargetChildren, target?.childElementCount || 0);
                 // 仅新内容或目标结构变化算进展；顶底切换、空白高度变化不能反复延长加载。
-                const signature = `${checkedIds.size}:${maxKnownEntries}:${seenTargetShell}:${maxTargetChildren}`;
+                const historyLoading = this.isTimelineHistoryLoading();
+                const signature = `${checkedIds.size}:${maxKnownEntries}:${targetIndex}:${seenTargetShell}:${maxTargetChildren}:${historyLoading}`;
                 if (signature !== lastSignature) {
                     lastProgressAt = Date.now(); lastSignature = signature;
                 }
                 // 收藏定位由外层两分钟期限控制，不能因正文暂未到达在 20 秒提前结束。
-                else if (!navigation.waitForTarget && Date.now() - lastProgressAt > 20000) {
+                else if (!navigation.waitForTarget && !historyLoading && Date.now() - lastProgressAt > 20000) {
                     return null;
                 }
-                if (!target && (targetIndex < 0 || !loadedIndexes.length)) {
-                    // 虚拟列表重排时可能暂时没有可用锚点，等待恢复，不盲目滚动。
-                    await this._waitForTimelineRender(signal, scope);
-                    continue;
-                }
-                window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
+                const viewportTop = TimelineUtils.getScrollViewportTop(scrollContainer);
                 const from = scrollContainer.scrollTop;
-                if (target) {
-                    // 已有目标空壳时直接锚定它；重排后每轮重新读取其位置。
-                    scrollContainer.scrollTop += target.getBoundingClientRect().top
-                        - scrollContainer.getBoundingClientRect().top - 80;
-                } else {
-                    const containerTop = scrollContainer.getBoundingClientRect().top;
-                    // 首次向顶/底查找；两侧都越过目标后，在两次落点之间查找。
-                    // 虚拟列表只挂载附近消息，反复跳顶底会始终跳过中间目标。
-                    const preceding = loadedIndexes.filter(index =>
-                        entries[index].element.getBoundingClientRect().top <= containerTop);
-                    const currentIndex = preceding.length ? preceding[preceding.length - 1] : loadedIndexes[0];
-                    const direction = targetIndex < currentIndex ? 'top' : 'bottom';
-                    const maxScrollTop = Math.max(0, scrollContainer.scrollHeight
-                        - (scrollContainer.clientHeight || window.innerHeight));
-                    // 反向滚动容器的底部是 0，顶部为负值。搜索区间统一按视觉方向计算。
-                    const scrollStart = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -maxScrollTop : 0;
-                    const snapshot = `${entries.length}:${targetIndex}`;
-                    if (snapshot !== searchSnapshot) {
-                        lowerPosition = upperPosition = null;
-                        searchSnapshot = snapshot;
+                const range = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+                const start = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -range : 0;
+                const shellRect = target?.getBoundingClientRect();
+                let destination = null;
+                if (shellRect?.height > 0) {
+                    search.mounted = new Set(loadedIndexes.map(index => entries[index].id));
+                    const delta = shellRect.top - viewportTop - 80;
+                    const top = from + delta;
+                    // 已经请求过相同位置的空壳只需等正文；无布局反应时也不能持续推着页面滚动。
+                    if (target !== lastShell?.element || (Math.abs(top - lastShell.top) > 1 && Math.abs(delta - lastShell.delta) > 1)) {
+                        destination = top;
+                        lastShell = { element: target, top, delta };
                     }
-                    // 保存比例，避免懒加载图片或历史插入改变总高度后沿用旧像素位置。
-                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, (from - scrollStart) / maxScrollTop)) : 0;
-                    if (direction === 'top') {
-                        if (lowerPosition !== null && position <= lowerPosition) lowerPosition = null;
-                        upperPosition = position;
-                    } else {
-                        if (upperPosition !== null && position >= upperPosition) upperPosition = null;
-                        lowerPosition = position;
+                } else if (targetIndex >= 0 && range > 0) {
+                    lastShell = null;
+                    const previousPageId = search.oldestPageId;
+                    const position = this._estimateTimelinePosition(search, entries, loadedIndexes, targetIndex,
+                        (from - start) / range, range, viewportTop, scrollContainer.clientHeight, scope);
+                    if (previousPageId && previousPageId !== search.oldestPageId) {
+                        // 已经看到更早一页的新消息，可继续加载；仅高度或同一组消息的变化不重置预算。
+                        probeCount = 0;
+                        lastProgressAt = Date.now();
                     }
-                    if (lowerPosition !== null && upperPosition !== null) {
-                        scrollContainer.scrollTop = scrollStart + (lowerPosition + upperPosition) / 2 * maxScrollTop;
-                    } else {
-                        scrollContainer.scrollTop = scrollStart + (direction === 'top' ? 0 : maxScrollTop);
+                    if (position !== null && probeCount < 24) destination = start + range * position;
+                }
+                if (destination !== null) {
+                    const top = Math.max(start, Math.min(start + range, destination));
+                    if (Math.abs(from - top) > 1) {
+                        const olderThanWindow = targetIndex >= 0 && targetIndex < loadedIndexes[0];
+                        if (olderThanWindow || (top < from && (targetIndex < 0 || targetIndex < entries.length - 1))) {
+                            navigation.protectScroll?.(scrollContainer);
+                        }
+                        window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
+                        scrollContainer.scrollTo({ top, behavior: 'instant' });
+                        search.hasScrolled = true;
+                        // 挂载窗口偶尔抖动也不能无限试探；达到上限仍等待精确目标或空壳出现。
+                        if (!lastShell) probeCount++;
                     }
                 }
                 await this._waitForTimelineRender(signal, scope);
             }
             return null;
         } finally {
-            // 手动取消或加载失败时回到出发位置；切换目标或离开页面时不抢位置。
-            if (!foundTarget && isCurrentScope()
-                && (!signal.aborted || signal.reason === 'cancel-navigation')) scrollContainer.scrollTop = initialScrollTop;
+            // 明确取消才撤回滚动；页面还在补历史时，定位超时也应保留最近位置。
+            if (signal.aborted && signal.reason === 'cancel-navigation' && isCurrentScope()
+                && Math.abs(scrollContainer.scrollTop - initialScrollTop) > 1) {
+                scrollContainer.scrollTo({ top: initialScrollTop, behavior: 'instant' });
+            }
         }
+    }
+
+    _estimateTimelinePosition(search, entries, indexes, targetIndex, current, range, viewportTop, viewportHeight, scope) {
+        const order = `${entries[0].id}:${targetIndex}`;
+        const lastIndex = entries.length - 1;
+        const retainsPrefix = search.order === order && entries[search.lastIndex]?.id === search.lastId;
+        if (!retainsPrefix) {
+            // API 将旧页前插时序号改变，但已经看过的消息、页面实际加载到的顶部都仍由其 ID 确定。
+            search.waitForNewWindow = search.order !== undefined || search.hasScrolled === true;
+            Object.assign(search, { fallbackEdge: null, middleProbe: null, attempts: 0,
+                before: { index: 0, position: 0 }, after: { index: lastIndex, position: 1 } });
+        } else if (lastIndex > search.lastIndex && search.after.index === search.lastIndex && search.after.position === 1) {
+            // 只在末尾追加新提问时，已观察到的窗口和目标序号继续有效。
+            search.after.index = lastIndex;
+        }
+        Object.assign(search, { order, lastIndex, lastId: entries[lastIndex].id });
+        const rowPosition = y => Math.max(0, Math.min(1, current + (y - viewportTop) / range));
+        // 长回复可能独占视口。若宿主保留了整轮容器，回复末尾也是后续提问的真实下界。
+        let anchors = new Map(indexes.map(index => [index, entries[index].element.getBoundingClientRect()]));
+        const inViewport = rect => rect.top < viewportTop + viewportHeight && rect.bottom > viewportTop;
+        if (![...anchors.values()].some(inViewport)) {
+            const containers = new Map([...scope.querySelectorAll('[data-turn-key]')].map(row => [row.getAttribute('data-turn-key'), row]));
+            const visibleTurns = new Map();
+            entries.forEach((entry, index) => {
+                const row = containers.get(entry.id.slice('chatgpt-'.length));
+                if (!row || !this.isTimelineTargetInScope(row, scope)) return;
+                const rect = row.getBoundingClientRect();
+                if (rect.height > 0 && inViewport(rect)) visibleTurns.set(index, rect);
+            });
+            // 常驻的末轮仍可作为上界，但当前长回复的起止位置才表明页面实际滚到了哪一轮。
+            if (visibleTurns.size) anchors = new Map([...anchors, ...visibleTurns].sort(([a], [b]) => a - b));
+        }
+        // 即使是第一次点击，空窗口也可能正在换页，不能把接口序号当作页面位置。
+        if (!anchors.size) return null;
+        const [firstIndex, firstRect] = anchors.entries().next().value;
+        const firstId = entries[firstIndex].id;
+        const visualTop = current * range;
+        const firstTop = visualTop + firstRect.top - viewportTop;
+        const page = search.pageTop;
+        const oldTop = page?.offsets.get(firstId);
+        const growth = page ? range - page.range : 0;
+        // 比较同一提问的内容坐标：原首行可能已卸载，宿主也可能在补页后主动回到底部。
+        const shifted = oldTop !== undefined && growth > 1 && Math.abs(firstTop - oldTop - growth) <= 2;
+        const samePage = oldTop !== undefined && Math.abs(firstTop - oldTop) <= 2;
+        if (firstIndex > targetIndex && (Math.abs(firstTop) < viewportHeight || shifted || samePage)) {
+            if (!search.oldestPageId || (search.oldestPageId !== firstId
+                && firstIndex < entries.findIndex(entry => entry.id === search.oldestPageId))) {
+                search.oldestPageId = firstId;
+            }
+            if (!samePage || shifted) {
+                const offsets = new Map([...anchors].map(([index, rect]) =>
+                    [entries[index].id, visualTop + rect.top - viewportTop]));
+                search.pageTop = { offsets, range, requests: 0 };
+            }
+            // 顶部留白不属于旧对话。实际触顶才会加载上一页；同一页仅在宿主拉回时补一次。
+            if (visualTop <= 1 || search.pageTop.requests >= 2) return null;
+            search.pageTop.requests++;
+            search.fallbackEdge = null;
+            return 0;
+        }
+        // 前插期间可能只剩常驻末轮或旧后缀；只有当前视口出现真实的新行才可使用新索引估位。
+        if (search.waitForNewWindow) {
+            const fresh = [...anchors].some(([index, rect]) => !search.mounted.has(entries[index].id)
+                && rect.top <= viewportTop + 2 * viewportHeight && rect.bottom >= viewportTop - viewportHeight);
+            if (!fresh) return null;
+            search.waitForNewWindow = false;
+        }
+        // scrollTop 先于挂载窗口更新。旧窗口不能覆盖已经确认的两侧锚点。
+        const windowIds = [...anchors.keys()].map(index => entries[index].id).join('|');
+        const now = Date.now();
+        const added = [...anchors.keys()].filter(index => !search.mounted.has(entries[index].id));
+        if (search.windowIds === windowIds || !added.length) {
+            // 只有旧行卸载也不算新窗口。等待慢渲染后，在上次确认的区间内继续试探。
+            const next = search.fallbackEdge === null ? search.middleProbe : (current + search.fallbackEdge) / 2;
+            if (next == null || search.attempts >= search.probeLimit || now - search.lastProbe < 1800) return null;
+            search.lastProbe = now;
+            search.attempts++;
+            search.middleProbe = null;
+            return next;
+        }
+        // 长回复和常驻末轮可能是仅有的两个锚点。末轮提供位置上界，方向由普通窗口决定。
+        const pinnedTail = added.length > 1 && added.at(-1) === lastIndex && added.at(-2) < lastIndex - 1
+            && anchors.get(lastIndex).top >= viewportTop + viewportHeight;
+        const movingIndexes = pinnedTail ? added.slice(0, -1) : added;
+        search.probeLimit = search.windowIds === null && !pinnedTail ? 1 : 8;
+        search.windowIds = windowIds;
+        search.lastProbe = now;
+        search.attempts = 0;
+        // 最后一轮可能被强制常驻。其真实坐标仍是边界，但不能代表刚挂载的视口窗口。
+        search.mounted = new Set([...anchors.keys()].map(index => entries[index].id));
+        for (const [index, rect] of anchors) {
+            if (index < targetIndex) {
+                if (index >= search.before.index) search.before = { index, position: rowPosition(rect.bottom) };
+            } else if (index > targetIndex) {
+                if (index <= search.after.index) search.after = { index, position: rowPosition(rect.top) };
+            }
+        }
+        const { before, after } = search;
+        let low = before.position, high = after.position;
+        search.fallbackEdge = null;
+        search.middleProbe = null;
+        if (movingIndexes.every(index => index < targetIndex)) {
+            low = Math.max(low, current);
+            search.fallbackEdge = high;
+        } else if (movingIndexes.every(index => index > targetIndex)) {
+            high = Math.min(high, current);
+            search.fallbackEdge = low;
+        }
+        if (low > high) return null;
+        if (before.index === after.index) return low;
+        const fraction = (targetIndex - before.index) / (after.index - before.index);
+        const estimate = low + fraction * (high - low);
+        if (search.fallbackEdge === null) {
+            // 两侧都有挂载的提问时，按序号插值可能仍落在同一条长回复中。
+            const middle = (low + high) / 2;
+            if (Math.abs(middle - estimate) * range > 1) search.middleProbe = middle;
+        }
+        return estimate;
     }
 
     isTimelineHistoryLoading() {
@@ -423,7 +553,12 @@ class ChatGPTAdapter extends SiteAdapter {
 
         const handler = (event) => {
             const conversationId = typeof event.detail === 'string' ? event.detail : '';
-            const changedCount = this.handleCapturedChatsDataUpdated(conversationId);
+            // Timeline and message actions can share this adapter. Pull once and deliver the same
+            // change to both listeners, irrespective of their registration order.
+            if (!this._captureEventChanges.has(event)) {
+                this._captureEventChanges.set(event, this.handleCapturedChatsDataUpdated(conversationId));
+            }
+            const changedCount = this._captureEventChanges.get(event);
             if (changedCount > 0) callback({ conversationId, changedCount });
         };
         const loadingHandler = event => {
@@ -435,9 +570,12 @@ class ChatGPTAdapter extends SiteAdapter {
                 || typeof state.loading !== 'boolean') {
                 return;
             }
-            const wasLoading = this.isTimelineHistoryLoading();
-            this._historyLoading = state;
-            if (wasLoading !== this.isTimelineHistoryLoading()) {
+            if (!this._captureEventChanges.has(event)) {
+                const wasLoading = this.isTimelineHistoryLoading();
+                this._historyLoading = state;
+                this._captureEventChanges.set(event, wasLoading !== this.isTimelineHistoryLoading());
+            }
+            if (this._captureEventChanges.get(event)) {
                 callback({ conversationId: state.conversationId, historyLoadingChanged: true });
             }
         };
@@ -498,7 +636,7 @@ class ChatGPTAdapter extends SiteAdapter {
      * 前提：时间轴渲染时拦截模块已完成拦截，故每个对话拉取一次即可，不做轮询/节流。
      * 未拉到时静默降级（渲染期缓存 → 占位符）。
      */
-    syncCapturedChatsData({ force = false, restartHistory = false } = {}) {
+    syncCapturedChatsData({ force = false, restartHistory = false, refreshLatest = false } = {}) {
         const convId = this.extractConversationId(location.pathname);
         if (convId !== this._textCacheConvId) {
             // 切换对话：失效缓存归属
@@ -510,7 +648,7 @@ class ChatGPTAdapter extends SiteAdapter {
         }
         // 首次拉取，或上次拉取时接口尚未返回（SPA 切换时 pull 常早于响应，
         // 且「更新事件」可能落在时间轴销毁/重建的空窗被漏掉）→ 每次重建时廉价重试
-        this._pullConvTexts(convId, { restartHistory });
+        this._pullConvTexts(convId, { restartHistory, refreshLatest });
     }
 
     /**

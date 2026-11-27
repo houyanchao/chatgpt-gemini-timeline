@@ -9,14 +9,18 @@ class MessageSelectionStore {
         this.complete = false;
     }
 
-    merge(records) {
+    merge(records, { prepend = false } = {}) {
         const incoming = [...new Set(records.map(record => record.key))];
         let previous = -1;
-        for (const key of incoming) {
+        for (const [offset, key] of incoming.entries()) {
             const index = this.order.indexOf(key);
             if (index >= 0) { previous = index; continue; }
-            const next = incoming.slice(incoming.indexOf(key) + 1).find(value => this.order.includes(value));
-            const insertion = previous >= 0 ? previous + 1 : next ? this.order.indexOf(next) : this.order.length;
+            // An older window may share only the pinned last turn. Its leading new rows precede the scanned suffix.
+            let insertion = previous + 1;
+            if (previous < 0 && !prepend) {
+                const next = incoming.slice(offset + 1).find(value => this.order.includes(value));
+                insertion = next === undefined ? this.order.length : this.order.indexOf(next);
+            }
             this.order.splice(insertion, 0, key);
             previous = insertion;
             this.complete = false;
@@ -30,6 +34,21 @@ class MessageSelectionStore {
         if (records.some(record => Number.isInteger(record.position)) && this.order.every(key => Number.isInteger(this.messages.get(key)?.position))) {
             this.order.sort((a, b) => this.messages.get(a).position - this.messages.get(b).position);
         }
+    }
+
+    sortByTurnIds(turnIds) {
+        if (!turnIds?.length) return;
+        const turns = new Map(turnIds.map((id, index) => [id, index]));
+        const positions = new Map();
+        for (const key of this.order) {
+            const message = this.messages.get(key);
+            const user = message.role === 'user';
+            const index = turns.get(user ? message.id : message.turnId);
+            // A detached reply may have no known question. Preserve the observed order in that case.
+            if (index === undefined) return;
+            positions.set(key, 2 * index + (user ? 0 : 1));
+        }
+        this.order.sort((a, b) => positions.get(a) - positions.get(b));
     }
 
     remove(key) {

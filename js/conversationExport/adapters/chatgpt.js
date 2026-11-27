@@ -124,22 +124,11 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
     // ==================== 内部 ====================
 
     _extractUser(userEl) {
-        const text = this._domUserText(userEl);
-        const images = this._collectImagesFrom(userEl, 'user');
-        return { text, images, time: this._getAskTime(userEl) };
+        return this._extractUserFrom(userEl, ['[data-user-message-bubble]', '.whitespace-pre-wrap']);
     }
 
     _extractAssistant(assistantEl) {
-        if (!assistantEl) return { markdown: '', text: '', images: [] };
-        return this._domMarkdownFrom(assistantEl, ['[data-markdown-text-style="assistant-message"]', '.markdown', '[data-message-author-role="assistant"]']);
-    }
-
-    _domUserText(userEl) {
-        if (!userEl) return '';
-        const textEl = userEl.querySelector('[data-user-message-bubble]')
-            || userEl.querySelector('.whitespace-pre-wrap');
-        const raw = textEl ? textEl.textContent : userEl.textContent;
-        return (raw || '').replace(/\s+/g, ' ').trim();
+        return this._extractAssistantFrom(assistantEl, ['[data-markdown-text-style="assistant-message"]', '.markdown', '[data-message-author-role="assistant"]']);
     }
 
 }

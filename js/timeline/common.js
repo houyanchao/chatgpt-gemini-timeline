@@ -43,7 +43,55 @@ const TIMELINE_CONFIG = {
 
 // ==================== Utility Functions ====================
 
+let historyScrollOwner = null;
+
 const TimelineUtils = {
+    // A timeline jump and an export share the same chat viewport. The latest one owns it.
+    createHistoryScrollGuard(controller) {
+        historyScrollOwner?.abort('superseded-navigation');
+        historyScrollOwner = controller;
+        let container = null, token, lastStart = 0;
+        const notify = type => container.dispatchEvent(new CustomEvent(type, { bubbles: true, detail: token }));
+        const onTakeover = event => {
+            if (event.target === container && event.detail === token) controller.abort('user-navigation');
+        };
+        const release = () => {
+            if (!container) return;
+            container.removeEventListener('ait:history-navigation-takeover', onTakeover);
+            notify('ait:history-navigation-end');
+            container = null;
+        };
+        const close = () => {
+            release();
+            controller.signal.removeEventListener('abort', close);
+            if (historyScrollOwner === controller) historyScrollOwner = null;
+        };
+        controller.signal.addEventListener('abort', close, { once: true });
+        return {
+            protect(next) {
+                if (!next || controller.signal.aborted || historyScrollOwner !== controller) return;
+                const now = Date.now();
+                if (next !== container) {
+                    release();
+                    container = next;
+                    token = crypto.randomUUID();
+                    container.addEventListener('ait:history-navigation-takeover', onTakeover);
+                } else if (now - lastStart < 60000) return;
+                // An export can run longer than MAIN's 125 s orphaned-listener timeout.
+                lastStart = now;
+                notify('ait:history-navigation-start');
+            },
+            close
+        };
+    },
+
+    getScrollViewportTop(scrollContainer) {
+        // 根元素的边框会随文档滚动，页面视口的顶部始终为 0。
+        const documentScroller = document.scrollingElement || document.documentElement || document.body;
+        if (scrollContainer === documentScroller) return 0;
+        return scrollContainer.getBoundingClientRect().top + scrollContainer.clientTop;
+    },
+
     /**
      * Safely clear a timeout
      */

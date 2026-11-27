@@ -10,9 +10,9 @@ ChatGPT, Gemini, Claude, DeepSeek, Kimi and Doubao use this flow.
   composer bounds, and snapshot exclusion rules. No format or renderer logic.
 - `selection-store.js`: ordered message identities, independent role selection,
   explicit full-history completion, select-all intent and manual exclusions.
-- `message-loader.js`: existing ChatGPT export traversal extracted for reuse.
-  Visits stable top/history targets/bottom, collects each rendered window, restores
-  the original position, and reports incomplete loading instead of partial success.
+- `message-loader.js`: collects rendered messages as history loads. ChatGPT
+  select-all works from the newest messages toward the oldest and finishes at
+  the top. Targeted collection restores the original reading position.
 - `action-manager.js`: registered entries, session/cancellation, settings, lazy UI,
   shared selection/loading and collector lifecycle. It does not know action IDs,
   file formats, image libraries, or output implementation details.
@@ -108,8 +108,10 @@ places them before the reply's more-options control. Repeated scans only move
 entries when needed.
 Business actions may also need platform content extraction; keep it outside the
 shared manager. Export uses each platform's existing DOM extraction adapter.
-`getConversationState()` may return `{turnIds}` only when the entire active branch
-is known; return `null` for partial history or unavailable data.
+`getConversationState()` supplies the complete active branch's `turnIds` and,
+when known, `messageTotal` for questions and replies combined. The selection
+bar shows an ellipsis while the total is unknown. Opening the ChatGPT panel
+refreshes its branch data without scrolling, including after a new question.
 `subscribeConversationChanges(callback)` reports fresh branch facts and returns
 an unsubscribe function. Virtualized DOM windows must not be treated as complete
 branch snapshots. ChatGPT reuses the timeline adapter's captured branch data.

@@ -467,18 +467,25 @@ class CEPngExporter {
      */
     _tokenizeInline(rawText) {
         const tokens = [];
-        const re = /\$([^$\n]+?)\$/g;
+        const code = CETextExporters._inlineCodeSpans(rawText);
+        let prefix = '\u0000C';
+        while (rawText.includes(prefix)) prefix += 'C';
+        let index = 0;
+        const source = CETextExporters._replaceMarkdownTokens(rawText, code, () => prefix + (index++) + ';');
+        const codeToken = new RegExp(prefix + '(\\d+);', 'g');
+        const clean = value => this._cleanInline(value).replace(codeToken, (_, i) => code[Number(i)].text);
+        const re = /\$([^$\n\u0000]+?)\$/g;
         let last = 0;
         let m;
-        while ((m = re.exec(rawText)) !== null) {
+        while ((m = re.exec(source)) !== null) {
             if (m.index > last) {
-                tokens.push({ type: 'text', text: this._cleanInline(rawText.slice(last, m.index)) });
+                tokens.push({ type: 'text', text: clean(source.slice(last, m.index)) });
             }
             tokens.push({ type: 'formula', latex: m[1].trim() });
             last = re.lastIndex;
         }
-        if (last < rawText.length) {
-            tokens.push({ type: 'text', text: this._cleanInline(rawText.slice(last)) });
+        if (last < source.length) {
+            tokens.push({ type: 'text', text: clean(source.slice(last)) });
         }
         return tokens;
     }
@@ -816,13 +823,14 @@ class CEPngExporter {
             const trimmed = line.trim();
 
             // 代码块
-            const fence = trimmed.match(/^```(.*)$/);
+            const fence = trimmed.match(/^(`{3,})([^`]*)$/);
             if (fence) {
                 flushParagraph();
-                const lang = fence[1].trim();
+                const lang = fence[2].trim();
+                const closing = new RegExp('^`{' + fence[1].length + ',}$');
                 const codeLines = [];
                 i++;
-                while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                while (i < lines.length && !closing.test(lines[i].trim())) {
                     codeLines.push(lines[i]);
                     i++;
                 }
@@ -937,7 +945,6 @@ class CEPngExporter {
         return (text || '')
             .replace(/!\[[^\]]*\]\([^)]*\)/g, '')          // 图片
             .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')        // 链接 → 文本
-            .replace(/`([^`]+)`/g, '$1')                    // 行内代码
             .replace(/\*\*([^*]+)\*\*/g, '$1')              // 粗体
             .replace(/__([^_]+)__/g, '$1')
             .replace(/\*([^*]+)\*/g, '$1')                  // 斜体

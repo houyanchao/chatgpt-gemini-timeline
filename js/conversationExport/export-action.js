@@ -31,14 +31,23 @@ class ConversationExportAction {
         const stored = await chrome.storage.local.get(this.optionsKey);
         return new CEExportOptions(await exporter.getDefaultThemeId(), stored[this.optionsKey]);
     }
-    async createCollector({ adapter }) {
+    async createCollector({ adapter, signal }) {
         const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
         const times = await exporter._loadAskTimes?.();
         const cache = new Map();
+        const preserveImages = adapter.createGeneratedImageCache?.(signal);
         return {
-            capture(message) {
+            async capture(message) {
                 if (!message.element?.isConnected || message.generating) return;
                 const content = message.role === 'user' ? exporter._extractUser(message.element) : exporter._extractAssistant(message.element);
+                const images = message.role === 'assistant' && preserveImages?.(message.element);
+                if (images) {
+                    const sources = await images;
+                    for (const image of content.images) {
+                        const saved = sources.get(image.src);
+                        if (saved) image.src = saved;
+                    }
+                }
                 if (message.role === 'user' && times) {
                     const timeKey = exporter.getSelectedAskTimeKey(message);
                     if (timeKey) content.time = times[timeKey] || content.time || null;

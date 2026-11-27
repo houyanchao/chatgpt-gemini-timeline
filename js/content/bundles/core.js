@@ -15933,6 +15933,7 @@ class ChatGPTAdapter extends SiteAdapter {
         this._historyLoading = null;
         this._liveTimelineEntries = new Map();
         this._supplementalTimelineOrder = { before: [], after: [] };
+        this._captureEventChanges = new WeakMap();
         this._liveTimelineRevision = null;
         this._liveTimelineScopes = new WeakSet();
         this._timelineEntryRevisions = new Map();
@@ -15959,7 +15960,7 @@ class ChatGPTAdapter extends SiteAdapter {
      *
      * @returns {number} 本次发生变化的缓存条目数
      */
-    _pullConvTexts(conversationId, { restartHistory = false } = {}) {
+    _pullConvTexts(conversationId, { restartHistory = false, refreshLatest = false } = {}) {
         let received = null;
         const handler = (event) => {
             if (typeof event.detail !== 'string') return;
@@ -15972,7 +15973,7 @@ class ChatGPTAdapter extends SiteAdapter {
         };
         document.addEventListener('ait-gpt-user-texts-result', handler, { once: true });
         document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-pull', {
-            detail: restartHistory ? JSON.stringify({ conversationId, restartHistory: true }) : conversationId
+            detail: restartHistory || refreshLatest ? JSON.stringify({ conversationId, restartHistory, refreshLatest }) : conversationId
         }));
         document.removeEventListener('ait-gpt-user-texts-result', handler);
 
@@ -16040,7 +16041,14 @@ class ChatGPTAdapter extends SiteAdapter {
     getConversationBranch() {
         if (this._capturedTimelineConvId !== this.extractConversationId(location.pathname)
             || this._capturedTimeline?.complete !== true) return null;
-        return { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+        const branch = { turnIds: this._capturedTimeline.entries.map(entry => entry.id) };
+        const total = this._capturedTimeline.messageTotal;
+        const newerQuestion = this._supplementalTimelineOrder.after.some(id => !this._capturedTimelineIds.has(id.slice('chatgpt-'.length)));
+        if (Number.isInteger(total) && total >= branch.turnIds.length && !newerQuestion) {
+            branch.messageTotal = total;
+            branch.lastQuestionAnswered = this._capturedTimeline.lastQuestionAnswered;
+        }
+        return branch;
     }
 
     getCapturedTimelineEntries(userElements) {
@@ -16148,8 +16156,14 @@ class ChatGPTAdapter extends SiteAdapter {
         return [...(complete ? [] : supplement('before')), ...entries, ...supplement('after')];
     }
 
-    isTimelineTargetReady(element) {
+    isTimelineTargetReady(element, marker) {
         if (!element?.isConnected || element.childElementCount === 0) return false;
+        if (marker) {
+            const id = marker.id.slice('chatgpt-'.length);
+            const legacyIndex = !marker.apiBacked && /^\d+$/.test(id)
+                && marker.element === element && !this._extractNodeIdFromDom(element);
+            if (!legacyIndex && !this._matchesTimelineTargetId(element, id)) return false;
+        }
         const hasUserContent = element.matches('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]')
             || element.querySelector('[data-turn="user"], [data-chatgpt-search-unit-key$=":user"]');
         if (element.matches('[data-turn-id-container], [data-turn-key]') && !hasUserContent) return false;
@@ -16164,16 +16178,18 @@ class ChatGPTAdapter extends SiteAdapter {
         return !owner || owner === this.extractConversationId(location.pathname);
     }
 
+    _matchesTimelineTargetId(element, id) {
+        return this._extractNodeIdFromDom(element) === id
+            || element.getAttribute('data-turn-key') === id
+            || this._getTimelineElementIds(element).includes(id);
+    }
+
     _findTimelineTarget(targetId, scope) {
         // 同一提问可能同时有外层空壳和已渲染的内层元素，优先采用可定位的内容。
         let shell = null;
         for (const element of scope.querySelectorAll(`${this.getUserMessageSelector()}, [data-turn-id-container], [data-turn-key]`)) {
             if (!this.isTimelineTargetInScope(element, scope)) continue;
-            const matches = this._extractNodeIdFromDom(element) === targetId
-                || element.getAttribute('data-turn-key') === targetId
-                || (element.getAttribute('data-chatgpt-search-message-ids') || '').split(/\s+/).includes(targetId)
-                || [...element.querySelectorAll('[data-message-id]')].some(child => child.getAttribute('data-message-id') === targetId);
-            if (!matches) continue;
+            if (!this._matchesTimelineTargetId(element, targetId)) continue;
             if (this.isTimelineTargetReady(element)) return element;
             shell ||= element;
         }
@@ -16223,25 +16239,20 @@ class ChatGPTAdapter extends SiteAdapter {
         const deadline = Math.min(Date.now() + 120000, navigation.deadline ?? Infinity);
         const checkedIds = new Set();
         let maxKnownEntries = 0, seenTargetShell = false, maxTargetChildren = 0;
-        let foundTarget = null, lastSignature = '', lastProgressAt = Date.now();
-        let lowerPosition = null, upperPosition = null, searchSnapshot = '';
+        let lastSignature = '', lastProgressAt = Date.now(), lastShell = null;
+        const search = { mounted: new Set(), windowIds: null };
+        let probeCount = 0;
         try {
             while (!signal.aborted && Date.now() < deadline && isCurrentScope()) {
                 const target = this._findTimelineTarget(targetId, scope);
-                if (this.isTimelineTargetReady(target)) {
-                    foundTarget = target;
-                    return target;
-                }
+                if (this.isTimelineTargetReady(target)) return target;
                 const userElements = this.filterTimelineUserElements([...scope.querySelectorAll(this.getUserMessageSelector())]);
                 const entries = this.getCapturedTimelineEntries(userElements) || userElements.map((element, index) => ({
                     id: this.generateTurnId(element, index), element
                 }));
                 const targetIndex = entries.findIndex(entry => entry.id === marker.id);
                 const entryTarget = entries[targetIndex]?.element;
-                if (this.isTimelineTargetReady(entryTarget)) {
-                    foundTarget = entryTarget;
-                    return entryTarget;
-                }
+                if (this.isTimelineTargetReady(entryTarget)) return entryTarget;
                 const loadedIndexes = [];
                 entries.forEach((entry, index) => {
                     if (!this.isTimelineTargetReady(entry.element)) return;
@@ -16252,65 +16263,184 @@ class ChatGPTAdapter extends SiteAdapter {
                 seenTargetShell ||= !!target;
                 maxTargetChildren = Math.max(maxTargetChildren, target?.childElementCount || 0);
                 // 仅新内容或目标结构变化算进展；顶底切换、空白高度变化不能反复延长加载。
-                const signature = `${checkedIds.size}:${maxKnownEntries}:${seenTargetShell}:${maxTargetChildren}`;
+                const historyLoading = this.isTimelineHistoryLoading();
+                const signature = `${checkedIds.size}:${maxKnownEntries}:${targetIndex}:${seenTargetShell}:${maxTargetChildren}:${historyLoading}`;
                 if (signature !== lastSignature) {
                     lastProgressAt = Date.now(); lastSignature = signature;
                 }
                 // 收藏定位由外层两分钟期限控制，不能因正文暂未到达在 20 秒提前结束。
-                else if (!navigation.waitForTarget && Date.now() - lastProgressAt > 20000) {
+                else if (!navigation.waitForTarget && !historyLoading && Date.now() - lastProgressAt > 20000) {
                     return null;
                 }
-                if (!target && (targetIndex < 0 || !loadedIndexes.length)) {
-                    // 虚拟列表重排时可能暂时没有可用锚点，等待恢复，不盲目滚动。
-                    await this._waitForTimelineRender(signal, scope);
-                    continue;
-                }
-                window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
+                const viewportTop = TimelineUtils.getScrollViewportTop(scrollContainer);
                 const from = scrollContainer.scrollTop;
-                if (target) {
-                    // 已有目标空壳时直接锚定它；重排后每轮重新读取其位置。
-                    scrollContainer.scrollTop += target.getBoundingClientRect().top
-                        - scrollContainer.getBoundingClientRect().top - 80;
-                } else {
-                    const containerTop = scrollContainer.getBoundingClientRect().top;
-                    // 首次向顶/底查找；两侧都越过目标后，在两次落点之间查找。
-                    // 虚拟列表只挂载附近消息，反复跳顶底会始终跳过中间目标。
-                    const preceding = loadedIndexes.filter(index =>
-                        entries[index].element.getBoundingClientRect().top <= containerTop);
-                    const currentIndex = preceding.length ? preceding[preceding.length - 1] : loadedIndexes[0];
-                    const direction = targetIndex < currentIndex ? 'top' : 'bottom';
-                    const maxScrollTop = Math.max(0, scrollContainer.scrollHeight
-                        - (scrollContainer.clientHeight || window.innerHeight));
-                    // 反向滚动容器的底部是 0，顶部为负值。搜索区间统一按视觉方向计算。
-                    const scrollStart = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -maxScrollTop : 0;
-                    const snapshot = `${entries.length}:${targetIndex}`;
-                    if (snapshot !== searchSnapshot) {
-                        lowerPosition = upperPosition = null;
-                        searchSnapshot = snapshot;
+                const range = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+                const start = getComputedStyle(scrollContainer).flexDirection === 'column-reverse' ? -range : 0;
+                const shellRect = target?.getBoundingClientRect();
+                let destination = null;
+                if (shellRect?.height > 0) {
+                    search.mounted = new Set(loadedIndexes.map(index => entries[index].id));
+                    const delta = shellRect.top - viewportTop - 80;
+                    const top = from + delta;
+                    // 已经请求过相同位置的空壳只需等正文；无布局反应时也不能持续推着页面滚动。
+                    if (target !== lastShell?.element || (Math.abs(top - lastShell.top) > 1 && Math.abs(delta - lastShell.delta) > 1)) {
+                        destination = top;
+                        lastShell = { element: target, top, delta };
                     }
-                    // 保存比例，避免懒加载图片或历史插入改变总高度后沿用旧像素位置。
-                    const position = maxScrollTop > 0 ? Math.max(0, Math.min(1, (from - scrollStart) / maxScrollTop)) : 0;
-                    if (direction === 'top') {
-                        if (lowerPosition !== null && position <= lowerPosition) lowerPosition = null;
-                        upperPosition = position;
-                    } else {
-                        if (upperPosition !== null && position >= upperPosition) upperPosition = null;
-                        lowerPosition = position;
+                } else if (targetIndex >= 0 && range > 0) {
+                    lastShell = null;
+                    const previousPageId = search.oldestPageId;
+                    const position = this._estimateTimelinePosition(search, entries, loadedIndexes, targetIndex,
+                        (from - start) / range, range, viewportTop, scrollContainer.clientHeight, scope);
+                    if (previousPageId && previousPageId !== search.oldestPageId) {
+                        // 已经看到更早一页的新消息，可继续加载；仅高度或同一组消息的变化不重置预算。
+                        probeCount = 0;
+                        lastProgressAt = Date.now();
                     }
-                    if (lowerPosition !== null && upperPosition !== null) {
-                        scrollContainer.scrollTop = scrollStart + (lowerPosition + upperPosition) / 2 * maxScrollTop;
-                    } else {
-                        scrollContainer.scrollTop = scrollStart + (direction === 'top' ? 0 : maxScrollTop);
+                    if (position !== null && probeCount < 24) destination = start + range * position;
+                }
+                if (destination !== null) {
+                    const top = Math.max(start, Math.min(start + range, destination));
+                    if (Math.abs(from - top) > 1) {
+                        const olderThanWindow = targetIndex >= 0 && targetIndex < loadedIndexes[0];
+                        if (olderThanWindow || (top < from && (targetIndex < 0 || targetIndex < entries.length - 1))) {
+                            navigation.protectScroll?.(scrollContainer);
+                        }
+                        window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 2500 });
+                        scrollContainer.scrollTo({ top, behavior: 'instant' });
+                        search.hasScrolled = true;
+                        // 挂载窗口偶尔抖动也不能无限试探；达到上限仍等待精确目标或空壳出现。
+                        if (!lastShell) probeCount++;
                     }
                 }
                 await this._waitForTimelineRender(signal, scope);
             }
             return null;
         } finally {
-            // 手动取消或加载失败时回到出发位置；切换目标或离开页面时不抢位置。
-            if (!foundTarget && isCurrentScope()
-                && (!signal.aborted || signal.reason === 'cancel-navigation')) scrollContainer.scrollTop = initialScrollTop;
+            // 明确取消才撤回滚动；页面还在补历史时，定位超时也应保留最近位置。
+            if (signal.aborted && signal.reason === 'cancel-navigation' && isCurrentScope()
+                && Math.abs(scrollContainer.scrollTop - initialScrollTop) > 1) {
+                scrollContainer.scrollTo({ top: initialScrollTop, behavior: 'instant' });
+            }
         }
+    }
+
+    _estimateTimelinePosition(search, entries, indexes, targetIndex, current, range, viewportTop, viewportHeight, scope) {
+        const order = `${entries[0].id}:${targetIndex}`;
+        const lastIndex = entries.length - 1;
+        const retainsPrefix = search.order === order && entries[search.lastIndex]?.id === search.lastId;
+        if (!retainsPrefix) {
+            // API 将旧页前插时序号改变，但已经看过的消息、页面实际加载到的顶部都仍由其 ID 确定。
+            search.waitForNewWindow = search.order !== undefined || search.hasScrolled === true;
+            Object.assign(search, { fallbackEdge: null, middleProbe: null, attempts: 0,
+                before: { index: 0, position: 0 }, after: { index: lastIndex, position: 1 } });
+        } else if (lastIndex > search.lastIndex && search.after.index === search.lastIndex && search.after.position === 1) {
+            // 只在末尾追加新提问时，已观察到的窗口和目标序号继续有效。
+            search.after.index = lastIndex;
+        }
+        Object.assign(search, { order, lastIndex, lastId: entries[lastIndex].id });
+        const rowPosition = y => Math.max(0, Math.min(1, current + (y - viewportTop) / range));
+        // 长回复可能独占视口。若宿主保留了整轮容器，回复末尾也是后续提问的真实下界。
+        let anchors = new Map(indexes.map(index => [index, entries[index].element.getBoundingClientRect()]));
+        const inViewport = rect => rect.top < viewportTop + viewportHeight && rect.bottom > viewportTop;
+        if (![...anchors.values()].some(inViewport)) {
+            const containers = new Map([...scope.querySelectorAll('[data-turn-key]')].map(row => [row.getAttribute('data-turn-key'), row]));
+            const visibleTurns = new Map();
+            entries.forEach((entry, index) => {
+                const row = containers.get(entry.id.slice('chatgpt-'.length));
+                if (!row || !this.isTimelineTargetInScope(row, scope)) return;
+                const rect = row.getBoundingClientRect();
+                if (rect.height > 0 && inViewport(rect)) visibleTurns.set(index, rect);
+            });
+            // 常驻的末轮仍可作为上界，但当前长回复的起止位置才表明页面实际滚到了哪一轮。
+            if (visibleTurns.size) anchors = new Map([...anchors, ...visibleTurns].sort(([a], [b]) => a - b));
+        }
+        // 即使是第一次点击，空窗口也可能正在换页，不能把接口序号当作页面位置。
+        if (!anchors.size) return null;
+        const [firstIndex, firstRect] = anchors.entries().next().value;
+        const firstId = entries[firstIndex].id;
+        const visualTop = current * range;
+        const firstTop = visualTop + firstRect.top - viewportTop;
+        const page = search.pageTop;
+        const oldTop = page?.offsets.get(firstId);
+        const growth = page ? range - page.range : 0;
+        // 比较同一提问的内容坐标：原首行可能已卸载，宿主也可能在补页后主动回到底部。
+        const shifted = oldTop !== undefined && growth > 1 && Math.abs(firstTop - oldTop - growth) <= 2;
+        const samePage = oldTop !== undefined && Math.abs(firstTop - oldTop) <= 2;
+        if (firstIndex > targetIndex && (Math.abs(firstTop) < viewportHeight || shifted || samePage)) {
+            if (!search.oldestPageId || (search.oldestPageId !== firstId
+                && firstIndex < entries.findIndex(entry => entry.id === search.oldestPageId))) {
+                search.oldestPageId = firstId;
+            }
+            if (!samePage || shifted) {
+                const offsets = new Map([...anchors].map(([index, rect]) =>
+                    [entries[index].id, visualTop + rect.top - viewportTop]));
+                search.pageTop = { offsets, range, requests: 0 };
+            }
+            // 顶部留白不属于旧对话。实际触顶才会加载上一页；同一页仅在宿主拉回时补一次。
+            if (visualTop <= 1 || search.pageTop.requests >= 2) return null;
+            search.pageTop.requests++;
+            search.fallbackEdge = null;
+            return 0;
+        }
+        // 前插期间可能只剩常驻末轮或旧后缀；只有当前视口出现真实的新行才可使用新索引估位。
+        if (search.waitForNewWindow) {
+            const fresh = [...anchors].some(([index, rect]) => !search.mounted.has(entries[index].id)
+                && rect.top <= viewportTop + 2 * viewportHeight && rect.bottom >= viewportTop - viewportHeight);
+            if (!fresh) return null;
+            search.waitForNewWindow = false;
+        }
+        // scrollTop 先于挂载窗口更新。旧窗口不能覆盖已经确认的两侧锚点。
+        const windowIds = [...anchors.keys()].map(index => entries[index].id).join('|');
+        const now = Date.now();
+        const added = [...anchors.keys()].filter(index => !search.mounted.has(entries[index].id));
+        if (search.windowIds === windowIds || !added.length) {
+            // 只有旧行卸载也不算新窗口。等待慢渲染后，在上次确认的区间内继续试探。
+            const next = search.fallbackEdge === null ? search.middleProbe : (current + search.fallbackEdge) / 2;
+            if (next == null || search.attempts >= search.probeLimit || now - search.lastProbe < 1800) return null;
+            search.lastProbe = now;
+            search.attempts++;
+            search.middleProbe = null;
+            return next;
+        }
+        // 长回复和常驻末轮可能是仅有的两个锚点。末轮提供位置上界，方向由普通窗口决定。
+        const pinnedTail = added.length > 1 && added.at(-1) === lastIndex && added.at(-2) < lastIndex - 1
+            && anchors.get(lastIndex).top >= viewportTop + viewportHeight;
+        const movingIndexes = pinnedTail ? added.slice(0, -1) : added;
+        search.probeLimit = search.windowIds === null && !pinnedTail ? 1 : 8;
+        search.windowIds = windowIds;
+        search.lastProbe = now;
+        search.attempts = 0;
+        // 最后一轮可能被强制常驻。其真实坐标仍是边界，但不能代表刚挂载的视口窗口。
+        search.mounted = new Set([...anchors.keys()].map(index => entries[index].id));
+        for (const [index, rect] of anchors) {
+            if (index < targetIndex) {
+                if (index >= search.before.index) search.before = { index, position: rowPosition(rect.bottom) };
+            } else if (index > targetIndex) {
+                if (index <= search.after.index) search.after = { index, position: rowPosition(rect.top) };
+            }
+        }
+        const { before, after } = search;
+        let low = before.position, high = after.position;
+        search.fallbackEdge = null;
+        search.middleProbe = null;
+        if (movingIndexes.every(index => index < targetIndex)) {
+            low = Math.max(low, current);
+            search.fallbackEdge = high;
+        } else if (movingIndexes.every(index => index > targetIndex)) {
+            high = Math.min(high, current);
+            search.fallbackEdge = low;
+        }
+        if (low > high) return null;
+        if (before.index === after.index) return low;
+        const fraction = (targetIndex - before.index) / (after.index - before.index);
+        const estimate = low + fraction * (high - low);
+        if (search.fallbackEdge === null) {
+            // 两侧都有挂载的提问时，按序号插值可能仍落在同一条长回复中。
+            const middle = (low + high) / 2;
+            if (Math.abs(middle - estimate) * range > 1) search.middleProbe = middle;
+        }
+        return estimate;
     }
 
     isTimelineHistoryLoading() {
@@ -16331,7 +16461,12 @@ class ChatGPTAdapter extends SiteAdapter {
 
         const handler = (event) => {
             const conversationId = typeof event.detail === 'string' ? event.detail : '';
-            const changedCount = this.handleCapturedChatsDataUpdated(conversationId);
+            // Timeline and message actions can share this adapter. Pull once and deliver the same
+            // change to both listeners, irrespective of their registration order.
+            if (!this._captureEventChanges.has(event)) {
+                this._captureEventChanges.set(event, this.handleCapturedChatsDataUpdated(conversationId));
+            }
+            const changedCount = this._captureEventChanges.get(event);
             if (changedCount > 0) callback({ conversationId, changedCount });
         };
         const loadingHandler = event => {
@@ -16343,9 +16478,12 @@ class ChatGPTAdapter extends SiteAdapter {
                 || typeof state.loading !== 'boolean') {
                 return;
             }
-            const wasLoading = this.isTimelineHistoryLoading();
-            this._historyLoading = state;
-            if (wasLoading !== this.isTimelineHistoryLoading()) {
+            if (!this._captureEventChanges.has(event)) {
+                const wasLoading = this.isTimelineHistoryLoading();
+                this._historyLoading = state;
+                this._captureEventChanges.set(event, wasLoading !== this.isTimelineHistoryLoading());
+            }
+            if (this._captureEventChanges.get(event)) {
                 callback({ conversationId: state.conversationId, historyLoadingChanged: true });
             }
         };
@@ -16406,7 +16544,7 @@ class ChatGPTAdapter extends SiteAdapter {
      * 前提：时间轴渲染时拦截模块已完成拦截，故每个对话拉取一次即可，不做轮询/节流。
      * 未拉到时静默降级（渲染期缓存 → 占位符）。
      */
-    syncCapturedChatsData({ force = false, restartHistory = false } = {}) {
+    syncCapturedChatsData({ force = false, restartHistory = false, refreshLatest = false } = {}) {
         const convId = this.extractConversationId(location.pathname);
         if (convId !== this._textCacheConvId) {
             // 切换对话：失效缓存归属
@@ -16418,7 +16556,7 @@ class ChatGPTAdapter extends SiteAdapter {
         }
         // 首次拉取，或上次拉取时接口尚未返回（SPA 切换时 pull 常早于响应，
         // 且「更新事件」可能落在时间轴销毁/重建的空窗被漏掉）→ 每次重建时廉价重试
-        this._pullConvTexts(convId, { restartHistory });
+        this._pullConvTexts(convId, { restartHistory, refreshLatest });
     }
 
     /**
@@ -18785,7 +18923,8 @@ class ClaudeAdapter extends SiteAdapter {
 
     getConversationBranch() {
         if (!this._snapshot || this._snapshot.conversationId !== this.extractConversationId(location.pathname)) return null;
-        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
+        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries,
+            messageTotal: this._liveEntries.size ? undefined : this._snapshot.messageCount };
     }
 
     getCapturedTimelineEntries(userElements, conversationContainer = null) {
@@ -18875,8 +19014,12 @@ class ClaudeAdapter extends SiteAdapter {
 
     getTimelineStructureAttributeFilter() { return ['data-index', 'data-perf-row']; }
 
-    isTimelineTargetReady(element) {
-        return !!element?.isConnected && element.getBoundingClientRect().height > 0;
+    isTimelineTargetReady(element, marker) {
+        if (!element?.isConnected) return false;
+        // 虚拟列表可复用仍在文档中的行；旧页面没有消息 UUID 时继续按原索引定位。
+        const key = this.extractIndexFromTurnId(marker?.id);
+        if (typeof key === 'string' && this.generateTurnId(element, -1) !== marker.id) return false;
+        return element.getBoundingClientRect().height > 0;
     }
 
     isTimelineTargetInScope(element, scope) {
@@ -18922,7 +19065,8 @@ class ClaudeAdapter extends SiteAdapter {
                 const row = rows.find(item => Number(item.getAttribute('data-index')) === entry.rowIndex);
                 if (row) {
                     window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 1000 });
-                    scrollContainer.scrollTop += row.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 80;
+                    scrollContainer.scrollTop += row.getBoundingClientRect().top
+                        - TimelineUtils.getScrollViewportTop(scrollContainer) - 80;
                     await this._waitForTimelineRender(signal);
                     continue;
                 }
@@ -20686,7 +20830,55 @@ const TIMELINE_CONFIG = {
 
 // ==================== Utility Functions ====================
 
+let historyScrollOwner = null;
+
 const TimelineUtils = {
+    // A timeline jump and an export share the same chat viewport. The latest one owns it.
+    createHistoryScrollGuard(controller) {
+        historyScrollOwner?.abort('superseded-navigation');
+        historyScrollOwner = controller;
+        let container = null, token, lastStart = 0;
+        const notify = type => container.dispatchEvent(new CustomEvent(type, { bubbles: true, detail: token }));
+        const onTakeover = event => {
+            if (event.target === container && event.detail === token) controller.abort('user-navigation');
+        };
+        const release = () => {
+            if (!container) return;
+            container.removeEventListener('ait:history-navigation-takeover', onTakeover);
+            notify('ait:history-navigation-end');
+            container = null;
+        };
+        const close = () => {
+            release();
+            controller.signal.removeEventListener('abort', close);
+            if (historyScrollOwner === controller) historyScrollOwner = null;
+        };
+        controller.signal.addEventListener('abort', close, { once: true });
+        return {
+            protect(next) {
+                if (!next || controller.signal.aborted || historyScrollOwner !== controller) return;
+                const now = Date.now();
+                if (next !== container) {
+                    release();
+                    container = next;
+                    token = crypto.randomUUID();
+                    container.addEventListener('ait:history-navigation-takeover', onTakeover);
+                } else if (now - lastStart < 60000) return;
+                // An export can run longer than MAIN's 125 s orphaned-listener timeout.
+                lastStart = now;
+                notify('ait:history-navigation-start');
+            },
+            close
+        };
+    },
+
+    getScrollViewportTop(scrollContainer) {
+        // 根元素的边框会随文档滚动，页面视口的顶部始终为 0。
+        const documentScroller = document.scrollingElement || document.documentElement || document.body;
+        if (scrollContainer === documentScroller) return 0;
+        return scrollContainer.getBoundingClientRect().top + scrollContainer.clientTop;
+    },
+
     /**
      * Safely clear a timeout
      */
@@ -25273,11 +25465,11 @@ class TimelineManager {
             return;
         }
         const previousCount = this.markers.length;
-        const rect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         this.markers = entries.map((entry, index) => {
             const key = this.adapter.extractIndexFromTurnId(entry.id);
             const old = previous.get(entry.id);
-            const offsetTop = entry.element ? entry.element.getBoundingClientRect().top - rect.top + this.scrollContainer.scrollTop : 0;
+            const offsetTop = entry.element ? entry.element.getBoundingClientRect().top - viewportTop + this.scrollContainer.scrollTop : 0;
             return { ...entry, apiBacked: true, offsetTop,
                 offsetBottom: offsetTop + (entry.element?.offsetHeight || 0),
                 visualN: entries.length > 1 ? index / (entries.length - 1) : 0,
@@ -25472,17 +25664,7 @@ class TimelineManager {
         // 节点发生变化，清除旧的 dots，准备重新计算和渲染
         (this.ui.trackContent || this.ui.timelineBar).querySelectorAll('.ait-timeline-dot').forEach(n => n.remove());
         
-        /**
-         * ✅ 使用 getBoundingClientRect 计算元素相对于容器内容区域顶部的距离
-         * 
-         * 公式：elemRect.top - contRect.top + container.scrollTop
-         * 
-         * 解释：
-         * - elemRect.top - contRect.top = 元素相对于容器可见区域顶部的距离
-         * - + scrollTop = 加上已滚动的距离
-         * - 结果 = 元素相对于容器内容区域顶部的绝对距离
-         */
-        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         let containerScrollTop = this.scrollContainer.scrollTop || 0;
         const isReverseScroll = typeof this.adapter.isReverseScroll === 'function'
             && this.adapter.isReverseScroll();
@@ -25491,7 +25673,7 @@ class TimelineManager {
         }
         const getOffsetTop = (element) => {
             const elemRect = rectsMap.get(element) || element.getBoundingClientRect();
-            return elemRect.top - containerRect.top + containerScrollTop;
+            return elemRect.top - viewportTop + containerScrollTop;
         };
         
         /**
@@ -26738,18 +26920,22 @@ class TimelineManager {
         if (targetIndex < 0 || targetIndex >= this.markers.length) return false;
         
         const marker = this.markers[targetIndex];
-        if (this.adapter.supportsDeferredNodeNavigation?.() !== true) {
-            if (!marker?.element) return false;
-            this.smoothScrollTo(marker.element);
-            return true;
-        }
         if (!marker) return false;
+        const deferred = this.adapter.supportsDeferredNodeNavigation?.() === true;
+        if (!deferred && !marker.element) return false;
+        if (deferred && this._pendingMarkerId === marker.id) return true;
         this._markerNavigationController?.abort('superseded-navigation');
         const controller = new AbortController();
         this._markerNavigationController = controller;
+        if (!deferred) {
+            this.smoothScrollTo(marker.element, 600, { signal: controller.signal });
+            return true;
+        }
         const deadline = Date.now() + 120000;
-        const isReady = element => this._isNavigationTargetReady(element);
+        const isReady = element => this._isNavigationTargetReady(element, marker);
         if (!isReady(marker.element) && !this.adapter.resolveTimelineTarget) return false;
+        this._pendingMarkerId = marker.id;
+        const scrollGuard = TimelineUtils.createHistoryScrollGuard(controller);
 
         let loading = null;
         const closeLoading = () => {
@@ -26759,12 +26945,15 @@ class TimelineManager {
         };
         const cleanup = () => {
             closeLoading();
+            scrollGuard.close();
+            if (this._markerNavigationController === controller) this._pendingMarkerId = null;
             controller.signal.removeEventListener('abort', cleanup);
         };
-        // 手动滚动不取消导航；仅显式取消、切换目标或销毁页面时中止。
+        // 查找期间允许普通滚动；用户明确跳转或在到达后接手滚动时让出控制。
         controller.signal.addEventListener('abort', cleanup, { once: true });
         const navigate = async () => {
             let element = marker.element;
+            let landingAttempts = 0;
             while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 if (!isReady(element)) {
                     if (!this.adapter.resolveTimelineTarget) return false;
@@ -26777,7 +26966,7 @@ class TimelineManager {
                     element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
                         controller.signal, undefined, {
                             deadline,
-                            waitForTarget: true,
+                            protectScroll: scrollGuard.protect,
                             conversationContainer,
                             isScopeCurrent,
                             filterRows
@@ -26790,20 +26979,10 @@ class TimelineManager {
                     }
                     if (!isReady(element)) return false;
                 }
-                const reached = await this.smoothScrollTo(element, 400, {
-                    signal: controller.signal,
-                    onComplete: () => {
-                        if (controller.signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return;
-                        const previousId = this.activeTurnId;
-                        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
-                        this.pendingActiveId = null;
-                        this.activeTurnId = marker.id;
-                        this.updateActiveDotUI(); this.syncTimelineTrackToMain();
-                        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
-                    }
-                });
+                const reached = await this._scrollToResolvedMarker(element, marker, controller, scrollGuard);
                 if (reached) return true;
                 // 动画中途被虚拟列表卸载后，继续按原 ID 查找，不使用旧元素或旧序号。
+                if (++landingAttempts >= 3) return false;
                 element = null;
             }
             return false;
@@ -26837,8 +27016,8 @@ class TimelineManager {
         this._markerNavigationController = controller;
         const task = { status: 'loading', getMarker };
         this._nodeNavigationTask = task;
+        const scrollGuard = TimelineUtils.createHistoryScrollGuard(controller);
         const deadline = Date.now() + 120000;
-        const isReady = element => this._isNavigationTargetReady(element);
 
         let loading = null;
         const ensureLoading = () => loading ||= this._showNodeNavigationLoading(controller);
@@ -26850,13 +27029,15 @@ class TimelineManager {
         };
         const onAbort = () => {
             task.status = 'cancelled';
+            scrollGuard.close();
             cleanup();
         };
-        // 手动滚动不取消导航；仅显式取消、切换目标或销毁页面时中止。
+        // 收藏与圆点使用相同的接管规则。
         controller.signal.addEventListener('abort', onAbort, { once: true });
         const navigate = async () => {
             // 收藏重试时重新读取历史；上次请求失败后也能重新启动补齐。
             if (waitForTarget) this.adapter.syncCapturedChatsData?.({ force: true, restartHistory });
+            let landingAttempts = 0;
             while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 const marker = getMarker();
                 if (!marker) {
@@ -26865,6 +27046,7 @@ class TimelineManager {
                     continue;
                 }
                 let element = marker.element;
+                const isReady = element => this._isNavigationTargetReady(element, marker);
                 if (!isReady(element)) {
                     ensureLoading();
                     if (this.adapter.resolveTimelineTarget) {
@@ -26874,7 +27056,8 @@ class TimelineManager {
                             && this.scrollContainer === scrollContainer;
                         const filterRows = rows => this._routeRows.filter(this.adapter, rows, this._rowRoute);
                         element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
-                            controller.signal, undefined, { deadline, waitForTarget, conversationContainer, isScopeCurrent, filterRows });
+                            controller.signal, undefined, { deadline, waitForTarget, protectScroll: scrollGuard.protect,
+                                conversationContainer, isScopeCurrent, filterRows });
                         if (!isScopeCurrent()) continue;
                         if (!isReady(element) && !waitForTarget) return false;
                     }
@@ -26884,26 +27067,15 @@ class TimelineManager {
                         continue;
                     }
                 }
-                const reached = await this.smoothScrollTo(element, 400, {
-                    signal: controller.signal,
-                    onComplete: () => {
-                        if (controller.signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return;
-                        const previousId = this.activeTurnId;
-                        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
-                        this.pendingActiveId = null;
-                        this.activeTurnId = marker.id;
-                        this.updateActiveDotUI(); this.syncTimelineTrackToMain();
-                        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
-                    }
-                });
-                if (reached && this.markerMap.has(marker.id)) return true;
+                if (await this._scrollToResolvedMarker(element, marker, controller, scrollGuard)) return true;
                 // 动画中途被虚拟列表卸载后，继续按原 ID 查找，不使用旧元素或旧序号。
+                if (++landingAttempts >= 3) return false;
             }
             return false;
         };
         task.promise = (async () => {
             try {
-                if (await navigate()) {
+                if (await navigate().finally(scrollGuard.close)) {
                     task.status = 'reached';
                     cleanup();
                     return true;
@@ -26942,61 +27114,133 @@ class TimelineManager {
         return this.scrollToIndex(0);
     }
     
-    _isNavigationTargetReady(element) {
+    async _scrollToResolvedMarker(element, marker, controller, scrollGuard) {
+        const { signal } = controller;
+        const container = this.scrollContainer;
+        // 已挂载的旧提问也可能在视口上方；第一笔滚动就能触发宿主的分页和贴底。
+        if (container && marker.id !== this.markers.at(-1)?.id
+            && element.getBoundingClientRect().top < TimelineUtils.getScrollViewportTop(container)) {
+            scrollGuard.protect(container);
+        }
+        const reached = await this.smoothScrollTo(element, 400, {
+            signal, marker, onUserScroll: () => controller.abort('user-navigation')
+        });
+        if (!reached || signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return false;
+        const previousId = this.activeTurnId;
+        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
+        this.pendingActiveId = null;
+        this.activeTurnId = marker.id;
+        this.updateActiveDotUI();
+        this.syncTimelineTrackToMain();
+        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
+        return true;
+    }
+
+    _isNavigationTargetReady(element, marker) {
+        const currentMarker = marker && (this.markerMap?.get(marker.id) || marker);
         return element?.isConnected
             && (this.adapter.isTimelineTargetInScope?.(element, this.conversationContainer) ?? true)
-            && (this.adapter.isTimelineTargetReady?.(element) ?? true);
+            && (this.adapter.isTimelineTargetReady?.(element, currentMarker) ?? true);
     }
 
     smoothScrollTo(targetElement, duration = 600, navigation = {}) {
         const scrollContainer = this.scrollContainer;
         if (!targetElement || !scrollContainer) return Promise.resolve(false);
 
+        const settleMs = navigation.marker ? 250 : 0;
         const preventAutoScroll = window.__aitPreventAutoScroll;
-        const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + 150 });
+        const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + settleMs + 150 });
 
         this._recalcMarkerPositions();
         
         const scrollOffset = this.adapter?.getScrollOffset?.() ?? 30;
         const startPosition = scrollContainer.scrollTop;
         
-        // 计算初始目标位置
+        const reverse = navigation.marker && getComputedStyle(scrollContainer).flexDirection === 'column-reverse';
         const getTargetPosition = () => {
-            const containerRect = scrollContainer.getBoundingClientRect();
+            const viewportTop = TimelineUtils.getScrollViewportTop(scrollContainer);
             const targetRect = targetElement.getBoundingClientRect();
-            return targetRect.top - containerRect.top + scrollContainer.scrollTop - scrollOffset;
+            const top = targetRect.top - viewportTop + scrollContainer.scrollTop - scrollOffset;
+            if (!navigation.marker) return top;
+            const max = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+            return reverse ? Math.max(-max, Math.min(0, top)) : Math.max(0, Math.min(max, top));
         };
+        // 跨越整个虚拟窗口的动画会在途中卸载已经找到的目标。
+        const farTarget = navigation.marker && Math.abs(getTargetPosition() - startPosition) > scrollContainer.clientHeight;
+        const animationMs = farTarget ? 0 : duration;
         
         return new Promise(resolve => {
             let startTime = null, finished = false;
+            let settleListeners = null;
+            let lastSettledTop = startPosition, scrollTopBeforeInput = null;
             const finish = reached => {
                 if (finished) return;
                 finished = true;
+                settleListeners?.abort();
                 navigation.signal?.removeEventListener('abort', onAbort);
                 preventAutoScroll?.settleUserNavigation?.({ id: navigationId });
                 resolve(reached);
                 if (reached) navigation.onComplete?.();
             };
             const onAbort = () => finish(false);
+            const onScrollIntent = event => {
+                if (!event.isTrusted || event.defaultPrevented) return;
+                if (event.type === 'wheel' && (!event.deltaY || event.ctrlKey)) return;
+                if (event.type === 'pointerdown' && event.target !== scrollContainer) return;
+                if (event.type === 'keydown') {
+                    if (!['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+                    const target = event.target;
+                    if (target !== document.body && !scrollContainer.contains(target)) return;
+                    if (target.isContentEditable || target.closest?.('input, textarea, select, button, [role="textbox"]')) return;
+                }
+                // Chromium 的合成线程可能已在派发被动 wheel 事件前移动页面。
+                scrollTopBeforeInput ??= lastSettledTop;
+            };
             const animation = currentTime => {
                 if (finished) return;
                 if (navigation.signal?.aborted || !this.isCurrentPage() || this.scrollContainer !== scrollContainer
-                    || scrollContainer.isConnected === false || scrollContainer.contains?.(targetElement) === false
-                    || !this._isNavigationTargetReady(targetElement)) {
+                    || scrollContainer.isConnected === false) {
+                    finish(false);
+                    return;
+                }
+                // 先交接读者的滚动，避免此时目标恰好卸载、触发重新定位。
+                if (scrollTopBeforeInput !== null && Math.abs(scrollContainer.scrollTop - scrollTopBeforeInput) > 1) {
+                    navigation.onUserScroll();
+                    return;
+                }
+                if (scrollContainer.contains?.(targetElement) === false
+                    || !this._isNavigationTargetReady(targetElement, navigation.marker)) {
                     finish(false);
                     return;
                 }
                 if (startTime === null) startTime = currentTime;
-                const progress = Math.min((currentTime - startTime) / duration, 1);
-                const easedProgress = this.easeInOutQuad(progress, 0, 1, 1);
-
-                // 每帧重新计算目标位置，应对 DOM 动态插入。
-                scrollContainer.scrollTop = startPosition + (getTargetPosition() - startPosition) * easedProgress;
-                if (progress < 1) requestAnimationFrame(animation);
-                else {
-                    scrollContainer.scrollTop = getTargetPosition();
-                    finish(true);
+                const elapsed = currentTime - startTime;
+                const destination = getTargetPosition();
+                if (elapsed < animationMs) {
+                    const progress = this.easeInOutQuad(elapsed / animationMs, 0, 1, 1);
+                    scrollContainer.scrollTo({ top: startPosition + (destination - startPosition) * progress, behavior: 'instant' });
+                } else {
+                    // 落点已经到达后，只跟随布局变化，读者开始滚动就立即结束校准。
+                    if (navigation.onUserScroll && !settleListeners) {
+                        settleListeners = new AbortController();
+                        const options = { passive: true, signal: settleListeners.signal };
+                        scrollContainer.addEventListener('wheel', onScrollIntent, options);
+                        scrollContainer.addEventListener('touchmove', onScrollIntent, options);
+                        scrollContainer.addEventListener('pointerdown', onScrollIntent, options);
+                        scrollContainer.ownerDocument?.addEventListener('keydown', onScrollIntent, options);
+                    }
+                    // 图片、附件及相邻轮次挂载后可能再次撑开布局，仅在短暂的校准期内修正。
+                    if (!navigation.marker || Math.abs(destination - scrollContainer.scrollTop) > 1) {
+                        scrollTopBeforeInput = null;
+                        scrollContainer.scrollTo({ top: destination, behavior: 'instant' });
+                    }
+                    lastSettledTop = scrollContainer.scrollTop;
+                    if (elapsed >= animationMs + settleMs) {
+                        finish(!navigation.marker || Math.abs(getTargetPosition() - scrollContainer.scrollTop) <= 1);
+                        return;
+                    }
                 }
+                requestAnimationFrame(animation);
             };
             navigation.signal?.addEventListener('abort', onAbort, { once: true });
             if (navigation.signal?.aborted) finish(false);
@@ -28060,9 +28304,9 @@ class TimelineManager {
         const last = this.markers[this.markers.length - 1];
         // 虚拟列表可能卸载最后提问，不能拿旧位置或 0 去缩减已有留白。
         if (!last?.element?.isConnected || !this.conversationContainer
-            || this.adapter.isTimelineTargetReady?.(last.element) === false) return;
+            || this.adapter.isTimelineTargetReady?.(last.element, last) === false) return;
         const lastOffset = last.element.getBoundingClientRect().top
-            - this.scrollContainer.getBoundingClientRect().top + this.scrollContainer.scrollTop;
+            - TimelineUtils.getScrollViewportTop(this.scrollContainer) + this.scrollContainer.scrollTop;
         const { maxScrollTop } = this._getCleanScrollMetrics();
         this._updateScrollPadding(lastOffset, maxScrollTop);
     }
@@ -28073,9 +28317,9 @@ class TimelineManager {
     _recalcMarkerPositions() {
         if (!this.scrollContainer || this.markers.length === 0) return;
         if (this._apiTimelineMode) {
-            const top = this.scrollContainer.getBoundingClientRect().top;
+            const top = TimelineUtils.getScrollViewportTop(this.scrollContainer);
             this.markers.forEach(marker => {
-                if (!marker.element?.isConnected || this.adapter.isTimelineTargetReady?.(marker.element) === false) return;
+                if (!marker.element?.isConnected || this.adapter.isTimelineTargetReady?.(marker.element, marker) === false) return;
                 marker.offsetTop = marker.element.getBoundingClientRect().top - top + this.scrollContainer.scrollTop;
                 marker.offsetBottom = marker.offsetTop + marker.element.offsetHeight;
             });
@@ -28097,11 +28341,11 @@ class TimelineManager {
             return;
         }
         
-        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         const containerScrollTop = this.scrollContainer.scrollTop || 0;
         const getOffsetTop = (element) => {
             const elemRect = element.getBoundingClientRect();
-            return elemRect.top - containerRect.top + containerScrollTop;
+            return elemRect.top - viewportTop + containerScrollTop;
         };
         
         const { maxScrollTop: cleanMaxScrollTop } = this._getCleanScrollMetrics();
@@ -28148,16 +28392,26 @@ class TimelineManager {
         
         if (this._apiTimelineMode) {
             const loaded = this.markers.filter(marker => marker.element?.isConnected
-                && this.adapter.isTimelineTargetReady?.(marker.element) !== false);
-            const threshold = this.scrollContainer.getBoundingClientRect().top + this.ACTIVATE_AHEAD;
-            activeId = loaded[0]?.id || this.activeTurnId || activeId;
+                && this.adapter.isTimelineTargetReady?.(marker.element, marker) !== false);
+            const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
+            const threshold = viewportTop + this.ACTIVATE_AHEAD;
+            if (this.markerMap.has(this.activeTurnId)) {
+                activeId = this.activeTurnId;
+            }
             for (const marker of loaded) {
-                if (marker.element.getBoundingClientRect().top > threshold) break;
+                const top = marker.element.getBoundingClientRect().top;
+                if (top > threshold) {
+                    // 首个挂载节点可能是屏幕下方常驻的末条；仅在可见时用它作为起点。
+                    if (marker === loaded[0] && top < viewportTop + this.scrollContainer.clientHeight) {
+                        activeId = marker.id;
+                    }
+                    break;
+                }
                 activeId = marker.id;
             }
         } else if (isReverseScroll) {
             // 反向滚动：实时计算位置
-            const containerTop = this.scrollContainer.getBoundingClientRect().top;
+            const containerTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
             const activateThreshold = containerTop + this.ACTIVATE_AHEAD;
             
             for (let i = this.markers.length - 1; i >= 0; i--) {
@@ -30503,14 +30757,18 @@ class MessageSelectionStore {
         this.complete = false;
     }
 
-    merge(records) {
+    merge(records, { prepend = false } = {}) {
         const incoming = [...new Set(records.map(record => record.key))];
         let previous = -1;
-        for (const key of incoming) {
+        for (const [offset, key] of incoming.entries()) {
             const index = this.order.indexOf(key);
             if (index >= 0) { previous = index; continue; }
-            const next = incoming.slice(incoming.indexOf(key) + 1).find(value => this.order.includes(value));
-            const insertion = previous >= 0 ? previous + 1 : next ? this.order.indexOf(next) : this.order.length;
+            // An older window may share only the pinned last turn. Its leading new rows precede the scanned suffix.
+            let insertion = previous + 1;
+            if (previous < 0 && !prepend) {
+                const next = incoming.slice(offset + 1).find(value => this.order.includes(value));
+                insertion = next === undefined ? this.order.length : this.order.indexOf(next);
+            }
             this.order.splice(insertion, 0, key);
             previous = insertion;
             this.complete = false;
@@ -30524,6 +30782,21 @@ class MessageSelectionStore {
         if (records.some(record => Number.isInteger(record.position)) && this.order.every(key => Number.isInteger(this.messages.get(key)?.position))) {
             this.order.sort((a, b) => this.messages.get(a).position - this.messages.get(b).position);
         }
+    }
+
+    sortByTurnIds(turnIds) {
+        if (!turnIds?.length) return;
+        const turns = new Map(turnIds.map((id, index) => [id, index]));
+        const positions = new Map();
+        for (const key of this.order) {
+            const message = this.messages.get(key);
+            const user = message.role === 'user';
+            const index = turns.get(user ? message.id : message.turnId);
+            // A detached reply may have no known question. Preserve the observed order in that case.
+            if (index === undefined) return;
+            positions.set(key, 2 * index + (user ? 0 : 1));
+        }
+        this.order.sort((a, b) => positions.get(a) - positions.get(b));
     }
 
     remove(key) {
@@ -30587,20 +30860,45 @@ class MessageActionsAdapter {
 
 // Source: js/messageActions/adapters/chatgpt.js
 class ChatGPTMessageActionsAdapter extends MessageActionsAdapter {
-    static MESSAGE_SELECTOR = '[data-turn][data-turn-id], [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids]';
-    constructor() { super('chatgpt'); }
+    // Generated images can have a response body directly after the assistant heading, without a search unit.
+    static REPLY_BODY = '[data-conversation-role="assistant"] + [data-response-body][data-chatgpt-search-message-ids]';
+    static MESSAGE_SELECTOR = '[data-turn][data-turn-id], [data-chatgpt-search-unit-key][data-chatgpt-search-message-ids], '
+        + ChatGPTMessageActionsAdapter.REPLY_BODY;
+    constructor() {
+        super('chatgpt');
+        this.virtualHistory = true;
+        this.replyTurns = new Map();
+    }
     isConversationPage() {
         return /^\/(?:c|share)\/[^/]+/.test(location.pathname) || /^\/g\/[^/]+\/c\/[^/]+/.test(location.pathname);
     }
     getRole(element) {
-        return element.getAttribute('data-turn') || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
+        const role = element.getAttribute('data-turn') || element.getAttribute('data-chatgpt-search-unit-key')?.split(':').pop();
+        if (role) return role;
+        if (element.matches(ChatGPTMessageActionsAdapter.REPLY_BODY) && (element.querySelector('img') || element.textContent.trim())) return 'assistant';
     }
     getId(element) {
         return element.getAttribute('data-turn-id') || element.getAttribute('data-chatgpt-search-message-ids')?.trim().split(/\s+/)[0] || '';
     }
     getRoot() { return document.querySelector('[data-thread-find-target="conversation"]') || document.querySelector('main'); }
-    getConversationState() {
-        return this.branchSource?.getConversationBranch?.() || this.getTimelineAdapter()?.getConversationBranch?.() || null;
+    getConversationState({ refresh = false, messages = [] } = {}) {
+        const source = this.branchSource || this.getTimelineAdapter();
+        if (refresh) source?.syncCapturedChatsData?.({ force: true });
+        let branch = source?.getConversationBranch?.() || null;
+        if (branch && messages.length) {
+            const questions = new Set(branch.turnIds);
+            const lastQuestion = branch.turnIds.at(-1);
+            // A mismatch on open may be an edit made before opening the panel.
+            // Wait for the current branch before adopting any cached IDs as its baseline.
+            if (messages.some(message => message.role === 'user' && !questions.has(message.id))) branch = null;
+            else if (branch.lastQuestionAnswered === false
+                && messages.some(message => message.role === 'assistant' && message.turnId === lastQuestion)) {
+                branch = { ...branch, messageTotal: undefined };
+            }
+        }
+        // Reopening an unchanged conversation only reads the shared snapshot.
+        if (refresh && !Number.isInteger(branch?.messageTotal)) source?.syncCapturedChatsData?.({ force: true, refreshLatest: true });
+        return branch;
     }
     subscribeConversationChanges(callback) {
         // Timeline can initialize with a different adapter after message actions have subscribed.
@@ -30611,33 +30909,59 @@ class ChatGPTMessageActionsAdapter extends MessageActionsAdapter {
     }
     getMessages() {
         if (!this.isConversationPage()) return [];
+        if (this.path !== location.pathname) {
+            this.path = location.pathname;
+            this.replyTurns.clear();
+        }
         const selector = ChatGPTMessageActionsAdapter.MESSAGE_SELECTOR;
-        const elements = [...(this.getRoot()?.querySelectorAll(selector) || [])].filter(element => {
+        const messages = new Map();
+        let shellId = '', previousShellId = '', previousUser = '';
+        for (const element of this.getRoot()?.querySelectorAll(selector + ', [data-turn-id-container]') || []) {
+            if (element.closest('[data-ait-owned-ui]')) continue;
+            // Legacy virtual turns keep one shell per role, even when only the pinned final reply has content.
+            const containerId = element.getAttribute('data-turn-id-container');
+            if (containerId) {
+                if (containerId !== shellId) {
+                    previousShellId = shellId;
+                    shellId = containerId;
+                }
+                if (!element.matches(selector)) continue;
+            }
+            if (element.parentElement?.closest(selector)) continue;
             const rect = element.getBoundingClientRect();
-            return ['user', 'assistant'].includes(this.getRole(element)) && this.getId(element) && rect.width > 0 && rect.height > 0
-                && !element.parentElement?.closest(selector) && !element.closest('[data-ait-owned-ui]');
-        });
-        let questionId = '';
-        return elements.map((element, index) => {
             const role = this.getRole(element), id = this.getId(element);
-            if (role === 'user') questionId = id;
+            if (!['user', 'assistant'].includes(role) || !id || rect.width <= 0 || rect.height <= 0) continue;
+            const key = `${role}:${id}`;
+            if (messages.has(key)) continue;
+            let turnId = element.closest('[data-turn-key]')?.getAttribute('data-turn-key');
+            if (role === 'assistant') {
+                if (!turnId && shellId === id) turnId = previousShellId;
+                turnId ||= this.replyTurns.get(id);
+                if (!turnId && shellId !== id) turnId = previousUser;
+                if (turnId) this.replyTurns.set(id, turnId);
+            }
+            messages.set(key, { key, role, id, element, turnId: turnId || id });
+            previousUser = role === 'user' ? id : '';
+        }
+        return Array.from(messages.values(), (message, index) => {
+            const { element, role } = message;
             const state = element.closest('[data-talvt-turn-state]')?.getAttribute('data-talvt-turn-state');
             const streaming = !!element.querySelector('[data-is-streaming="true"], .result-streaming') || element.matches('[data-is-streaming="true"]');
-            const lastGenerating = !state && index === elements.length - 1 && !!window.AIStateMonitor?.getInstance().isGenerating;
-            return { key: `${role}:${id}`, id, role, element,
-                turnId: element.closest('[data-turn-key]')?.getAttribute('data-turn-key') || questionId || id,
+            const lastGenerating = !state && index === messages.size - 1 && !!window.AIStateMonitor?.getInstance().isGenerating;
+            return { ...message,
                 generating: role === 'assistant' && (streaming || (state ? state !== 'complete' : lastGenerating)) };
         });
     }
     getToolbar(message) {
         const reply = message.element;
         const turn = reply.closest('[data-turn-key]') || reply.closest('article') || reply;
+        const user = '[data-chatgpt-search-unit-key$=":user"], [data-turn="user"]';
         const rows = [...turn.querySelectorAll('.turn-action-controls')].filter(row =>
-            !row.closest('[data-chatgpt-search-unit-key$=":user"], [data-turn="user"]'));
+            !row.closest(user));
         const row = rows.find(row => row.closest('[data-turn="assistant"]')
             || row.querySelector('[data-testid="copy-turn-action-button"], [data-testid="good-response-turn-action-button"]')) || rows.at(-1);
         if (row) return row;
-        const copy = turn.querySelector('[data-testid="copy-turn-action-button"]');
+        const copy = [...turn.querySelectorAll('[data-testid="copy-turn-action-button"]')].find(button => !button.closest(user));
         for (let parent = copy?.parentElement, depth = 0; parent && depth < 4; parent = parent.parentElement, depth++) {
             if (parent.querySelectorAll('[data-testid$="turn-action-button"]').length >= 2) return parent;
             if (parent === turn) break;
@@ -30681,6 +31005,49 @@ class ChatGPTMessageActionsAdapter extends MessageActionsAdapter {
             selector: '.turn-action-controls, [data-testid="message-actions"], [data-conversation-role], .sr-only',
             attributes: ['data-turn', 'data-turn-id', 'data-turn-key', 'data-turn-id-container', 'data-chatgpt-search-unit-key',
                 'data-chatgpt-search-message-ids', 'data-content-search-unit-key', 'data-message-author-role', 'data-message-id', 'data-testid', 'data-ait-turn']
+        };
+    }
+
+    createGeneratedImageCache(signal) {
+        // ChatGPT may revoke a gallery's blob URL when it unloads the reply. Keep the original image bytes
+        // for this collector only, including when the same preview is mounted again during traversal.
+        const sources = new Map();
+        signal?.addEventListener('abort', () => sources.clear(), { once: true });
+        const read = async src => {
+            const response = await fetch(src, { signal });
+            if (!response.ok) throw new Error('ImageFailed');
+            const blob = await response.blob();
+            if (!blob.size || !blob.type.startsWith('image/')) throw new Error('ImageFailed');
+            const data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('ImageFailed'));
+                reader.readAsDataURL(blob);
+            });
+            signal?.throwIfAborted();
+            return data;
+        };
+        return element => {
+            const pending = [];
+            for (const img of element.querySelectorAll('[class~="group/generated-image-preview"] > button > img')) {
+                const src = img.currentSrc || img.src;
+                if (!src.startsWith('blob:')) continue;
+                if (!sources.has(src)) {
+                    sources.set(src, read(src).then(data => [src, data], error => {
+                        sources.delete(src);
+                        signal?.throwIfAborted();
+                        if (error?.name === 'AbortError') throw error;
+                        // Leave this URL in the output for the renderer's normal image fallback.
+                        return null;
+                    }));
+                }
+                pending.push(sources.get(src));
+            }
+            if (!pending.length) return null;
+            return Promise.all(pending).then(entries => {
+                signal?.throwIfAborted();
+                return new Map(entries.filter(Boolean));
+            });
         };
     }
     getViewportBounds() {
@@ -30875,10 +31242,15 @@ class ClaudeMessageActionsAdapter extends MessageActionsAdapter {
 
     beforeHistoryScroll() { window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 1000 }); }
 
+    getDomMessageTotal() {
+        const size = Number(document.querySelector('[data-testid="transcript-sizer"] [aria-setsize]')?.getAttribute('aria-setsize'));
+        return Number.isSafeInteger(size) && size > 0 ? size : null;
+    }
+
     getHistoryGap(records) {
         const scope = document.querySelector('[data-testid="transcript-sizer"]');
         if (!scope) return null;
-        const total = Number(scope.querySelector('[aria-setsize]')?.getAttribute('aria-setsize'));
+        const total = this.getDomMessageTotal();
         const seen = new Set([...records.messages.values()].map(message => message.position).filter(Number.isInteger));
         if (total && seen.size >= total) return null;
         const gap = ClaudeAdapter.findTranscriptGap(scope, index => seen.has(index), total);
@@ -31024,6 +31396,9 @@ class KimiMessageActionsAdapter extends MessageActionsAdapter {
         });
     }
 
+    // This adapter reads the complete, non-virtual message list from the chat container.
+    getDomMessageTotal(store) { return store.messages.size; }
+
     getScrollContainer() {
         return document.querySelector(KimiMessageActionsAdapter.SCROLLER) || super.getScrollContainer();
     }
@@ -31150,47 +31525,110 @@ function getMessageActionsAdapter() {
 // Source: js/messageActions/message-loader.js
 /** Shared history traversal, extracted from the ChatGPT export collection flow. */
 class MessageActionLoader {
-    static async load(adapter, { signal, shouldCancel, onMessages = () => {}, stopWhen } = {}) {
+    static async load(adapter, { signal: callerSignal, shouldCancel, onMessages = () => {}, stopWhen, selectAll = false } = {}) {
+        if (callerSignal?.aborted || shouldCancel?.()) throw new DOMException('Cancelled', 'AbortError');
         const url = location.href;
         const scroller = adapter.getScrollContainer();
         const isWindow = scroller === window;
         const reverse = !isWindow && getComputedStyle(scroller).flexDirection === 'column-reverse';
+        const scanUp = selectAll && adapter.platformId === 'chatgpt';
         const top = () => isWindow ? window.scrollY : scroller.scrollTop;
         const range = () => Math.max(0, isWindow ? document.documentElement.scrollHeight - innerHeight : scroller.scrollHeight - scroller.clientHeight);
         const scroll = value => {
+            guard?.protect(isWindow ? document.scrollingElement || document.documentElement : scroller);
             adapter.beforeHistoryScroll?.();
             if (isWindow) window.scrollTo(0, value);
             else scroller.scrollTop = value;
         };
         const initial = top();
+        // Prepending ChatGPT history moves the bottom while its old pixel offset stays unchanged.
+        const initialRange = adapter.platformId === 'chatgpt' ? range() : 0;
+        const startedAtBottom = initialRange > 0 && Math.abs(initial - (reverse ? 0 : initialRange)) <= 1;
+        const preserveReadingPosition = adapter.platformId === 'chatgpt' && !startedAtBottom;
+        const viewportTop = () => isWindow ? 0 : TimelineUtils.getScrollViewportTop(scroller);
+        let readingAnchor = null, readingTop = initial, olderRange = initialRange, loadingOlder = true;
+        const updateReadingPosition = messages => {
+            if (!preserveReadingPosition) return;
+            if (loadingOlder) {
+                // In column-reverse, prepending older turns extends the negative end; the origin stays at the bottom.
+                const nextRange = range();
+                if (!reverse) readingTop += nextRange - olderRange;
+                olderRange = nextRange;
+            }
+            const row = readingAnchor && messages.find(message => message.key === readingAnchor.key);
+            if (row?.element?.isConnected) {
+                readingTop = top() + row.element.getBoundingClientRect().top - viewportTop() - readingAnchor.y;
+            }
+        };
         const records = new MessageSelectionStore();
         const processed = new Set();
+        const owner = adapter.platformId === 'chatgpt' ? new AbortController() : null;
+        const guard = owner && TimelineUtils.createHistoryScrollGuard(owner);
+        // A normal Stop still owns restoration. Another navigation can take over until finally runs.
+        const signals = [callerSignal, owner?.signal].filter(Boolean);
+        const aborted = () => signals.some(signal => signal.aborted);
         const check = () => {
-            if (signal?.aborted || shouldCancel?.() || location.href !== url) throw new DOMException('Cancelled', 'AbortError');
+            if (aborted() || shouldCancel?.() || location.href !== url) throw new DOMException('Cancelled', 'AbortError');
         };
         const wait = ms => new Promise((resolve, reject) => {
-            const abort = () => { clearTimeout(timer); reject(new DOMException('Cancelled', 'AbortError')); };
-            const timer = setTimeout(() => { signal?.removeEventListener('abort', abort); try { check(); resolve(); } catch (error) { reject(error); } }, ms);
-            signal?.addEventListener('abort', abort, { once: true });
-            if (signal?.aborted) abort();
+            const cleanup = () => {
+                clearTimeout(timer);
+                for (const signal of signals) signal.removeEventListener('abort', abort);
+            };
+            const abort = () => { cleanup(); reject(new DOMException('Cancelled', 'AbortError')); };
+            const timer = setTimeout(() => {
+                cleanup();
+                try { check(); resolve(); } catch (error) { reject(error); }
+            }, ms);
+            for (const signal of signals) signal.addEventListener('abort', abort, { once: true });
+            if (aborted()) abort();
         });
         const settle = async () => {
-            for (let attempt = 0; attempt < 30 && adapter.isHistoryLoading(); attempt++) await wait(100);
+            for (let attempt = 0; attempt < 30 && adapter.isHistoryLoading(); attempt++) {
+                await wait(100);
+            }
             if (adapter.isHistoryLoading()) throw new Error('LoadIncomplete');
         };
-        const collect = async () => {
+        const collect = async mounted => {
             check();
-            const current = adapter.getMessages();
-            records.merge(current);
-            for (const message of current) {
-                processed.add(message.id);
-                processed.add(message.turnId);
+            const current = mounted || adapter.getMessages();
+            records.merge(current, { prepend: scanUp });
+            updateReadingPosition(current);
+            if (!scanUp) {
+                for (const message of current) {
+                    processed.add(message.id);
+                    processed.add(message.turnId);
+                }
             }
             await onMessages(current, records.order);
             check();
         };
         try {
-            // Establish a stable top before sweeping down, as in the existing exporter.
+            if (preserveReadingPosition) {
+                const height = isWindow ? innerHeight : scroller.clientHeight;
+                let nearest = Infinity, origin;
+                for (const message of adapter.getMessages()) {
+                    if (!message.key || !message.element?.isConnected) continue;
+                    origin ??= viewportTop();
+                    const rect = message.element.getBoundingClientRect();
+                    const y = rect.top - origin;
+                    if (y >= height || rect.bottom <= origin) continue;
+                    const distance = Math.max(0, y);
+                    if (distance >= nearest) continue;
+                    nearest = distance;
+                    readingAnchor = { key: message.key, y };
+                }
+            }
+            if (scanUp) {
+                guard.protect(isWindow ? document.scrollingElement || document.documentElement : scroller);
+                await this.collectUpward(adapter, {
+                    reverse, top, range, scroll, viewportTop, collect, records,
+                    height: () => isWindow ? innerHeight : scroller.clientHeight,
+                    waitForRender: async ms => { await wait(ms); await settle(); }
+                });
+                return records;
+            }
+            // Targeted recovery and other platforms use their existing top-to-bottom traversal.
             let stable = 0;
             for (let attempt = 0; attempt < 30 && stable < 2; attempt++) {
                 check();
@@ -31205,6 +31643,7 @@ class MessageActionLoader {
                 stable = atTop && Math.abs(before - range()) <= 2 && records.messages.size === count ? stable + 1 : 0;
             }
             if (stable < 2) throw new Error('LoadIncomplete');
+            loadingOlder = false;
             let stagnant = 0;
             const nextTarget = () => adapter.getHistoryTargets().find(element => !processed.has(adapter.getTargetId(element)));
             for (let iteration = 0; iteration < 800; iteration++) {
@@ -31245,8 +31684,101 @@ class MessageActionLoader {
             }
             throw new Error('LoadIncomplete');
         } finally {
-            if (location.href === url && window.AITContentSession?.active !== false) scroll(initial);
+            const keepAtTop = scanUp && records.complete;
+            try {
+                const takenOver = owner?.signal.reason === 'user-navigation' || owner?.signal.reason === 'superseded-navigation';
+                if (!keepAtTop && !takenOver && location.href === url && window.AITContentSession?.active !== false) {
+                    let restoreTop = initial;
+                    if (startedAtBottom) restoreTop = reverse ? 0 : range();
+                    if (preserveReadingPosition) {
+                        // Re-read the message key after remounting; a retained DOM node can belong to a different turn.
+                        // A failed adapter read must still allow the measured history growth to restore the viewport.
+                        let mounted = [];
+                        try { if (readingAnchor) mounted = adapter.getMessages(); } catch {}
+                        updateReadingPosition(mounted);
+                        const limit = range();
+                        restoreTop = reverse ? Math.max(-limit, Math.min(0, readingTop)) : Math.min(limit, Math.max(0, readingTop));
+                    }
+                    scroll(restoreTop);
+                }
+            } finally {
+                guard?.close();
+            }
         }
+    }
+
+    /** Walk overlapping viewports from the newest messages, keeping the cursor across prepended pages. */
+    static async collectUpward(adapter, { reverse, top, range, scroll, viewportTop, height, collect, records, waitForRender }) {
+        const latest = span => reverse ? 0 : span;
+        let previousRange = range(), wantedDistance = 0, anchor = null;
+        let stableTop = 0, stalled = 0, lastDistance = -1;
+        if (Math.abs(top() - latest(previousRange)) > 1) {
+            scroll(latest(previousRange));
+            await waitForRender(400);
+        } else await waitForRender(0);
+        for (let stepsWithoutNewMessages = 0; stepsWithoutNewMessages < 800; stepsWithoutNewMessages++) {
+            const span = range(), y = top(), distance = latest(span) - y;
+            if (Math.abs(span - previousRange) > 1) stableTop = 0;
+            const mounted = adapter.getMessages();
+            const viewportHeight = height();
+            if (viewportHeight <= 0) throw new Error('LoadIncomplete');
+            const overlap = Math.max(1, viewportHeight * .2);
+            const tolerance = wantedDistance === 0 ? 1 : overlap;
+            if (span > previousRange + 1 && distance > wantedDistance + tolerance) {
+                // The host may insert an entire page above us without compensating scrollTop.
+                // Return to the intended overlap before sampling, so the inserted page is visited in order.
+                const sameRow = anchor && mounted.find(row => row.key === anchor.key);
+                const correction = sameRow?.element?.isConnected
+                    ? sameRow.element.getBoundingClientRect().top - viewportTop() - anchor.expectedY
+                    : distance - wantedDistance;
+                if (correction > tolerance) {
+                    previousRange = span;
+                    scroll(Math.min(latest(span), y + correction));
+                    await waitForRender(400);
+                    continue;
+                }
+            }
+            const count = records.messages.size;
+            await collect(mounted);
+            if (records.messages.size > count) stepsWithoutNewMessages = 0;
+            // Capturing a screenshot can itself span a layout update. Recheck this viewport first.
+            previousRange = span;
+            if (Math.abs(range() - span) > 1 || Math.abs(top() - y) > 1) {
+                stableTop = 0;
+                continue;
+            }
+            const atTop = span - distance <= 1;
+            if (atTop && stableTop >= 2 && count === records.messages.size) {
+                const branch = adapter.getConversationState?.();
+                const missingQuestion = branch?.turnIds?.some(id => !records.messages.has('user:' + id));
+                if (!count || missingQuestion || (Number.isInteger(branch?.messageTotal) && count < branch.messageTotal)) {
+                    throw new Error('LoadIncomplete');
+                }
+                if (branch?.turnIds) records.sortByTurnIds(branch.turnIds);
+                records.complete = true;
+                return;
+            }
+            stableTop = atTop && count === records.messages.size ? stableTop + 1 : 0;
+            if (!atTop && distance <= lastDistance + 1 && count === records.messages.size) {
+                if (++stalled >= 5) throw new Error('LoadIncomplete');
+            } else stalled = 0;
+            lastDistance = distance;
+            wantedDistance = Math.min(span, distance + Math.max(1, viewportHeight - overlap));
+            const target = latest(span) - wantedDistance;
+            // A stable row near the incoming viewport distinguishes added history from resizing below.
+            anchor = null;
+            for (const { key, element } of mounted) {
+                if (!element?.isConnected) continue;
+                const rect = element.getBoundingClientRect(), origin = viewportTop();
+                if (rect.bottom > origin && rect.top < origin + overlap) {
+                    anchor = { key, expectedY: rect.top - origin + y - target };
+                    break;
+                }
+            }
+            if (!atTop || stableTop === 0) scroll(target);
+            await waitForRender(atTop ? 500 : 400);
+        }
+        throw new Error('LoadIncomplete');
     }
 }
 
@@ -31330,10 +31862,10 @@ class MessageActionManager {
         button.remove();
         this.entries.delete(button);
     }
-    scan() {
+    scan(records) {
         if (this.stopped) return;
         if (this.session && this.session.url !== location.href) { this.close(); return; }
-        const records = this.adapter.getMessages();
+        records ??= this.adapter.getMessages();
         if (this.session && this.conversationChanged(this.session, records)) { this.invalidate(this.session); return; }
         const currentKeys = new Set(records.map(message => message.key));
         for (const [button, entry] of this.entries) {
@@ -31388,13 +31920,16 @@ class MessageActionManager {
         }
     }
     conversationChanged(session, records) {
-        const next = this.adapter.getConversationState?.();
+        const next = this.adapter.getConversationState?.({ messages: records });
         if (next) {
             const turnIds = new Set(next.turnIds);
             const previousIds = session.conversation?.turnIds
                 || [...session.store.messages.values()].filter(message => message.role === 'user').map(message => message.id);
             if (previousIds.some(id => !turnIds.has(id))) return true;
             session.conversation = next;
+        } else if (session.conversation?.messageTotal !== undefined) {
+            // Keep the last branch IDs for change detection while its replacement snapshot is incomplete.
+            session.conversation = { ...session.conversation, messageTotal: undefined };
         }
         // Replacing a selected reply can also invalidate every later turn on that branch.
         const currentKeys = new Set(records.map(record => record.key));
@@ -31409,11 +31944,12 @@ class MessageActionManager {
     async open(action, initialKey) {
         if (this.session || this.stopped) return;
         this.hideEntryTooltip();
+        const records = this.adapter.getMessages();
         const session = { action, store: new MessageSelectionStore(), controller: new AbortController(), url: location.href, loading: false, busy: false,
-            conversation: this.adapter.getConversationState?.(),
+            conversation: this.adapter.getConversationState?.({ refresh: true, messages: records }),
             trigger: [...this.entries].find(([, entry]) => entry.action === action && entry.key === initialKey)?.[0] };
-        this.session = session; this.scan();
-        session.store.merge(this.adapter.getMessages());
+        this.session = session; this.scan(records);
+        if (!this.current(session)) return;
         if (initialKey) session.store.setSelected(initialKey, true);
         try {
             await window.AITContentLoader.load('message-actions-ui');
@@ -31457,18 +31993,22 @@ class MessageActionManager {
         if (session.loading) { session.ui.update(session); return; }
         const operation = new AbortController(); session.load = operation; session.loading = true; session.notice = '';
         const abort = () => operation.abort(); session.controller.signal.addEventListener('abort', abort, { once: true });
+        const syncOrder = order => {
+            // Preserve selections from windows the loader has yet to visit.
+            const loaded = new Set(order.filter(key => session.store.messages.has(key)));
+            session.store.order = [...loaded, ...session.store.order.filter(key => !loaded.has(key))];
+        };
         session.ui.update(session);
         try {
             const collector = await this.collector(session);
             if (!this.current(session) || operation.signal.aborted) return;
             const result = await MessageActionLoader.load(this.adapter, {
                 signal: operation.signal,
+                selectAll: true,
                 onMessages: async (records, order) => {
                     if (!this.current(session) || operation.signal.aborted) return;
                     session.store.merge(records);
-                    // Keep selected later messages visible while the loader sweeps down from the top.
-                    const loadedKeys = new Set(order);
-                    session.store.order = [...order, ...session.store.order.filter(key => !loadedKeys.has(key))];
+                    syncOrder(order);
                     for (const message of records) {
                         if (!this.current(session) || operation.signal.aborted) return;
                         if (session.store.selected.has(message.key)) await collector?.capture(message);
@@ -31477,13 +32017,14 @@ class MessageActionManager {
                 }
             });
             if (this.current(session) && !operation.signal.aborted) {
+                syncOrder(result.order);
                 session.store.complete = result.complete;
                 session.notice = 'Loaded';
             }
         } catch (error) {
             if (this.current(session) && !operation.signal.aborted) {
-                session.notice = 'LoadIncomplete';
-                if (error.message !== 'LoadIncomplete') this.showError(error, session.action);
+                session.notice = error?.name === 'AbortError' ? 'LoadStopped' : 'LoadIncomplete';
+                if (session.notice !== 'LoadStopped' && error.message !== 'LoadIncomplete') this.showError(error, session.action);
             }
         } finally {
             session.controller.signal.removeEventListener('abort', abort);
@@ -31566,7 +32107,7 @@ class MessageActionManager {
             }
         } catch (error) {
             outcome = operation.signal.aborted || error?.name === 'AbortError' ? 'cancelled' : 'failed';
-            if (this.current(session)) this.showError(error, session.action, copying);
+            if (outcome !== 'cancelled' && this.current(session)) this.showError(error, session.action, copying);
         } finally {
             timing?.report(outcome);
             operation.abort();
@@ -31839,7 +32380,7 @@ const CE_THEMES = ACTIVE_COLOR_PALETTE.map(entry => ({
 const CE_DEFAULT_THEME = 'purple';
 
 /**
- * 小于该尺寸（任一边）的图片视为装饰图（头像、图标等），不作为对话图片导出。
+ * 扫描消息整行时，未识别为正文或附件的图片按此尺寸（任一边）过滤装饰小图。
  */
 const CE_MIN_IMAGE_SIZE = 48;
 
@@ -31996,7 +32537,7 @@ class CEDomToMarkdown {
         }
 
         const collectImage = (img) => {
-            const info = this._extractImageInfo(img, 'assistant');
+            const info = this.extractImage(img, 'assistant', root);
             if (!info) return null;
             if (seenImages.has(info.src)) return null;
             seenImages.add(info.src);
@@ -32004,24 +32545,20 @@ class CEDomToMarkdown {
             return info;
         };
 
-        const markdown = this._renderBlock(root, { collectImage }).trim();
-        const text = this._toPlainText(root).trim();
+        // Mark both ends of each literal line until prose spacing, list indentation and quotes are formatted.
+        const source = root.textContent || '';
+        let boundary = '\u0000';
+        while (source.includes(boundary)) boundary += boundary;
+        const protect = code => code.split('\n').map(line => boundary + line + boundary).join('\n');
+        const finish = text => this._normalizeBlankLines(text).replaceAll(boundary, '');
+        const markdown = this._renderNode(root, { collectImage, protect });
+        const text = this._toPlainText(root, protect);
 
         return {
-            markdown: this._normalizeBlankLines(markdown),
-            text: this._normalizeBlankLines(text),
+            markdown: finish(markdown),
+            text: finish(text),
             images,
         };
-    }
-
-    /**
-     * 从单个 img 元素提取图片信息（供用户消息/助手消息共用）。
-     * @param {HTMLImageElement} img
-     * @param {'user'|'assistant'} role
-     * @returns {Object|null}
-     */
-    extractImage(img, role) {
-        return this._extractImageInfo(img, role);
     }
 
     // ==================== 内部：块级渲染 ====================
@@ -32091,7 +32628,9 @@ class CEDomToMarkdown {
                 return `\n\n${quoted}\n\n`;
             }
             case 'pre':
-                return `\n\n${this._renderCodeBlock(el)}\n\n`;
+                return `\n\n${ctx.protect(this._renderCodeBlock(el))}\n\n`;
+            case 'code':
+                return ctx.protect(this._renderInlineCode(el));
             case 'table':
                 return `\n\n${this._renderTable(el, ctx)}\n\n`;
             case 'img': {
@@ -32139,9 +32678,24 @@ class CEDomToMarkdown {
     _renderCodeBlock(preEl) {
         const codeEl = preEl.querySelector('code') || preEl;
         const lang = this._detectCodeLanguage(preEl, codeEl);
-        const raw = codeEl.textContent || '';
-        const code = raw.replace(/\n+$/, '');
-        return '```' + (lang || '') + '\n' + code + '\n```';
+        const code = this.literalText(codeEl);
+        const fence = this._codeDelimiter(code, 3);
+        return fence + lang + '\n' + code + '\n' + fence;
+    }
+
+    _codeDelimiter(code, minimum) {
+        let length = minimum;
+        for (const match of code.matchAll(/`+/g)) length = Math.max(length, match[0].length + 1);
+        return '`'.repeat(length);
+    }
+
+    _renderInlineCode(el) {
+        const code = this.literalText(el);
+        if (!code) return '';
+        const fence = this._codeDelimiter(code, 1);
+        // CommonMark removes one padding space on each side of a nonblank code span.
+        const pad = /^`|`$/.test(code) || (/^ [\s\S]* $/.test(code) && /[^ ]/.test(code)) ? ' ' : '';
+        return fence + pad + code + pad + fence;
     }
 
     _detectCodeLanguage(preEl, codeEl) {
@@ -32215,8 +32769,7 @@ class CEDomToMarkdown {
                     break;
                 }
                 case 'code': {
-                    const inner = (child.textContent || '').trim();
-                    out += inner ? '`' + inner + '`' : '';
+                    out += ctx.protect(this._renderInlineCode(child));
                     break;
                 }
                 case 'a': {
@@ -32251,7 +32804,35 @@ class CEDomToMarkdown {
 
     // ==================== 内部：纯文本 ====================
 
-    _toPlainText(root) {
+    /** 读取提问和代码的原始空白，兼容文本节点、显式 br 及分行容器。 */
+    literalText(root) {
+        if (!root) return '';
+        // A lone br is the placeholder for an empty editable/paragraph line.
+        if (root.childNodes.length === 1 && root.firstChild.nodeName === 'BR'
+            && /^(DIV|P)$/.test(root.tagName)) return '';
+        const parts = [];
+        let previousBlock = false;
+        for (const node of root.childNodes) {
+            let text;
+            let block = false;
+            if (node.nodeType === Node.TEXT_NODE) {
+                text = node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE && !this._shouldIgnore(node)) {
+                block = /^(DIV|P|PRE|LI|BLOCKQUOTE|SECTION|ARTICLE)$/.test(node.tagName);
+                const formula = this._extractFormula(node);
+                text = formula ? formula.latex : node.tagName === 'BR' ? '\n' : this.literalText(node);
+            } else continue;
+            if (!text && !block) continue;
+            if (parts.length && (block || previousBlock)) parts.push('\n');
+            parts.push(text);
+            previousBlock = block;
+        }
+        return parts.join('');
+    }
+
+    _toPlainText(root, protect) {
+        const codeText = el => protect(this.literalText(el.tagName === 'PRE' ? el.querySelector('code') || el : el));
+        if (root.matches('pre, code')) return codeText(root);
         let out = '';
         const walk = (el) => {
             for (const node of Array.from(el.childNodes)) {
@@ -32272,7 +32853,10 @@ class CEDomToMarkdown {
                 }
 
                 const tag = child.tagName.toLowerCase();
-                if (/^(p|div|li|h[1-6]|blockquote|pre|tr|section|article)$/.test(tag)) {
+                if (tag === 'pre' || tag === 'code') {
+                    out += codeText(child);
+                    if (tag === 'pre') out += '\n';
+                } else if (/^(p|div|li|h[1-6]|blockquote|tr|section|article)$/.test(tag)) {
                     walk(child);
                     out += '\n';
                 } else if (tag === 'br') {
@@ -32318,24 +32902,58 @@ class CEDomToMarkdown {
 
     // ==================== 内部：图片 ====================
 
-    _extractImageInfo(img, role) {
+    /**
+     * @param {HTMLImageElement} img
+     * @param {'user'|'assistant'} role
+     * @param {Element|null} contentRoot - 平台适配器定位出的正文区域。
+     * @returns {Object|null}
+     */
+    extractImage(img, role, contentRoot = null) {
         if (!(img instanceof HTMLImageElement)) return null;
 
         const src = img.currentSrc || img.src || img.getAttribute('src') || '';
-        if (!src || src.startsWith('data:image/gif')) return null;
+        if (!src || img.closest('[hidden], [role="toolbar"], message-actions, [data-testid="message-actions"], '
+            + '[data-cds="MessageActions"], .turn-action-controls, [data-ait-owned-ui], '
+            + '[class*="avatar" i], [data-testid*="avatar" i], img[src*="/user-avatar/"], '
+            + 'img[alt="user avatar" i], img[alt="assistant avatar" i], '
+            + '.sr-only, .visually-hidden, .ds-icon-button, .icon, mat-icon, [data-icon]')) return null;
 
         const width = img.naturalWidth || img.width || 0;
         const height = img.naturalHeight || img.height || 0;
-
-        // 过滤过小的装饰图（头像/图标）。尺寸未知时（width=0）保留。
-        if (width && height && (width < this.minImageSize || height < this.minImageSize)) {
-            return null;
+        const alt = (img.getAttribute('alt') || '').trim();
+        const inContent = contentRoot?.contains(img);
+        const button = img.closest('button, [role="button"]');
+        const attachment = img.closest('generated-image, single-image, user-uploaded-image, '
+            + '[data-attachment-id], [data-file-id], [data-testid*="attachment" i], [data-test-id*="attachment" i], '
+            + '[class*="attachment" i], [class*="generated-image" i], [class*="image-preview" i], '
+            + '[data-testid*="image-preview" i], [data-test-id*="image-preview" i], [data-testid*="generated-image" i]');
+        const namedImage = /\.(?:png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(alt)
+            || /^(?:(?:uploaded|generated) image|(?:已上传|生成)的图片)$/i.test(alt);
+        let mediaImage = attachment || namedImage;
+        if (button) {
+            const label = (button.getAttribute('aria-label') || button.title || '').trim();
+            const preview = /^(?:open|view|preview|enlarge|expand|zoom)\b.*\b(?:image|photo|attachment)\b|^(?:查看|预览|放大)(?:原图|图片|附件)/i.test(label);
+            mediaImage ||= preview;
+            // 正文预览按钮可能没有标签或使用其他语言；用显示尺寸区分缩略图和图标。
+            const contentThumbnail = inContent && (img.width || width) >= this.minImageSize
+                && (img.height || height) >= this.minImageSize;
+            if (!mediaImage && !contentThumbnail) return null;
+            const isAction = /^(?:copy|download|edit|remove|delete|share|more actions)\b|^(?:复制|下载|编辑|移除|删除|分享|更多)/i.test(label);
+            // 下载按钮有时直接以附件缩略图为内容；附件容器旁的下载图标则跳过。
+            const generatedPreview = /^(?:edit\b|编辑)/i.test(label)
+                && img.matches('[class~="group/generated-image-preview"] > button > img');
+            if (isAction && !generatedPreview && !namedImage && !(attachment && attachment !== button && button.contains(attachment))) return null;
         }
+        if (!mediaImage && img.closest('[aria-hidden="true"], [role="presentation"]')) return null;
+        const isContent = mediaImage || inContent || img.closest('figure, picture');
+        // 扫描整条消息时，只有正文和附件以外的未识别图片才按旧规则过滤。
+        if (!isContent && (src.startsWith('data:image/gif')
+            || (width && height && (width < this.minImageSize || height < this.minImageSize)))) return null;
 
         return {
             role,
             src,
-            alt: (img.getAttribute('alt') || '').trim(),
+            alt,
             width,
             height,
         };
@@ -32372,7 +32990,7 @@ class CEDomToMarkdown {
  * - 「平台事实」优先委托时间轴 adapter（单一事实来源）：用户/助手消息选择器、
  *   对话路由判断、按钮插入锚点、会话标题、滚动容器；时间轴未运行时，选择器回退到
  *   全局 registry 里同平台的时间轴 adapter（仍是单一来源，无需重复维护），其余回退子类兜底
- * - 通用抽取 helper：_domMarkdownFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
+ * - 通用抽取 helper：_extractAssistantFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
  * - 默认主题色、平台名等派生信息
  *
  * 「平台相关」的取数由子类实现（DOM 范式见 gemini.js / chatgpt.js）。
@@ -32523,26 +33141,6 @@ class CEExportAdapter {
     // ---------- 通用 helper（供子类复用平台无关的抽取模式） ----------
 
     /**
-     * 从消息元素里挑选「正文根节点」并转 markdown。
-     *
-     * 依次尝试 rootSelectors，命中第一个作为正文根；都不命中时退化为 el 本身。
-     * 用于消除各平台 _extractAssistant 里「找 .markdown 等正文根再交给 domToMarkdown」的重复。
-     *
-     * @param {Element} el - 消息元素（如 model-response / 助手轮）
-     * @param {string[]} [rootSelectors] - 正文根候选选择器（按优先级）
-     * @returns {{markdown:string, text:string, images:Array}}
-     */
-    _domMarkdownFrom(el, rootSelectors = []) {
-        if (!el) return { markdown: '', text: '', images: [] };
-        let root = null;
-        for (const sel of rootSelectors) {
-            try { root = el.querySelector(sel); } catch { root = null; }
-            if (root) break;
-        }
-        return this.domToMarkdown.convert(root || el);
-    }
-
-    /**
      * 把「按文档顺序排列、带角色的元素序列」配对成一问一答的 turn 单元。
      *
      * 以用户消息为锚：其后、下一个用户消息之前的第一个助手消息作为该轮回复。
@@ -32574,17 +33172,18 @@ class CEExportAdapter {
     }
 
     /**
-     * 收集元素内的对话图片（按 src 去重，过滤装饰小图，规则见 CEDomToMarkdown.extractImage）。
+     * 扫描整行以补收正文外的附件；正文范围用于区分小图与界面装饰。
      * @param {Element} root
      * @param {'user'|'assistant'} role
+     * @param {Element} contentRoot
      * @returns {Array}
      */
-    _collectImagesFrom(root, role) {
+    _collectImagesFrom(root, role, contentRoot) {
         if (!root) return [];
         const images = [];
         const seen = new Set();
         root.querySelectorAll('img').forEach(img => {
-            const info = this.domToMarkdown.extractImage(img, role);
+            const info = this.domToMarkdown.extractImage(img, role, contentRoot);
             if (info && !seen.has(info.src)) {
                 seen.add(info.src);
                 images.push(info);
@@ -32619,14 +33218,10 @@ class CEExportAdapter {
     _extractUserFrom(userEl, rootSelectors = []) {
         if (!userEl) return { text: '', images: [], time: null };
         const root = this._contentRootFrom(userEl, rootSelectors);
-        const text = (root?.textContent || '')
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .join('\n');
+        const text = this.domToMarkdown.literalText(root);
         return {
             text,
-            images: this._collectImagesFrom(userEl, 'user'),
+            images: this._collectImagesFrom(userEl, 'user', root),
             time: this._getAskTime(userEl),
         };
     }
@@ -32639,9 +33234,10 @@ class CEExportAdapter {
      */
     _extractAssistantFrom(assistantEl, rootSelectors = []) {
         if (!assistantEl) return { markdown: '', text: '', images: [] };
-        const result = this._domMarkdownFrom(assistantEl, rootSelectors);
+        const root = this._contentRootFrom(assistantEl, rootSelectors);
+        const result = this.domToMarkdown.convert(root);
         const seen = new Set(result.images.map(image => image.src));
-        this._collectImagesFrom(assistantEl, 'assistant').forEach(image => {
+        this._collectImagesFrom(assistantEl, 'assistant', root).forEach(image => {
             if (seen.has(image.src)) return;
             seen.add(image.src);
             result.images.push(image);
@@ -33053,43 +33649,24 @@ class CEGeminiExportAdapter extends CEExportAdapter {
         if (!userEl) return { text: '', images: [], time: null };
 
         // 文本：优先 .query-text-line（保留换行），回退整体文本
-        const lines = userEl.querySelectorAll('.query-text-line');
+        const queryText = userEl.querySelector('.query-text') || userEl;
+        const lines = queryText.querySelectorAll('.query-text-line');
         let text = '';
         if (lines.length) {
             text = Array.from(lines)
-                .map(line => (line.textContent || '').trim())
-                .filter(Boolean)
+                .map(line => this.domToMarkdown.literalText(line))
                 .join('\n');
         } else {
-            const queryText = userEl.querySelector('.query-text') || userEl;
-            text = (queryText.textContent || '').replace(/\s+/g, ' ').trim();
+            text = this.domToMarkdown.literalText(queryText);
         }
 
-        const images = this._collectImagesFrom(userEl, 'user');
+        const images = this._collectImagesFrom(userEl, 'user', queryText);
         return { text, images, time: this._getAskTime(userEl) };
     }
 
     _extractAssistant(modelEl) {
-        if (!modelEl) {
-            return { markdown: '', text: '', images: [] };
-        }
-
-        // 文本/markdown 限定在正文根（避免把界面文字当正文）。
-        const result = this._domMarkdownFrom(modelEl, ['.markdown', 'message-content', '.model-response-text']);
-
-        // 图片检测独立于正文根：直接扫描整个 model-response 补收图片，按 src 去重合并。
-        // 原因：Gemini 生成图片常被包在 <button>（点击放大）里，DOM→markdown 会整体跳过
-        // button 子树而漏收；且不同/后续版本可能把图片放在 .markdown 之外。扫描整个回复容器
-        // 更抗平台结构变动，装饰性小图标由 _extractImageInfo 的尺寸/gif 过滤剔除。
-        const seen = new Set(result.images.map(img => img.src));
-        this._collectImagesFrom(modelEl, 'assistant').forEach(img => {
-            if (!seen.has(img.src)) {
-                seen.add(img.src);
-                result.images.push(img);
-            }
-        });
-
-        return result;
+        // 可点击的生成图片有时在 Markdown 正文之外，由整行的附件扫描补收。
+        return this._extractAssistantFrom(modelEl, ['.markdown', 'message-content', '.model-response-text']);
     }
 }
 
@@ -33222,22 +33799,11 @@ class CEChatGPTExportAdapter extends CEExportAdapter {
     // ==================== 内部 ====================
 
     _extractUser(userEl) {
-        const text = this._domUserText(userEl);
-        const images = this._collectImagesFrom(userEl, 'user');
-        return { text, images, time: this._getAskTime(userEl) };
+        return this._extractUserFrom(userEl, ['[data-user-message-bubble]', '.whitespace-pre-wrap']);
     }
 
     _extractAssistant(assistantEl) {
-        if (!assistantEl) return { markdown: '', text: '', images: [] };
-        return this._domMarkdownFrom(assistantEl, ['[data-markdown-text-style="assistant-message"]', '.markdown', '[data-message-author-role="assistant"]']);
-    }
-
-    _domUserText(userEl) {
-        if (!userEl) return '';
-        const textEl = userEl.querySelector('[data-user-message-bubble]')
-            || userEl.querySelector('.whitespace-pre-wrap');
-        const raw = textEl ? textEl.textContent : userEl.textContent;
-        return (raw || '').replace(/\s+/g, ' ').trim();
+        return this._extractAssistantFrom(assistantEl, ['[data-markdown-text-style="assistant-message"]', '.markdown', '[data-message-author-role="assistant"]']);
     }
 
 }
@@ -33535,9 +34101,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _extractUser(element) {
-        const content = this.domToMarkdown.convert(element);
-        return { text: content.text, images: this._collectImagesFrom(
-            element.closest('[data-cds="UserMessage"], [data-test-render-count]') || element, 'user'
+        return { text: this.domToMarkdown.literalText(element), images: this._collectImagesFrom(
+            element.closest('[data-cds="UserMessage"], [data-test-render-count]') || element, 'user', element
         ), time: this._getAskTime(element)
             || this._getAskTime(element.closest('[data-test-render-count]')) };
     }
@@ -34133,14 +34698,23 @@ class ConversationExportAction {
         const stored = await chrome.storage.local.get(this.optionsKey);
         return new CEExportOptions(await exporter.getDefaultThemeId(), stored[this.optionsKey]);
     }
-    async createCollector({ adapter }) {
+    async createCollector({ adapter, signal }) {
         const exporter = new CE_EXPORT_ADAPTERS[adapter.platformId]();
         const times = await exporter._loadAskTimes?.();
         const cache = new Map();
+        const preserveImages = adapter.createGeneratedImageCache?.(signal);
         return {
-            capture(message) {
+            async capture(message) {
                 if (!message.element?.isConnected || message.generating) return;
                 const content = message.role === 'user' ? exporter._extractUser(message.element) : exporter._extractAssistant(message.element);
+                const images = message.role === 'assistant' && preserveImages?.(message.element);
+                if (images) {
+                    const sources = await images;
+                    for (const image of content.images) {
+                        const saved = sources.get(image.src);
+                        if (saved) image.src = saved;
+                    }
+                }
                 if (message.role === 'user' && times) {
                     const timeKey = exporter.getSelectedAskTimeKey(message);
                     if (timeKey) content.time = times[timeKey] || content.time || null;
@@ -34367,6 +34941,7 @@ class MessageScreenshotAction {
         signal.throwIfAborted();
         const cache = new Map();
         const rules = adapter.getSnapshotRules();
+        const preserveImages = adapter.createGeneratedImageCache?.(signal);
         let nodeCount = 0;
         return {
             async capture(message, timing) {
@@ -34387,6 +34962,18 @@ class MessageScreenshotAction {
                 if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
                 const snapshotReady = timing?.start('clone DOM and styles');
                 const snapshot = MessageScreenshotSnapshot.capture(element, rules.selector, rules.attributes);
+                const images = message.role === 'assistant' && preserveImages?.(element);
+                if (images) {
+                    const sources = await images;
+                    for (const img of snapshot.content.querySelectorAll('img')) {
+                        const saved = sources.get(img.src);
+                        if (saved) img.src = saved;
+                    }
+                    signal.throwIfAborted();
+                    // Two overlapping captures may share a blob read. Only charge the completed snapshot once.
+                    if (cache.get(message.key) !== previous) return;
+                    if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
+                }
                 snapshotReady?.({ elements: count });
                 nodeCount += count - (previous?.nodeCount || 0);
                 cache.set(message.key, { ...snapshot, source: element, html, signature, nodeCount: count });

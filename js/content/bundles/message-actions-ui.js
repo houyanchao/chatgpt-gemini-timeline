@@ -263,6 +263,18 @@ class MessageSelectionUI {
         if (element.textContent !== value) element.textContent = value;
     }
 
+    getMessageTotal({ store, conversation }) {
+        const discovered = store.messages.size;
+        const total = conversation?.messageTotal;
+        if (Number.isSafeInteger(total) && total >= discovered && Array.isArray(conversation.turnIds)) {
+            const branch = new Set(conversation.turnIds);
+            if ([...store.messages.values()].every(message => message.role !== 'user' || branch.has(message.id))) return total;
+        }
+        if (store.complete) return discovered;
+        const domTotal = this.adapter.getDomMessageTotal?.(store);
+        return Number.isSafeInteger(domTotal) && domTotal >= discovered ? domTotal : '…';
+    }
+
     update(session) {
         this.session = session;
         const { store, loading, busy, notice, busyKind } = session;
@@ -301,7 +313,7 @@ class MessageSelectionUI {
         this.hint.hidden = !state;
         if (this.compactBar) this.heading.hidden = !state;
         this.hint.dataset.state = busy ? 'busy' : loading ? 'loading' : notice === 'LoadIncomplete' ? 'warning' : 'ready';
-        this.setText(this.status, this.text('Selected').replace('{count}', count).replace('{total}', store.eligible.length));
+        this.setText(this.status, this.text('Selected').replace('{count}', count).replace('{total}', this.getMessageTotal(session)));
         for (const [key, entry] of this.labels) {
             if (!store.messages.has(key)) {
                 entry.label.remove();

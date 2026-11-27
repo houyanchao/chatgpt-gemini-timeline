@@ -69,10 +69,15 @@ class ClaudeMessageActionsAdapter extends MessageActionsAdapter {
 
     beforeHistoryScroll() { window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 1000 }); }
 
+    getDomMessageTotal() {
+        const size = Number(document.querySelector('[data-testid="transcript-sizer"] [aria-setsize]')?.getAttribute('aria-setsize'));
+        return Number.isSafeInteger(size) && size > 0 ? size : null;
+    }
+
     getHistoryGap(records) {
         const scope = document.querySelector('[data-testid="transcript-sizer"]');
         if (!scope) return null;
-        const total = Number(scope.querySelector('[aria-setsize]')?.getAttribute('aria-setsize'));
+        const total = this.getDomMessageTotal();
         const seen = new Set([...records.messages.values()].map(message => message.position).filter(Number.isInteger));
         if (total && seen.size >= total) return null;
         const gap = ClaudeAdapter.findTranscriptGap(scope, index => seen.has(index), total);

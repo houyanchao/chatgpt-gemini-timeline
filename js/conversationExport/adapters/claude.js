@@ -48,9 +48,8 @@ class CEClaudeExportAdapter extends CEExportAdapter {
     }
 
     _extractUser(element) {
-        const content = this.domToMarkdown.convert(element);
-        return { text: content.text, images: this._collectImagesFrom(
-            element.closest('[data-cds="UserMessage"], [data-test-render-count]') || element, 'user'
+        return { text: this.domToMarkdown.literalText(element), images: this._collectImagesFrom(
+            element.closest('[data-cds="UserMessage"], [data-test-render-count]') || element, 'user', element
         ), time: this._getAskTime(element)
             || this._getAskTime(element.closest('[data-test-render-count]')) };
     }

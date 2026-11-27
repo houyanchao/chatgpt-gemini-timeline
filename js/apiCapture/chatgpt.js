@@ -10,7 +10,7 @@
 // 未渲染轮次的内容在 DOM/fiber 中物理不存在。
 // 兼容旧版 conversation/{id} mapping 和新版 conversations/{id} messages 分页。
 // 时间轴启用后补齐历史，提供当前分支的完整提问列表，不依赖页面保留所有轮次 DOM。
-// （对话导出不依赖本模块：导出走滚动渲染 + DOM 采集，见 conversationExport 的 ChatGPT 适配器。）
+// 消息选择面板可读取完整分支的可选消息总数，导出正文仍由 DOM 采集。
 //
 // 【数据解析】
 // 1. 沿 current_node 父链回溯 mapping，线性化出当前显示分支的节点序列；
@@ -40,7 +40,7 @@
   const latestAppliedRequestByConversation = new Map(); // convId → 已成功应用的请求序号
   const latestSnapshotRequestByConversation = new Map(); // convId → 最新发起的快照请求序号
   const timelineEntriesByConversation = new Map();
-  const sectionedSources = new Map();
+  const historySources = new Map();
   const historyLoads = new Map();
   const emitHistoryLoading = conversationId => {
     document.dispatchEvent(new CustomEvent('ait-gpt-history-loading', {
@@ -53,11 +53,11 @@
     const sequence = ++nextRequestSequence;
     latestSnapshotRequestByConversation.set(conversationId, sequence);
     const previousLoad = historyLoads.get(conversationId);
-    previousLoad?.abort();
+    previousLoad?.controller.abort();
     historyLoads.delete(conversationId);
     if (previousLoad) emitHistoryLoading(conversationId);
     // 新快照可能切换了分支，旧 source 的游标不能再用于补齐历史。
-    sectionedSources.delete(conversationId);
+    historySources.delete(conversationId);
     return sequence;
   };
 
@@ -99,58 +99,126 @@
     }
   };
 
+  const isVisibleQuestion = m => m?.id && m.author?.role === 'user'
+    && !m.metadata?.is_visually_hidden_from_conversation && isForUser(m);
+
   const userEntries = (messages) => messages
-    .filter(m => m?.id && m.author?.role === 'user'
-      && !m.metadata?.is_visually_hidden_from_conversation && isForUser(m))
+    .filter(isVisibleQuestion)
     .map(m => ({ id: m.id, text: textFromMessage(m).replace(/\s+/g, ' ').trim().slice(0, 200) || '[图片或文件]' }));
 
-  const publishEntries = (conversationId, entries, complete, requestSequence) => {
+  // Generated images can be the entire visible reply, without an assistant text message.
+  const isVisibleToolImage = m => m.recipient === 'all' && m.status === 'finished_successfully'
+    && m.content?.content_type === 'multimodal_text' && Array.isArray(m.content.parts)
+    && m.content.parts.some(part => part?.content_type === 'image_asset_pointer'
+      && typeof part.asset_pointer === 'string' && part.asset_pointer.trim());
+
+  // Adjacent assistant and tool messages form a single selectable reply for the question.
+  const selectableCounts = (messages, questions) => {
+    let replies = 0, hasReply = false, uncertain = false;
+    for (const m of messages) {
+      if (!m?.id || !m.author?.role) return undefined;
+      if (isVisibleQuestion(m)) {
+        if (uncertain && !hasReply) return undefined;
+        hasReply = false;
+        uncertain = false;
+        continue;
+      }
+      if (m.metadata?.is_visually_hidden_from_conversation || !isForUser(m)) continue;
+      const type = m.content?.content_type;
+      if (hasReply || m.channel === 'analysis' || type === 'thoughts' || type === 'reasoning_recap') continue;
+      if (m.author.role === 'tool') {
+        if (!isVisibleToolImage(m)) { uncertain = true; continue; }
+      } else if (m.author.role === 'assistant') {
+        if (!isModelAuthored(m) || !isVisibleType(m) || !Array.isArray(m.content.parts)) {
+          uncertain = true;
+          continue;
+        }
+        if (!m.content.parts.some(part => textFromPart(part).trim() || part?.asset_pointer)) {
+          if (m.status === 'in_progress' || m.content.parts.some(part => part && typeof part === 'object')) uncertain = true;
+          continue;
+        }
+      } else continue;
+      replies++;
+      hasReply = true;
+    }
+    if (!uncertain || hasReply) return { messageTotal: questions + replies, lastQuestionAnswered: hasReply };
+  };
+
+  const branchSnapshot = (messages, complete, revision) => {
+    const entries = userEntries(messages);
+    const counts = complete ? selectableCounts(messages, entries.length) : undefined;
+    return { entries, revision, complete, ...counts };
+  };
+
+  const publishEntries = (conversationId, messages, complete, requestSequence) => {
     if (latestSnapshotRequestByConversation.get(conversationId) !== requestSequence
       || latestAppliedRequestByConversation.get(conversationId) !== requestSequence) return;
-    timelineEntriesByConversation.set(conversationId, {
-      entries, complete, revision: requestSequence
-    });
-    replaceTexts(conversationId, Object.fromEntries(entries.map(entry => [entry.id, entry.text])));
+    const snapshot = branchSnapshot(messages, complete, requestSequence);
+    timelineEntriesByConversation.set(conversationId, snapshot);
+    replaceTexts(conversationId, Object.fromEntries(snapshot.entries.map(entry => [entry.id, entry.text])));
     document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-updated', { detail: conversationId }));
   };
 
-  // 历史请求沿用页面请求的认证头，仅在时间轴请求数据后启动；不修改页面响应。
-  const ensureFullHistory = async (conversationId) => {
-    const source = sectionedSources.get(conversationId);
-    if (!location.pathname.split('/').includes(conversationId) || !source || historyLoads.has(conversationId)
+  // 时间轴补历史、选择面板刷新总数共用页面已经成功读取的会话接口。
+  const ensureFullHistory = async (conversationId, refreshLatest = false) => {
+    const source = historySources.get(conversationId);
+    if (!location.pathname.split('/').includes(conversationId) || !source
       || latestSnapshotRequestByConversation.get(conversationId) !== source.requestSequence
-      || timelineEntriesByConversation.get(conversationId)?.complete) return;
+      || (!refreshLatest && (!source.json || timelineEntriesByConversation.get(conversationId)?.complete))) return;
+    const previousLoad = historyLoads.get(conversationId);
+    if (previousLoad && (!refreshLatest || previousLoad.refreshLatest)) return;
+    // A normal pagination run starts from its cached page and cannot see a newly appended question.
+    previousLoad?.controller.abort();
     const controller = new AbortController();
-    historyLoads.set(conversationId, controller);
+    historyLoads.set(conversationId, { controller, refreshLatest });
     // 等同步拉取返回后再通知，避免状态被外层尚未处理的桥接结果覆盖。
     Promise.resolve().then(() => emitHistoryLoading(conversationId));
-    const isCurrent = () => !controller.signal.aborted && sectionedSources.get(conversationId) === source
+    const isCurrent = () => !controller.signal.aborted && historySources.get(conversationId) === source
       && latestSnapshotRequestByConversation.get(conversationId) === source.requestSequence
       && location.pathname.split('/').includes(conversationId);
     const read = async url => {
       const response = await origFetch(new Request(url, {
-        headers: source.headers, credentials: source.credentials, signal: controller.signal
+        headers: source.headers, credentials: source.credentials, signal: controller.signal,
+        cache: refreshLatest ? 'no-cache' : 'default'
       }));
       if (!response.ok) throw new Error(`History HTTP ${response.status}`);
       return response.json();
     };
     try {
-      // 兼容仍提供完整 mapping 的服务端，优先一份快照，避免逐页请求。
+      let page = source.json, includesLatest = source.includesLatest;
+      if (refreshLatest && page) {
+        // A complete cached first page can predate a question added without another page GET.
+        const url = new URL(source.url);
+        url.searchParams.delete('before');
+        url.searchParams.delete('cursor');
+        page = await read(url);
+        if (!isCurrent() || !Array.isArray(page?.messages)) return;
+        includesLatest = page.page_info?.has_next_page !== true;
+        if (!includesLatest) return;
+        if (page.page_info?.has_previous_page === false) {
+          publishEntries(conversationId, page.messages, true, source.requestSequence);
+          return;
+        }
+      }
+      // 长对话优先使用完整 mapping。计数刷新需与最新分页的末条消息一致。
       try {
-        const fullUrl = new URL(`/backend-api/conversation/${encodeURIComponent(conversationId)}`, location.origin);
+        const fullUrl = page ? new URL(`/backend-api/conversation/${encodeURIComponent(conversationId)}`, location.origin) : source.url;
         const full = await read(fullUrl);
         if (!isCurrent()) return;
-        if (full?.mapping && full.mapping[full.current_node]) {
+        if (full?.mapping?.[full.current_node]) {
           const chain = linearize(full);
-          if (chain.length < 10000 && !(chain[0]?.parent && !full.mapping[chain[0].parent])) {
-            publishEntries(conversationId, userEntries(chain.filter(node => node.message).map(node => ({ ...node.message, id: node.id }))), true, source.requestSequence);
+          const latestId = includesLatest && page?.messages.at(-1)?.id;
+          const leaf = chain.at(-1);
+          if (chain.length < 10000 && !(chain[0]?.parent && !full.mapping[chain[0].parent])
+            && (!latestId || leaf.id === latestId || leaf.message?.id === latestId)) {
+            capture(conversationId, full, source.requestSequence);
             return;
           }
         }
-      } catch (error) {
+      } catch {
         if (!isCurrent()) return;
       }
-      let page = source.json;
+      if (!page) return;
       let messages = [...page.messages];
       const seenCursors = new Set();
       for (let pageIndex = 0; page.page_info?.has_previous_page; pageIndex++) {
@@ -159,6 +227,7 @@
         if (!cursor || seenCursors.has(cursor) || pageIndex >= 200) throw new Error('History pagination made no progress');
         seenCursors.add(cursor);
         const url = new URL(source.url);
+        url.searchParams.delete('cursor');
         url.searchParams.set('num_turns', '100');
         url.searchParams.set('before', cursor);
         const previous = await read(url);
@@ -169,12 +238,13 @@
         if (!older.length) throw new Error('History pagination returned no older messages');
         messages = [...older, ...messages];
         page = previous;
-        publishEntries(conversationId, userEntries(messages), page.page_info?.has_previous_page === false, source.requestSequence);
+        const complete = includesLatest && page.page_info?.has_previous_page === false;
+        if (!refreshLatest || complete) publishEntries(conversationId, messages, complete, source.requestSequence);
       }
     } catch {
       // 保留已读取的历史，结束加载状态，后续可重新尝试。
     } finally {
-      if (historyLoads.get(conversationId) === controller) {
+      if (historyLoads.get(conversationId)?.controller === controller) {
         historyLoads.delete(conversationId);
         emitHistoryLoading(conversationId);
       }
@@ -244,11 +314,10 @@
       latestAppliedRequestByConversation.set(conversationId, requestSequence);
       replaceTexts(conversationId, texts);
       const chain = linearize(json);
-      timelineEntriesByConversation.set(conversationId, {
-        entries: userEntries(chain.filter(node => node.message).map(node => ({ ...node.message, id: node.id }))),
-        revision: json.current_node || '',
-        complete: chain.length < 10000 && !(chain[0]?.parent && !json.mapping[chain[0].parent])
-      });
+      const complete = !!json.mapping[json.current_node] && chain.length < 10000
+        && !(chain[0]?.parent && !json.mapping[chain[0].parent]);
+      const messages = chain.filter(node => node.message).map(node => ({ ...node.message, id: node.id }));
+      timelineEntriesByConversation.set(conversationId, branchSnapshot(messages, complete, json.current_node || ''));
       // 通知 ISOLATED world：该对话的接口文本已写入缓存。
       // 事件只携带对话 ID，消费方再通过既有 pull 协议读取，避免重复传输整份文本。
       document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-updated', {
@@ -273,14 +342,16 @@
       const method = String(args[1]?.method || (typeof args[0] === 'object' ? args[0]?.method : '') || 'GET').toUpperCase();
       const match = rawUrl.match(CONV_URL_RE);
       const sectionedMatch = rawUrl.match(SECTIONED_URL_RE);
-      if (sectionedMatch && method === 'GET') {
-        const conversationId = sectionedMatch[1];
-        const url = new URL(rawUrl, location.href);
+      if (method !== 'GET' || (!sectionedMatch && !match)) return p;
+      const url = new URL(rawUrl, location.href);
+      if (url.origin !== location.origin) return p;
+      const conversationId = (sectionedMatch || match)[1];
+      const headers = new Headers(args[1]?.headers || args[0]?.headers || {});
+      const credentials = args[1]?.credentials || args[0]?.credentials || 'same-origin';
+      if (sectionedMatch) {
         // 页面自身分页只补 DOM，不能替换分支快照或打断扩展的历史补齐。
         const isPagination = url.searchParams.has('before') || url.searchParams.has('cursor');
         if (isPagination && latestSnapshotRequestByConversation.has(conversationId)) return p;
-        const headers = new Headers(args[1]?.headers || args[0]?.headers || {});
-        const credentials = args[1]?.credentials || args[0]?.credentials || 'same-origin';
         const requestSequence = beginSnapshotRequest(conversationId);
         p.then(async response => {
           if (!response?.ok) return;
@@ -288,19 +359,19 @@
           if (!Array.isArray(json.messages)) return;
           if (latestSnapshotRequestByConversation.get(conversationId) !== requestSequence) return;
           latestAppliedRequestByConversation.set(conversationId, requestSequence);
-          sectionedSources.set(conversationId, { url: url.href, headers, credentials, json, requestSequence });
-          const entries = userEntries(json.messages);
-          publishEntries(conversationId, entries, json.page_info?.has_previous_page === false, requestSequence);
+          const includesLatest = !isPagination && json.page_info?.has_next_page !== true;
+          historySources.set(conversationId, { url: url.href, headers, credentials, json, requestSequence, includesLatest });
+          publishEntries(conversationId, json.messages, includesLatest && json.page_info?.has_previous_page === false, requestSequence);
           if (requestedHistories.has(conversationId)) void ensureFullHistory(conversationId);
         }).catch(() => {});
-      }
-      if (match && method === 'GET') {
-        const conversationId = match[1];
+      } else {
         const requestSequence = beginSnapshotRequest(conversationId);
         p.then(resp => {
           if (resp && resp.ok) {
             resp.clone().json()
               .then(json => {
+                if (latestSnapshotRequestByConversation.get(conversationId) !== requestSequence || !json?.mapping) return;
+                historySources.set(conversationId, { url: url.href, headers, credentials, requestSequence });
                 capture(conversationId, json, requestSequence);
               })
               .catch(() => {});
@@ -319,11 +390,11 @@
       const conversationId = typeof request.conversationId === 'string' ? request.conversationId : '';
       if (request.restartHistory === true) {
         // 显式重试必须结束旧请求，否则网络悬挂时会一直被 already-loading 拦住。
-        historyLoads.get(conversationId)?.abort();
+        historyLoads.get(conversationId)?.controller.abort();
         historyLoads.delete(conversationId);
       }
       const bucket = userTextsByConversation.get(conversationId);
-      for (const [id, controller] of historyLoads) {
+      for (const [id, { controller }] of historyLoads) {
         if (id !== conversationId) { controller.abort(); historyLoads.delete(id); emitHistoryLoading(id); }
       }
       requestedHistories.clear();
@@ -338,7 +409,7 @@
           historyLoading: historyLoads.has(conversationId)
         })
       }));
-      void ensureFullHistory(conversationId);
+      void ensureFullHistory(conversationId, request.refreshLatest === true);
     } catch {
       document.dispatchEvent(new CustomEvent('ait-gpt-user-texts-result', {
         detail: JSON.stringify({ conversationId: '', texts: null })

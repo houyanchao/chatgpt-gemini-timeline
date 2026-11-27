@@ -40,7 +40,9 @@ const CETextExporters = {
                 const closing = cursor;
                 while (source[cursor] === '`') cursor++;
                 if (cursor - closing !== size) continue;
-                spans.push({ start, end: cursor, text: source.slice(index, closing) });
+                const raw = source.slice(index, closing);
+                const text = raw.startsWith(' ') && raw.endsWith(' ') && /[^ ]/.test(raw) ? raw.slice(1, -1) : raw;
+                spans.push({ start, end: cursor, text });
                 index = cursor - 1;
                 break;
             }
@@ -214,7 +216,7 @@ const CETextExporters = {
             lines.push('---');
         }
 
-        return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+        return lines.join('\n') + '\n';
     },
 
     /**
@@ -237,9 +239,9 @@ const CETextExporters = {
                 const txtAskTime = options.showConversationTime ? ceFormatChatTime(turn.user?.time) : '';
                 lines.push(txtAskTime ? `${CE_TEXT.exportRoleUser}（${txtAskTime}）：` : `${CE_TEXT.exportRoleUser}：`);
                 lines.push(turn.user?.text ? turn.user.text : CE_TEXT.emptyUserPreview);
-                lines.push('');
             }
             if (this.roleSelected(turn, 'assistant')) {
+                if (this.roleSelected(turn, 'user')) lines.push('');
                 lines.push(`${CE_TEXT.exportRoleAssistant}：`);
                 if (turn.assistant?.text) {
                     lines.push(turn.assistant.text);
@@ -264,7 +266,7 @@ const CETextExporters = {
             lines.push('-'.repeat(40));
         }
 
-        return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+        return lines.join('\n') + '\n';
     },
 
     /**

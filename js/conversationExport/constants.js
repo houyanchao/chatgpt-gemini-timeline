@@ -205,7 +205,7 @@ const CE_THEMES = ACTIVE_COLOR_PALETTE.map(entry => ({
 const CE_DEFAULT_THEME = 'purple';
 
 /**
- * 小于该尺寸（任一边）的图片视为装饰图（头像、图标等），不作为对话图片导出。
+ * 扫描消息整行时，未识别为正文或附件的图片按此尺寸（任一边）过滤装饰小图。
  */
 const CE_MIN_IMAGE_SIZE = 48;
 

@@ -1247,11 +1247,11 @@ class TimelineManager {
             return;
         }
         const previousCount = this.markers.length;
-        const rect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         this.markers = entries.map((entry, index) => {
             const key = this.adapter.extractIndexFromTurnId(entry.id);
             const old = previous.get(entry.id);
-            const offsetTop = entry.element ? entry.element.getBoundingClientRect().top - rect.top + this.scrollContainer.scrollTop : 0;
+            const offsetTop = entry.element ? entry.element.getBoundingClientRect().top - viewportTop + this.scrollContainer.scrollTop : 0;
             return { ...entry, apiBacked: true, offsetTop,
                 offsetBottom: offsetTop + (entry.element?.offsetHeight || 0),
                 visualN: entries.length > 1 ? index / (entries.length - 1) : 0,
@@ -1446,17 +1446,7 @@ class TimelineManager {
         // 节点发生变化，清除旧的 dots，准备重新计算和渲染
         (this.ui.trackContent || this.ui.timelineBar).querySelectorAll('.ait-timeline-dot').forEach(n => n.remove());
         
-        /**
-         * ✅ 使用 getBoundingClientRect 计算元素相对于容器内容区域顶部的距离
-         * 
-         * 公式：elemRect.top - contRect.top + container.scrollTop
-         * 
-         * 解释：
-         * - elemRect.top - contRect.top = 元素相对于容器可见区域顶部的距离
-         * - + scrollTop = 加上已滚动的距离
-         * - 结果 = 元素相对于容器内容区域顶部的绝对距离
-         */
-        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         let containerScrollTop = this.scrollContainer.scrollTop || 0;
         const isReverseScroll = typeof this.adapter.isReverseScroll === 'function'
             && this.adapter.isReverseScroll();
@@ -1465,7 +1455,7 @@ class TimelineManager {
         }
         const getOffsetTop = (element) => {
             const elemRect = rectsMap.get(element) || element.getBoundingClientRect();
-            return elemRect.top - containerRect.top + containerScrollTop;
+            return elemRect.top - viewportTop + containerScrollTop;
         };
         
         /**
@@ -2712,18 +2702,22 @@ class TimelineManager {
         if (targetIndex < 0 || targetIndex >= this.markers.length) return false;
         
         const marker = this.markers[targetIndex];
-        if (this.adapter.supportsDeferredNodeNavigation?.() !== true) {
-            if (!marker?.element) return false;
-            this.smoothScrollTo(marker.element);
-            return true;
-        }
         if (!marker) return false;
+        const deferred = this.adapter.supportsDeferredNodeNavigation?.() === true;
+        if (!deferred && !marker.element) return false;
+        if (deferred && this._pendingMarkerId === marker.id) return true;
         this._markerNavigationController?.abort('superseded-navigation');
         const controller = new AbortController();
         this._markerNavigationController = controller;
+        if (!deferred) {
+            this.smoothScrollTo(marker.element, 600, { signal: controller.signal });
+            return true;
+        }
         const deadline = Date.now() + 120000;
-        const isReady = element => this._isNavigationTargetReady(element);
+        const isReady = element => this._isNavigationTargetReady(element, marker);
         if (!isReady(marker.element) && !this.adapter.resolveTimelineTarget) return false;
+        this._pendingMarkerId = marker.id;
+        const scrollGuard = TimelineUtils.createHistoryScrollGuard(controller);
 
         let loading = null;
         const closeLoading = () => {
@@ -2733,12 +2727,15 @@ class TimelineManager {
         };
         const cleanup = () => {
             closeLoading();
+            scrollGuard.close();
+            if (this._markerNavigationController === controller) this._pendingMarkerId = null;
             controller.signal.removeEventListener('abort', cleanup);
         };
-        // 手动滚动不取消导航；仅显式取消、切换目标或销毁页面时中止。
+        // 查找期间允许普通滚动；用户明确跳转或在到达后接手滚动时让出控制。
         controller.signal.addEventListener('abort', cleanup, { once: true });
         const navigate = async () => {
             let element = marker.element;
+            let landingAttempts = 0;
             while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 if (!isReady(element)) {
                     if (!this.adapter.resolveTimelineTarget) return false;
@@ -2751,7 +2748,7 @@ class TimelineManager {
                     element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
                         controller.signal, undefined, {
                             deadline,
-                            waitForTarget: true,
+                            protectScroll: scrollGuard.protect,
                             conversationContainer,
                             isScopeCurrent,
                             filterRows
@@ -2764,20 +2761,10 @@ class TimelineManager {
                     }
                     if (!isReady(element)) return false;
                 }
-                const reached = await this.smoothScrollTo(element, 400, {
-                    signal: controller.signal,
-                    onComplete: () => {
-                        if (controller.signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return;
-                        const previousId = this.activeTurnId;
-                        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
-                        this.pendingActiveId = null;
-                        this.activeTurnId = marker.id;
-                        this.updateActiveDotUI(); this.syncTimelineTrackToMain();
-                        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
-                    }
-                });
+                const reached = await this._scrollToResolvedMarker(element, marker, controller, scrollGuard);
                 if (reached) return true;
                 // 动画中途被虚拟列表卸载后，继续按原 ID 查找，不使用旧元素或旧序号。
+                if (++landingAttempts >= 3) return false;
                 element = null;
             }
             return false;
@@ -2811,8 +2798,8 @@ class TimelineManager {
         this._markerNavigationController = controller;
         const task = { status: 'loading', getMarker };
         this._nodeNavigationTask = task;
+        const scrollGuard = TimelineUtils.createHistoryScrollGuard(controller);
         const deadline = Date.now() + 120000;
-        const isReady = element => this._isNavigationTargetReady(element);
 
         let loading = null;
         const ensureLoading = () => loading ||= this._showNodeNavigationLoading(controller);
@@ -2824,13 +2811,15 @@ class TimelineManager {
         };
         const onAbort = () => {
             task.status = 'cancelled';
+            scrollGuard.close();
             cleanup();
         };
-        // 手动滚动不取消导航；仅显式取消、切换目标或销毁页面时中止。
+        // 收藏与圆点使用相同的接管规则。
         controller.signal.addEventListener('abort', onAbort, { once: true });
         const navigate = async () => {
             // 收藏重试时重新读取历史；上次请求失败后也能重新启动补齐。
             if (waitForTarget) this.adapter.syncCapturedChatsData?.({ force: true, restartHistory });
+            let landingAttempts = 0;
             while (!controller.signal.aborted && this.isCurrentPage() && Date.now() < deadline) {
                 const marker = getMarker();
                 if (!marker) {
@@ -2839,6 +2828,7 @@ class TimelineManager {
                     continue;
                 }
                 let element = marker.element;
+                const isReady = element => this._isNavigationTargetReady(element, marker);
                 if (!isReady(element)) {
                     ensureLoading();
                     if (this.adapter.resolveTimelineTarget) {
@@ -2848,7 +2838,8 @@ class TimelineManager {
                             && this.scrollContainer === scrollContainer;
                         const filterRows = rows => this._routeRows.filter(this.adapter, rows, this._rowRoute);
                         element = await this.adapter.resolveTimelineTarget(marker, scrollContainer,
-                            controller.signal, undefined, { deadline, waitForTarget, conversationContainer, isScopeCurrent, filterRows });
+                            controller.signal, undefined, { deadline, waitForTarget, protectScroll: scrollGuard.protect,
+                                conversationContainer, isScopeCurrent, filterRows });
                         if (!isScopeCurrent()) continue;
                         if (!isReady(element) && !waitForTarget) return false;
                     }
@@ -2858,26 +2849,15 @@ class TimelineManager {
                         continue;
                     }
                 }
-                const reached = await this.smoothScrollTo(element, 400, {
-                    signal: controller.signal,
-                    onComplete: () => {
-                        if (controller.signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return;
-                        const previousId = this.activeTurnId;
-                        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
-                        this.pendingActiveId = null;
-                        this.activeTurnId = marker.id;
-                        this.updateActiveDotUI(); this.syncTimelineTrackToMain();
-                        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
-                    }
-                });
-                if (reached && this.markerMap.has(marker.id)) return true;
+                if (await this._scrollToResolvedMarker(element, marker, controller, scrollGuard)) return true;
                 // 动画中途被虚拟列表卸载后，继续按原 ID 查找，不使用旧元素或旧序号。
+                if (++landingAttempts >= 3) return false;
             }
             return false;
         };
         task.promise = (async () => {
             try {
-                if (await navigate()) {
+                if (await navigate().finally(scrollGuard.close)) {
                     task.status = 'reached';
                     cleanup();
                     return true;
@@ -2916,61 +2896,133 @@ class TimelineManager {
         return this.scrollToIndex(0);
     }
     
-    _isNavigationTargetReady(element) {
+    async _scrollToResolvedMarker(element, marker, controller, scrollGuard) {
+        const { signal } = controller;
+        const container = this.scrollContainer;
+        // 已挂载的旧提问也可能在视口上方；第一笔滚动就能触发宿主的分页和贴底。
+        if (container && marker.id !== this.markers.at(-1)?.id
+            && element.getBoundingClientRect().top < TimelineUtils.getScrollViewportTop(container)) {
+            scrollGuard.protect(container);
+        }
+        const reached = await this.smoothScrollTo(element, 400, {
+            signal, marker, onUserScroll: () => controller.abort('user-navigation')
+        });
+        if (!reached || signal.aborted || this._destroyed || !this.markerMap.has(marker.id)) return false;
+        const previousId = this.activeTurnId;
+        this.activeChangeTimer = TimelineUtils.clearTimerSafe(this.activeChangeTimer);
+        this.pendingActiveId = null;
+        this.activeTurnId = marker.id;
+        this.updateActiveDotUI();
+        this.syncTimelineTrackToMain();
+        if (previousId !== marker.id) this._emitActiveChange(previousId, marker.id);
+        return true;
+    }
+
+    _isNavigationTargetReady(element, marker) {
+        const currentMarker = marker && (this.markerMap?.get(marker.id) || marker);
         return element?.isConnected
             && (this.adapter.isTimelineTargetInScope?.(element, this.conversationContainer) ?? true)
-            && (this.adapter.isTimelineTargetReady?.(element) ?? true);
+            && (this.adapter.isTimelineTargetReady?.(element, currentMarker) ?? true);
     }
 
     smoothScrollTo(targetElement, duration = 600, navigation = {}) {
         const scrollContainer = this.scrollContainer;
         if (!targetElement || !scrollContainer) return Promise.resolve(false);
 
+        const settleMs = navigation.marker ? 250 : 0;
         const preventAutoScroll = window.__aitPreventAutoScroll;
-        const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + 150 });
+        const navigationId = preventAutoScroll?.notifyUserNavigation?.({ durationMs: duration + settleMs + 150 });
 
         this._recalcMarkerPositions();
         
         const scrollOffset = this.adapter?.getScrollOffset?.() ?? 30;
         const startPosition = scrollContainer.scrollTop;
         
-        // 计算初始目标位置
+        const reverse = navigation.marker && getComputedStyle(scrollContainer).flexDirection === 'column-reverse';
         const getTargetPosition = () => {
-            const containerRect = scrollContainer.getBoundingClientRect();
+            const viewportTop = TimelineUtils.getScrollViewportTop(scrollContainer);
             const targetRect = targetElement.getBoundingClientRect();
-            return targetRect.top - containerRect.top + scrollContainer.scrollTop - scrollOffset;
+            const top = targetRect.top - viewportTop + scrollContainer.scrollTop - scrollOffset;
+            if (!navigation.marker) return top;
+            const max = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+            return reverse ? Math.max(-max, Math.min(0, top)) : Math.max(0, Math.min(max, top));
         };
+        // 跨越整个虚拟窗口的动画会在途中卸载已经找到的目标。
+        const farTarget = navigation.marker && Math.abs(getTargetPosition() - startPosition) > scrollContainer.clientHeight;
+        const animationMs = farTarget ? 0 : duration;
         
         return new Promise(resolve => {
             let startTime = null, finished = false;
+            let settleListeners = null;
+            let lastSettledTop = startPosition, scrollTopBeforeInput = null;
             const finish = reached => {
                 if (finished) return;
                 finished = true;
+                settleListeners?.abort();
                 navigation.signal?.removeEventListener('abort', onAbort);
                 preventAutoScroll?.settleUserNavigation?.({ id: navigationId });
                 resolve(reached);
                 if (reached) navigation.onComplete?.();
             };
             const onAbort = () => finish(false);
+            const onScrollIntent = event => {
+                if (!event.isTrusted || event.defaultPrevented) return;
+                if (event.type === 'wheel' && (!event.deltaY || event.ctrlKey)) return;
+                if (event.type === 'pointerdown' && event.target !== scrollContainer) return;
+                if (event.type === 'keydown') {
+                    if (!['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+                    const target = event.target;
+                    if (target !== document.body && !scrollContainer.contains(target)) return;
+                    if (target.isContentEditable || target.closest?.('input, textarea, select, button, [role="textbox"]')) return;
+                }
+                // Chromium 的合成线程可能已在派发被动 wheel 事件前移动页面。
+                scrollTopBeforeInput ??= lastSettledTop;
+            };
             const animation = currentTime => {
                 if (finished) return;
                 if (navigation.signal?.aborted || !this.isCurrentPage() || this.scrollContainer !== scrollContainer
-                    || scrollContainer.isConnected === false || scrollContainer.contains?.(targetElement) === false
-                    || !this._isNavigationTargetReady(targetElement)) {
+                    || scrollContainer.isConnected === false) {
+                    finish(false);
+                    return;
+                }
+                // 先交接读者的滚动，避免此时目标恰好卸载、触发重新定位。
+                if (scrollTopBeforeInput !== null && Math.abs(scrollContainer.scrollTop - scrollTopBeforeInput) > 1) {
+                    navigation.onUserScroll();
+                    return;
+                }
+                if (scrollContainer.contains?.(targetElement) === false
+                    || !this._isNavigationTargetReady(targetElement, navigation.marker)) {
                     finish(false);
                     return;
                 }
                 if (startTime === null) startTime = currentTime;
-                const progress = Math.min((currentTime - startTime) / duration, 1);
-                const easedProgress = this.easeInOutQuad(progress, 0, 1, 1);
-
-                // 每帧重新计算目标位置，应对 DOM 动态插入。
-                scrollContainer.scrollTop = startPosition + (getTargetPosition() - startPosition) * easedProgress;
-                if (progress < 1) requestAnimationFrame(animation);
-                else {
-                    scrollContainer.scrollTop = getTargetPosition();
-                    finish(true);
+                const elapsed = currentTime - startTime;
+                const destination = getTargetPosition();
+                if (elapsed < animationMs) {
+                    const progress = this.easeInOutQuad(elapsed / animationMs, 0, 1, 1);
+                    scrollContainer.scrollTo({ top: startPosition + (destination - startPosition) * progress, behavior: 'instant' });
+                } else {
+                    // 落点已经到达后，只跟随布局变化，读者开始滚动就立即结束校准。
+                    if (navigation.onUserScroll && !settleListeners) {
+                        settleListeners = new AbortController();
+                        const options = { passive: true, signal: settleListeners.signal };
+                        scrollContainer.addEventListener('wheel', onScrollIntent, options);
+                        scrollContainer.addEventListener('touchmove', onScrollIntent, options);
+                        scrollContainer.addEventListener('pointerdown', onScrollIntent, options);
+                        scrollContainer.ownerDocument?.addEventListener('keydown', onScrollIntent, options);
+                    }
+                    // 图片、附件及相邻轮次挂载后可能再次撑开布局，仅在短暂的校准期内修正。
+                    if (!navigation.marker || Math.abs(destination - scrollContainer.scrollTop) > 1) {
+                        scrollTopBeforeInput = null;
+                        scrollContainer.scrollTo({ top: destination, behavior: 'instant' });
+                    }
+                    lastSettledTop = scrollContainer.scrollTop;
+                    if (elapsed >= animationMs + settleMs) {
+                        finish(!navigation.marker || Math.abs(getTargetPosition() - scrollContainer.scrollTop) <= 1);
+                        return;
+                    }
                 }
+                requestAnimationFrame(animation);
             };
             navigation.signal?.addEventListener('abort', onAbort, { once: true });
             if (navigation.signal?.aborted) finish(false);
@@ -4034,9 +4086,9 @@ class TimelineManager {
         const last = this.markers[this.markers.length - 1];
         // 虚拟列表可能卸载最后提问，不能拿旧位置或 0 去缩减已有留白。
         if (!last?.element?.isConnected || !this.conversationContainer
-            || this.adapter.isTimelineTargetReady?.(last.element) === false) return;
+            || this.adapter.isTimelineTargetReady?.(last.element, last) === false) return;
         const lastOffset = last.element.getBoundingClientRect().top
-            - this.scrollContainer.getBoundingClientRect().top + this.scrollContainer.scrollTop;
+            - TimelineUtils.getScrollViewportTop(this.scrollContainer) + this.scrollContainer.scrollTop;
         const { maxScrollTop } = this._getCleanScrollMetrics();
         this._updateScrollPadding(lastOffset, maxScrollTop);
     }
@@ -4047,9 +4099,9 @@ class TimelineManager {
     _recalcMarkerPositions() {
         if (!this.scrollContainer || this.markers.length === 0) return;
         if (this._apiTimelineMode) {
-            const top = this.scrollContainer.getBoundingClientRect().top;
+            const top = TimelineUtils.getScrollViewportTop(this.scrollContainer);
             this.markers.forEach(marker => {
-                if (!marker.element?.isConnected || this.adapter.isTimelineTargetReady?.(marker.element) === false) return;
+                if (!marker.element?.isConnected || this.adapter.isTimelineTargetReady?.(marker.element, marker) === false) return;
                 marker.offsetTop = marker.element.getBoundingClientRect().top - top + this.scrollContainer.scrollTop;
                 marker.offsetBottom = marker.offsetTop + marker.element.offsetHeight;
             });
@@ -4071,11 +4123,11 @@ class TimelineManager {
             return;
         }
         
-        const containerRect = this.scrollContainer.getBoundingClientRect();
+        const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
         const containerScrollTop = this.scrollContainer.scrollTop || 0;
         const getOffsetTop = (element) => {
             const elemRect = element.getBoundingClientRect();
-            return elemRect.top - containerRect.top + containerScrollTop;
+            return elemRect.top - viewportTop + containerScrollTop;
         };
         
         const { maxScrollTop: cleanMaxScrollTop } = this._getCleanScrollMetrics();
@@ -4122,16 +4174,26 @@ class TimelineManager {
         
         if (this._apiTimelineMode) {
             const loaded = this.markers.filter(marker => marker.element?.isConnected
-                && this.adapter.isTimelineTargetReady?.(marker.element) !== false);
-            const threshold = this.scrollContainer.getBoundingClientRect().top + this.ACTIVATE_AHEAD;
-            activeId = loaded[0]?.id || this.activeTurnId || activeId;
+                && this.adapter.isTimelineTargetReady?.(marker.element, marker) !== false);
+            const viewportTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
+            const threshold = viewportTop + this.ACTIVATE_AHEAD;
+            if (this.markerMap.has(this.activeTurnId)) {
+                activeId = this.activeTurnId;
+            }
             for (const marker of loaded) {
-                if (marker.element.getBoundingClientRect().top > threshold) break;
+                const top = marker.element.getBoundingClientRect().top;
+                if (top > threshold) {
+                    // 首个挂载节点可能是屏幕下方常驻的末条；仅在可见时用它作为起点。
+                    if (marker === loaded[0] && top < viewportTop + this.scrollContainer.clientHeight) {
+                        activeId = marker.id;
+                    }
+                    break;
+                }
                 activeId = marker.id;
             }
         } else if (isReverseScroll) {
             // 反向滚动：实时计算位置
-            const containerTop = this.scrollContainer.getBoundingClientRect().top;
+            const containerTop = TimelineUtils.getScrollViewportTop(this.scrollContainer);
             const activateThreshold = containerTop + this.ACTIVATE_AHEAD;
             
             for (let i = this.markers.length - 1; i >= 0; i--) {

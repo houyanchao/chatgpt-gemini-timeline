@@ -46,7 +46,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "common"
       ],
-      "revision": "2d6ce557b076"
+      "revision": "5cf4066b14f9"
     },
     "panel": {
       "script": "js/content/bundles/panel.js",
@@ -89,7 +89,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "8691990d3f61"
+      "revision": "c1d8d834eb8a"
     },
     "message-screenshot-renderer": {
       "script": "js/content/bundles/message-screenshot-renderer.js",
@@ -105,7 +105,7 @@ globalThis.AITContentConfig = {
       "dependencies": [
         "core"
       ],
-      "revision": "490571bca12a"
+      "revision": "a862b5955341"
     }
   },
   "platformSelectors": [

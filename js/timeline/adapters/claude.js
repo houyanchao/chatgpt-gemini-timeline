@@ -140,7 +140,8 @@ class ClaudeAdapter extends SiteAdapter {
 
     getConversationBranch() {
         if (!this._snapshot || this._snapshot.conversationId !== this.extractConversationId(location.pathname)) return null;
-        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries };
+        return { turnIds: this._snapshot.entries.map(entry => entry.id), questions: this._snapshot.entries,
+            messageTotal: this._liveEntries.size ? undefined : this._snapshot.messageCount };
     }
 
     getCapturedTimelineEntries(userElements, conversationContainer = null) {
@@ -230,8 +231,12 @@ class ClaudeAdapter extends SiteAdapter {
 
     getTimelineStructureAttributeFilter() { return ['data-index', 'data-perf-row']; }
 
-    isTimelineTargetReady(element) {
-        return !!element?.isConnected && element.getBoundingClientRect().height > 0;
+    isTimelineTargetReady(element, marker) {
+        if (!element?.isConnected) return false;
+        // 虚拟列表可复用仍在文档中的行；旧页面没有消息 UUID 时继续按原索引定位。
+        const key = this.extractIndexFromTurnId(marker?.id);
+        if (typeof key === 'string' && this.generateTurnId(element, -1) !== marker.id) return false;
+        return element.getBoundingClientRect().height > 0;
     }
 
     isTimelineTargetInScope(element, scope) {
@@ -277,7 +282,8 @@ class ClaudeAdapter extends SiteAdapter {
                 const row = rows.find(item => Number(item.getAttribute('data-index')) === entry.rowIndex);
                 if (row) {
                     window.__aitPreventAutoScroll?.notifyUserNavigation?.({ durationMs: 1000 });
-                    scrollContainer.scrollTop += row.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top - 80;
+                    scrollContainer.scrollTop += row.getBoundingClientRect().top
+                        - TimelineUtils.getScrollViewportTop(scrollContainer) - 80;
                     await this._waitForTimelineRender(signal);
                     continue;
                 }

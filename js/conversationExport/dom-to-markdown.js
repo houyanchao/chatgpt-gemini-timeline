@@ -44,7 +44,7 @@ class CEDomToMarkdown {
         }
 
         const collectImage = (img) => {
-            const info = this._extractImageInfo(img, 'assistant');
+            const info = this.extractImage(img, 'assistant', root);
             if (!info) return null;
             if (seenImages.has(info.src)) return null;
             seenImages.add(info.src);
@@ -52,24 +52,20 @@ class CEDomToMarkdown {
             return info;
         };
 
-        const markdown = this._renderBlock(root, { collectImage }).trim();
-        const text = this._toPlainText(root).trim();
+        // Mark both ends of each literal line until prose spacing, list indentation and quotes are formatted.
+        const source = root.textContent || '';
+        let boundary = '\u0000';
+        while (source.includes(boundary)) boundary += boundary;
+        const protect = code => code.split('\n').map(line => boundary + line + boundary).join('\n');
+        const finish = text => this._normalizeBlankLines(text).replaceAll(boundary, '');
+        const markdown = this._renderNode(root, { collectImage, protect });
+        const text = this._toPlainText(root, protect);
 
         return {
-            markdown: this._normalizeBlankLines(markdown),
-            text: this._normalizeBlankLines(text),
+            markdown: finish(markdown),
+            text: finish(text),
             images,
         };
-    }
-
-    /**
-     * 从单个 img 元素提取图片信息（供用户消息/助手消息共用）。
-     * @param {HTMLImageElement} img
-     * @param {'user'|'assistant'} role
-     * @returns {Object|null}
-     */
-    extractImage(img, role) {
-        return this._extractImageInfo(img, role);
     }
 
     // ==================== 内部：块级渲染 ====================
@@ -139,7 +135,9 @@ class CEDomToMarkdown {
                 return `\n\n${quoted}\n\n`;
             }
             case 'pre':
-                return `\n\n${this._renderCodeBlock(el)}\n\n`;
+                return `\n\n${ctx.protect(this._renderCodeBlock(el))}\n\n`;
+            case 'code':
+                return ctx.protect(this._renderInlineCode(el));
             case 'table':
                 return `\n\n${this._renderTable(el, ctx)}\n\n`;
             case 'img': {
@@ -187,9 +185,24 @@ class CEDomToMarkdown {
     _renderCodeBlock(preEl) {
         const codeEl = preEl.querySelector('code') || preEl;
         const lang = this._detectCodeLanguage(preEl, codeEl);
-        const raw = codeEl.textContent || '';
-        const code = raw.replace(/\n+$/, '');
-        return '```' + (lang || '') + '\n' + code + '\n```';
+        const code = this.literalText(codeEl);
+        const fence = this._codeDelimiter(code, 3);
+        return fence + lang + '\n' + code + '\n' + fence;
+    }
+
+    _codeDelimiter(code, minimum) {
+        let length = minimum;
+        for (const match of code.matchAll(/`+/g)) length = Math.max(length, match[0].length + 1);
+        return '`'.repeat(length);
+    }
+
+    _renderInlineCode(el) {
+        const code = this.literalText(el);
+        if (!code) return '';
+        const fence = this._codeDelimiter(code, 1);
+        // CommonMark removes one padding space on each side of a nonblank code span.
+        const pad = /^`|`$/.test(code) || (/^ [\s\S]* $/.test(code) && /[^ ]/.test(code)) ? ' ' : '';
+        return fence + pad + code + pad + fence;
     }
 
     _detectCodeLanguage(preEl, codeEl) {
@@ -263,8 +276,7 @@ class CEDomToMarkdown {
                     break;
                 }
                 case 'code': {
-                    const inner = (child.textContent || '').trim();
-                    out += inner ? '`' + inner + '`' : '';
+                    out += ctx.protect(this._renderInlineCode(child));
                     break;
                 }
                 case 'a': {
@@ -299,7 +311,35 @@ class CEDomToMarkdown {
 
     // ==================== 内部：纯文本 ====================
 
-    _toPlainText(root) {
+    /** 读取提问和代码的原始空白，兼容文本节点、显式 br 及分行容器。 */
+    literalText(root) {
+        if (!root) return '';
+        // A lone br is the placeholder for an empty editable/paragraph line.
+        if (root.childNodes.length === 1 && root.firstChild.nodeName === 'BR'
+            && /^(DIV|P)$/.test(root.tagName)) return '';
+        const parts = [];
+        let previousBlock = false;
+        for (const node of root.childNodes) {
+            let text;
+            let block = false;
+            if (node.nodeType === Node.TEXT_NODE) {
+                text = node.textContent;
+            } else if (node.nodeType === Node.ELEMENT_NODE && !this._shouldIgnore(node)) {
+                block = /^(DIV|P|PRE|LI|BLOCKQUOTE|SECTION|ARTICLE)$/.test(node.tagName);
+                const formula = this._extractFormula(node);
+                text = formula ? formula.latex : node.tagName === 'BR' ? '\n' : this.literalText(node);
+            } else continue;
+            if (!text && !block) continue;
+            if (parts.length && (block || previousBlock)) parts.push('\n');
+            parts.push(text);
+            previousBlock = block;
+        }
+        return parts.join('');
+    }
+
+    _toPlainText(root, protect) {
+        const codeText = el => protect(this.literalText(el.tagName === 'PRE' ? el.querySelector('code') || el : el));
+        if (root.matches('pre, code')) return codeText(root);
         let out = '';
         const walk = (el) => {
             for (const node of Array.from(el.childNodes)) {
@@ -320,7 +360,10 @@ class CEDomToMarkdown {
                 }
 
                 const tag = child.tagName.toLowerCase();
-                if (/^(p|div|li|h[1-6]|blockquote|pre|tr|section|article)$/.test(tag)) {
+                if (tag === 'pre' || tag === 'code') {
+                    out += codeText(child);
+                    if (tag === 'pre') out += '\n';
+                } else if (/^(p|div|li|h[1-6]|blockquote|tr|section|article)$/.test(tag)) {
                     walk(child);
                     out += '\n';
                 } else if (tag === 'br') {
@@ -366,24 +409,58 @@ class CEDomToMarkdown {
 
     // ==================== 内部：图片 ====================
 
-    _extractImageInfo(img, role) {
+    /**
+     * @param {HTMLImageElement} img
+     * @param {'user'|'assistant'} role
+     * @param {Element|null} contentRoot - 平台适配器定位出的正文区域。
+     * @returns {Object|null}
+     */
+    extractImage(img, role, contentRoot = null) {
         if (!(img instanceof HTMLImageElement)) return null;
 
         const src = img.currentSrc || img.src || img.getAttribute('src') || '';
-        if (!src || src.startsWith('data:image/gif')) return null;
+        if (!src || img.closest('[hidden], [role="toolbar"], message-actions, [data-testid="message-actions"], '
+            + '[data-cds="MessageActions"], .turn-action-controls, [data-ait-owned-ui], '
+            + '[class*="avatar" i], [data-testid*="avatar" i], img[src*="/user-avatar/"], '
+            + 'img[alt="user avatar" i], img[alt="assistant avatar" i], '
+            + '.sr-only, .visually-hidden, .ds-icon-button, .icon, mat-icon, [data-icon]')) return null;
 
         const width = img.naturalWidth || img.width || 0;
         const height = img.naturalHeight || img.height || 0;
-
-        // 过滤过小的装饰图（头像/图标）。尺寸未知时（width=0）保留。
-        if (width && height && (width < this.minImageSize || height < this.minImageSize)) {
-            return null;
+        const alt = (img.getAttribute('alt') || '').trim();
+        const inContent = contentRoot?.contains(img);
+        const button = img.closest('button, [role="button"]');
+        const attachment = img.closest('generated-image, single-image, user-uploaded-image, '
+            + '[data-attachment-id], [data-file-id], [data-testid*="attachment" i], [data-test-id*="attachment" i], '
+            + '[class*="attachment" i], [class*="generated-image" i], [class*="image-preview" i], '
+            + '[data-testid*="image-preview" i], [data-test-id*="image-preview" i], [data-testid*="generated-image" i]');
+        const namedImage = /\.(?:png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(alt)
+            || /^(?:(?:uploaded|generated) image|(?:已上传|生成)的图片)$/i.test(alt);
+        let mediaImage = attachment || namedImage;
+        if (button) {
+            const label = (button.getAttribute('aria-label') || button.title || '').trim();
+            const preview = /^(?:open|view|preview|enlarge|expand|zoom)\b.*\b(?:image|photo|attachment)\b|^(?:查看|预览|放大)(?:原图|图片|附件)/i.test(label);
+            mediaImage ||= preview;
+            // 正文预览按钮可能没有标签或使用其他语言；用显示尺寸区分缩略图和图标。
+            const contentThumbnail = inContent && (img.width || width) >= this.minImageSize
+                && (img.height || height) >= this.minImageSize;
+            if (!mediaImage && !contentThumbnail) return null;
+            const isAction = /^(?:copy|download|edit|remove|delete|share|more actions)\b|^(?:复制|下载|编辑|移除|删除|分享|更多)/i.test(label);
+            // 下载按钮有时直接以附件缩略图为内容；附件容器旁的下载图标则跳过。
+            const generatedPreview = /^(?:edit\b|编辑)/i.test(label)
+                && img.matches('[class~="group/generated-image-preview"] > button > img');
+            if (isAction && !generatedPreview && !namedImage && !(attachment && attachment !== button && button.contains(attachment))) return null;
         }
+        if (!mediaImage && img.closest('[aria-hidden="true"], [role="presentation"]')) return null;
+        const isContent = mediaImage || inContent || img.closest('figure, picture');
+        // 扫描整条消息时，只有正文和附件以外的未识别图片才按旧规则过滤。
+        if (!isContent && (src.startsWith('data:image/gif')
+            || (width && height && (width < this.minImageSize || height < this.minImageSize)))) return null;
 
         return {
             role,
             src,
-            alt: (img.getAttribute('alt') || '').trim(),
+            alt,
             width,
             height,
         };

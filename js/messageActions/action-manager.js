@@ -75,10 +75,10 @@ class MessageActionManager {
         button.remove();
         this.entries.delete(button);
     }
-    scan() {
+    scan(records) {
         if (this.stopped) return;
         if (this.session && this.session.url !== location.href) { this.close(); return; }
-        const records = this.adapter.getMessages();
+        records ??= this.adapter.getMessages();
         if (this.session && this.conversationChanged(this.session, records)) { this.invalidate(this.session); return; }
         const currentKeys = new Set(records.map(message => message.key));
         for (const [button, entry] of this.entries) {
@@ -133,13 +133,16 @@ class MessageActionManager {
         }
     }
     conversationChanged(session, records) {
-        const next = this.adapter.getConversationState?.();
+        const next = this.adapter.getConversationState?.({ messages: records });
         if (next) {
             const turnIds = new Set(next.turnIds);
             const previousIds = session.conversation?.turnIds
                 || [...session.store.messages.values()].filter(message => message.role === 'user').map(message => message.id);
             if (previousIds.some(id => !turnIds.has(id))) return true;
             session.conversation = next;
+        } else if (session.conversation?.messageTotal !== undefined) {
+            // Keep the last branch IDs for change detection while its replacement snapshot is incomplete.
+            session.conversation = { ...session.conversation, messageTotal: undefined };
         }
         // Replacing a selected reply can also invalidate every later turn on that branch.
         const currentKeys = new Set(records.map(record => record.key));
@@ -154,11 +157,12 @@ class MessageActionManager {
     async open(action, initialKey) {
         if (this.session || this.stopped) return;
         this.hideEntryTooltip();
+        const records = this.adapter.getMessages();
         const session = { action, store: new MessageSelectionStore(), controller: new AbortController(), url: location.href, loading: false, busy: false,
-            conversation: this.adapter.getConversationState?.(),
+            conversation: this.adapter.getConversationState?.({ refresh: true, messages: records }),
             trigger: [...this.entries].find(([, entry]) => entry.action === action && entry.key === initialKey)?.[0] };
-        this.session = session; this.scan();
-        session.store.merge(this.adapter.getMessages());
+        this.session = session; this.scan(records);
+        if (!this.current(session)) return;
         if (initialKey) session.store.setSelected(initialKey, true);
         try {
             await window.AITContentLoader.load('message-actions-ui');
@@ -202,18 +206,22 @@ class MessageActionManager {
         if (session.loading) { session.ui.update(session); return; }
         const operation = new AbortController(); session.load = operation; session.loading = true; session.notice = '';
         const abort = () => operation.abort(); session.controller.signal.addEventListener('abort', abort, { once: true });
+        const syncOrder = order => {
+            // Preserve selections from windows the loader has yet to visit.
+            const loaded = new Set(order.filter(key => session.store.messages.has(key)));
+            session.store.order = [...loaded, ...session.store.order.filter(key => !loaded.has(key))];
+        };
         session.ui.update(session);
         try {
             const collector = await this.collector(session);
             if (!this.current(session) || operation.signal.aborted) return;
             const result = await MessageActionLoader.load(this.adapter, {
                 signal: operation.signal,
+                selectAll: true,
                 onMessages: async (records, order) => {
                     if (!this.current(session) || operation.signal.aborted) return;
                     session.store.merge(records);
-                    // Keep selected later messages visible while the loader sweeps down from the top.
-                    const loadedKeys = new Set(order);
-                    session.store.order = [...order, ...session.store.order.filter(key => !loadedKeys.has(key))];
+                    syncOrder(order);
                     for (const message of records) {
                         if (!this.current(session) || operation.signal.aborted) return;
                         if (session.store.selected.has(message.key)) await collector?.capture(message);
@@ -222,13 +230,14 @@ class MessageActionManager {
                 }
             });
             if (this.current(session) && !operation.signal.aborted) {
+                syncOrder(result.order);
                 session.store.complete = result.complete;
                 session.notice = 'Loaded';
             }
         } catch (error) {
             if (this.current(session) && !operation.signal.aborted) {
-                session.notice = 'LoadIncomplete';
-                if (error.message !== 'LoadIncomplete') this.showError(error, session.action);
+                session.notice = error?.name === 'AbortError' ? 'LoadStopped' : 'LoadIncomplete';
+                if (session.notice !== 'LoadStopped' && error.message !== 'LoadIncomplete') this.showError(error, session.action);
             }
         } finally {
             session.controller.signal.removeEventListener('abort', abort);
@@ -311,7 +320,7 @@ class MessageActionManager {
             }
         } catch (error) {
             outcome = operation.signal.aborted || error?.name === 'AbortError' ? 'cancelled' : 'failed';
-            if (this.current(session)) this.showError(error, session.action, copying);
+            if (outcome !== 'cancelled' && this.current(session)) this.showError(error, session.action, copying);
         } finally {
             timing?.report(outcome);
             operation.abort();

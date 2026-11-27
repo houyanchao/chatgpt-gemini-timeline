@@ -87,42 +87,23 @@ class CEGeminiExportAdapter extends CEExportAdapter {
         if (!userEl) return { text: '', images: [], time: null };
 
         // 文本：优先 .query-text-line（保留换行），回退整体文本
-        const lines = userEl.querySelectorAll('.query-text-line');
+        const queryText = userEl.querySelector('.query-text') || userEl;
+        const lines = queryText.querySelectorAll('.query-text-line');
         let text = '';
         if (lines.length) {
             text = Array.from(lines)
-                .map(line => (line.textContent || '').trim())
-                .filter(Boolean)
+                .map(line => this.domToMarkdown.literalText(line))
                 .join('\n');
         } else {
-            const queryText = userEl.querySelector('.query-text') || userEl;
-            text = (queryText.textContent || '').replace(/\s+/g, ' ').trim();
+            text = this.domToMarkdown.literalText(queryText);
         }
 
-        const images = this._collectImagesFrom(userEl, 'user');
+        const images = this._collectImagesFrom(userEl, 'user', queryText);
         return { text, images, time: this._getAskTime(userEl) };
     }
 
     _extractAssistant(modelEl) {
-        if (!modelEl) {
-            return { markdown: '', text: '', images: [] };
-        }
-
-        // 文本/markdown 限定在正文根（避免把界面文字当正文）。
-        const result = this._domMarkdownFrom(modelEl, ['.markdown', 'message-content', '.model-response-text']);
-
-        // 图片检测独立于正文根：直接扫描整个 model-response 补收图片，按 src 去重合并。
-        // 原因：Gemini 生成图片常被包在 <button>（点击放大）里，DOM→markdown 会整体跳过
-        // button 子树而漏收；且不同/后续版本可能把图片放在 .markdown 之外。扫描整个回复容器
-        // 更抗平台结构变动，装饰性小图标由 _extractImageInfo 的尺寸/gif 过滤剔除。
-        const seen = new Set(result.images.map(img => img.src));
-        this._collectImagesFrom(modelEl, 'assistant').forEach(img => {
-            if (!seen.has(img.src)) {
-                seen.add(img.src);
-                result.images.push(img);
-            }
-        });
-
-        return result;
+        // 可点击的生成图片有时在 Markdown 正文之外，由整行的附件扫描补收。
+        return this._extractAssistantFrom(modelEl, ['.markdown', 'message-content', '.model-response-text']);
     }
 }

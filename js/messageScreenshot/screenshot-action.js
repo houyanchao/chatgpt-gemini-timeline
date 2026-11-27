@@ -44,6 +44,7 @@ class MessageScreenshotAction {
         signal.throwIfAborted();
         const cache = new Map();
         const rules = adapter.getSnapshotRules();
+        const preserveImages = adapter.createGeneratedImageCache?.(signal);
         let nodeCount = 0;
         return {
             async capture(message, timing) {
@@ -64,6 +65,18 @@ class MessageScreenshotAction {
                 if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
                 const snapshotReady = timing?.start('clone DOM and styles');
                 const snapshot = MessageScreenshotSnapshot.capture(element, rules.selector, rules.attributes);
+                const images = message.role === 'assistant' && preserveImages?.(element);
+                if (images) {
+                    const sources = await images;
+                    for (const img of snapshot.content.querySelectorAll('img')) {
+                        const saved = sources.get(img.src);
+                        if (saved) img.src = saved;
+                    }
+                    signal.throwIfAborted();
+                    // Two overlapping captures may share a blob read. Only charge the completed snapshot once.
+                    if (cache.get(message.key) !== previous) return;
+                    if (nodeCount - (previous?.nodeCount || 0) + count > 20000) throw new Error('TooLarge');
+                }
                 snapshotReady?.({ elements: count });
                 nodeCount += count - (previous?.nodeCount || 0);
                 cache.set(message.key, { ...snapshot, source: element, html, signature, nodeCount: count });

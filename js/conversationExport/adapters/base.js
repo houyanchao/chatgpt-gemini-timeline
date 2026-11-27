@@ -8,7 +8,7 @@
  * - 「平台事实」优先委托时间轴 adapter（单一事实来源）：用户/助手消息选择器、
  *   对话路由判断、按钮插入锚点、会话标题、滚动容器；时间轴未运行时，选择器回退到
  *   全局 registry 里同平台的时间轴 adapter（仍是单一来源，无需重复维护），其余回退子类兜底
- * - 通用抽取 helper：_domMarkdownFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
+ * - 通用抽取 helper：_extractAssistantFrom（正文根→markdown）、_pairFlatTurns（扁平角色序列配对）
  * - 默认主题色、平台名等派生信息
  *
  * 「平台相关」的取数由子类实现（DOM 范式见 gemini.js / chatgpt.js）。
@@ -159,26 +159,6 @@ class CEExportAdapter {
     // ---------- 通用 helper（供子类复用平台无关的抽取模式） ----------
 
     /**
-     * 从消息元素里挑选「正文根节点」并转 markdown。
-     *
-     * 依次尝试 rootSelectors，命中第一个作为正文根；都不命中时退化为 el 本身。
-     * 用于消除各平台 _extractAssistant 里「找 .markdown 等正文根再交给 domToMarkdown」的重复。
-     *
-     * @param {Element} el - 消息元素（如 model-response / 助手轮）
-     * @param {string[]} [rootSelectors] - 正文根候选选择器（按优先级）
-     * @returns {{markdown:string, text:string, images:Array}}
-     */
-    _domMarkdownFrom(el, rootSelectors = []) {
-        if (!el) return { markdown: '', text: '', images: [] };
-        let root = null;
-        for (const sel of rootSelectors) {
-            try { root = el.querySelector(sel); } catch { root = null; }
-            if (root) break;
-        }
-        return this.domToMarkdown.convert(root || el);
-    }
-
-    /**
      * 把「按文档顺序排列、带角色的元素序列」配对成一问一答的 turn 单元。
      *
      * 以用户消息为锚：其后、下一个用户消息之前的第一个助手消息作为该轮回复。
@@ -210,17 +190,18 @@ class CEExportAdapter {
     }
 
     /**
-     * 收集元素内的对话图片（按 src 去重，过滤装饰小图，规则见 CEDomToMarkdown.extractImage）。
+     * 扫描整行以补收正文外的附件；正文范围用于区分小图与界面装饰。
      * @param {Element} root
      * @param {'user'|'assistant'} role
+     * @param {Element} contentRoot
      * @returns {Array}
      */
-    _collectImagesFrom(root, role) {
+    _collectImagesFrom(root, role, contentRoot) {
         if (!root) return [];
         const images = [];
         const seen = new Set();
         root.querySelectorAll('img').forEach(img => {
-            const info = this.domToMarkdown.extractImage(img, role);
+            const info = this.domToMarkdown.extractImage(img, role, contentRoot);
             if (info && !seen.has(info.src)) {
                 seen.add(info.src);
                 images.push(info);
@@ -255,14 +236,10 @@ class CEExportAdapter {
     _extractUserFrom(userEl, rootSelectors = []) {
         if (!userEl) return { text: '', images: [], time: null };
         const root = this._contentRootFrom(userEl, rootSelectors);
-        const text = (root?.textContent || '')
-            .split('\n')
-            .map(line => line.trim())
-            .filter(Boolean)
-            .join('\n');
+        const text = this.domToMarkdown.literalText(root);
         return {
             text,
-            images: this._collectImagesFrom(userEl, 'user'),
+            images: this._collectImagesFrom(userEl, 'user', root),
             time: this._getAskTime(userEl),
         };
     }
@@ -275,9 +252,10 @@ class CEExportAdapter {
      */
     _extractAssistantFrom(assistantEl, rootSelectors = []) {
         if (!assistantEl) return { markdown: '', text: '', images: [] };
-        const result = this._domMarkdownFrom(assistantEl, rootSelectors);
+        const root = this._contentRootFrom(assistantEl, rootSelectors);
+        const result = this.domToMarkdown.convert(root);
         const seen = new Set(result.images.map(image => image.src));
-        this._collectImagesFrom(assistantEl, 'assistant').forEach(image => {
+        this._collectImagesFrom(assistantEl, 'assistant', root).forEach(image => {
             if (seen.has(image.src)) return;
             seen.add(image.src);
             result.images.push(image);

@@ -42,6 +42,9 @@ class KimiMessageActionsAdapter extends MessageActionsAdapter {
         });
     }
 
+    // This adapter reads the complete, non-virtual message list from the chat container.
+    getDomMessageTotal(store) { return store.messages.size; }
+
     getScrollContainer() {
         return document.querySelector(KimiMessageActionsAdapter.SCROLLER) || super.getScrollContainer();
     }
